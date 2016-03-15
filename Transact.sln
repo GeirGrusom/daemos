@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transact.Api", "Transact.Ap
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transact.Console", "Transact.Console\Transact.Console.csproj", "{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transact.Postgres", "Transact.Postgres\Transact.Postgres.csproj", "{86504821-37D7-46F2-87E2-EBCC6FFAE235}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Transact.Postgres.Tests", "Transact.Postgres.Tests\Transact.Postgres.Tests.csproj", "{BF9FEA08-39B3-4B02-898C-F942257AB631}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86504821-37D7-46F2-87E2-EBCC6FFAE235}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86504821-37D7-46F2-87E2-EBCC6FFAE235}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86504821-37D7-46F2-87E2-EBCC6FFAE235}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86504821-37D7-46F2-87E2-EBCC6FFAE235}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF9FEA08-39B3-4B02-898C-F942257AB631}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF9FEA08-39B3-4B02-898C-F942257AB631}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF9FEA08-39B3-4B02-898C-F942257AB631}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF9FEA08-39B3-4B02-898C-F942257AB631}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

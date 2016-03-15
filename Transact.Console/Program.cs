@@ -10,24 +10,20 @@ using System.Threading.Tasks;
 using Microsoft.Practices.Unity;
 using Nito.AsyncEx;
 using Transact.Api;
+using Transact.Postgres;
 
 namespace Transact.Console
 {
-
-
-
     class Program
     {
         private static CancellationToken _cancel;
-        private static readonly MemoryStorage Storage = new MemoryStorage();
+        private static ITransactionStorage Storage;
         private static TransactionHandlerFactory HandlerFactory;
         static void Main(string[] args)
         {
+            Storage = new PostgreSqlTransactionStorage();
             var unity = new UnityContainer();
             var httpServer = new HttpServer(new Uri("http://localhost:8080/", UriKind.Absolute), Storage, unity);
-
-
-            
 
             var location = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             var dir = Directory.CreateDirectory(Path.Combine(location, "Modules"));

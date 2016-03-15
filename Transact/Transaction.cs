@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Dynamic;
 
 namespace Transact
 {
@@ -34,7 +35,7 @@ namespace Transact
         public DateTime? Expired { get; set; }
         public object Payload { get; set; }
         public string Script { get; set; }
-        public  TransactionRevision? Parent { get; set; }
+        public TransactionRevision? Parent { get; set; }
         public TransactionState State { get; set; }
         public string Handler { get; set; }
     }
@@ -75,7 +76,7 @@ namespace Transact
         public DateTime Created => _data.Created;
         public DateTime? Expires => _data.Expires;
         public DateTime? Expired => _data.Expired;
-        public dynamic Payload => _data.Payload;
+        public object Payload => _data.Payload;
         public string Script => _data.Script;
         public TransactionState State => _data.State;
         public TransactionRevision? Parent => _data.Parent;

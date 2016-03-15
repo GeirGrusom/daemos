@@ -9,45 +9,6 @@ using System.Threading.Tasks;
 
 namespace Transact
 {
-
-    static class DynamicHelper
-    {
-        public static bool TryGetDynamicProperty<T>(this object value, string name, out T result)
-        {
-            var dict  = value as IDictionary<string, object>;
-            if (dict != null)
-            {
-                object res;
-                if (dict.TryGetValue(name, out res))
-                {
-                    if (res is T)
-                    {
-                        result = (T) res;
-                        return true;
-                    }
-                }
-                result = default(T);
-                return false;
-            }
-            var type = value.GetType();
-            var prop = type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
-            if (prop != null)
-            {
-                if (prop.PropertyType != typeof (T))
-                {
-                    result = default(T);
-                    return false;
-                }
-                object res = prop.GetValue(value);
-                result = (T) res;
-                return true;
-            }
-
-            result = default(T);
-            return false;
-        } 
-    }
-
     public sealed class TransactionCommittedEventArgs : EventArgs
     {
         public Transaction Transaction { get; }
@@ -58,7 +19,7 @@ namespace Transact
         }
     }
 
-    public class MemoryStorage : ITransactionStorage
+    public sealed class MemoryStorage : TransactionStorageBase
     {
         private class TransactionSlot : IEquatable<TransactionSlot>
         {
@@ -101,14 +62,6 @@ namespace Transact
             }
         }
 
-        public event EventHandler<TransactionCommittedEventArgs> TransactionCommitted; 
-
-        private void OnTransactionCommitted(Transaction transaction)
-        {
-            var committed = TransactionCommitted;
-            if(committed != null)
-                committed(this, new TransactionCommittedEventArgs(transaction));
-        }
         private readonly AutoResetEvent _nextExpiringTransactionChangedEvent;
         private DateTime? _nextExpiringTransaction;
         private readonly ConcurrentDictionary<Guid, TransactionSlot> _transactions;
@@ -120,7 +73,7 @@ namespace Transact
             _expiringEvent = new ManualResetEventSlim(false);
             _nextExpiringTransactionChangedEvent = new AutoResetEvent(true);
         }
-        public async Task LockTransaction(Guid id, LockFlags flags, int timeout)
+        public override async Task LockTransaction(Guid id, LockFlags flags, int timeout)
         {
             TransactionSlot slot;
             bool found = _transactions.TryGetValue(id, out slot);
@@ -143,7 +96,7 @@ namespace Transact
                 throw new TimeoutException();
         }
 
-        public IEnumerable<Transaction> GetChildTransactions(Guid id, params TransactionState[] states)
+        public override IEnumerable<Transaction> GetChildTransactions(Guid id, params TransactionState[] states)
         {
             foreach (var transactionSlot in _transactions)
             {
@@ -155,7 +108,7 @@ namespace Transact
             }
         }
 
-        public Task<bool> TryLockTransaction(Guid id, LockFlags flags, int timeout)
+        public override Task<bool> TryLockTransaction(Guid id, LockFlags flags, int timeout)
         {
             TransactionSlot slot;
             bool found = _transactions.TryGetValue(id, out slot);
@@ -175,19 +128,19 @@ namespace Transact
             return slot.Lock.WaitAsync(timeout);
         }
 
-        public Task FreeTransaction(Guid id)
+        public override Task FreeTransaction(Guid id)
         {
             var slot = _transactions[id];
             slot.Lock.Release();
             return Task.FromResult(0);
         }
 
-        public async Task<bool> IsTransactionLocked(Guid id)
+        public override async Task<bool> IsTransactionLocked(Guid id)
         {
             return !await _transactions[id].Lock.WaitAsync(0);
         }
 
-        public Task<Transaction> FetchTransaction(Guid id, int revision = -1)
+        public override Task<Transaction> FetchTransaction(Guid id, int revision = -1)
         {
             TransactionSlot slot;
             if (!_transactions.TryGetValue(id, out slot))
@@ -200,7 +153,7 @@ namespace Transact
             return Task.FromResult(slot.Chain[slot.Chain.Count - 1]);
         }
 
-        public Task<IEnumerable<Transaction>> GetChain(Guid id)
+        public override Task<IEnumerable<Transaction>> GetChain(Guid id)
         {
             TransactionSlot slot;
             if (!_transactions.TryGetValue(id, out slot))
@@ -211,7 +164,7 @@ namespace Transact
             return Task.FromResult((IEnumerable<Transaction>)slot.Chain);
         }
 
-        public Task<Transaction> CreateTransaction(Transaction transaction)
+        public override Task<Transaction> CreateTransaction(Transaction transaction)
         {
             lock (_transactionsByExpiriation)
             {
@@ -258,7 +211,7 @@ namespace Transact
             }
         }
 
-        public Task<Transaction> CommitTransactionDelta(Transaction transaction, Transaction newTransaction)
+        public override Task<Transaction> CommitTransactionDelta(Transaction transaction, Transaction newTransaction)
         {
             var slot = _transactions[transaction.Id];
             var last = _transactions[transaction.Id].Chain.Last();
@@ -299,31 +252,13 @@ namespace Transact
             return Task.FromResult(newTransaction);
         }
 
-        public Task<bool> TransactionExists(Guid id)
+        public override Task<bool> TransactionExists(Guid id)
         {
             return Task.FromResult(_transactions.ContainsKey(id));
         }
 
-        public IEnumerable<Transaction> GetExpiringTransactions(DateTime now, CancellationToken cancel)
+        protected override IEnumerable<Transaction> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
         {
-            // Wait until 
-            try
-            {
-                _expiringEvent.Wait(cancel); // Wait until there are expiring transactions available.
-                if (_nextExpiringTransaction != null)
-                {
-                    var deltaD = (_nextExpiringTransaction.Value - now).TotalMilliseconds;
-                    var delta = deltaD > int.MaxValue ? int.MaxValue : (int) deltaD;
-                    if (delta > 0)
-                        _nextExpiringTransactionChangedEvent.WaitOne(delta);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                return Enumerable.Empty<Transaction>();
-            }
-
-            
             DateTime[] list;
             TransactionSlot[] values;
             lock (_transactionsByExpiriation)
@@ -331,7 +266,7 @@ namespace Transact
                 list = _transactionsByExpiriation.Keys.ToArray();
                 values = _transactionsByExpiriation.Values.ToArray();
             }
-            
+
             int min = 0;
             int max = list.Length - 1;
 
@@ -360,14 +295,15 @@ namespace Transact
             }
 
             return values.Skip(mid).Select(x => x.Chain.Last());
+
         }
 
-        public IQueryable<Transaction> Query()
+        public override IQueryable<Transaction> Query()
         {
             return _transactions.Select(x => x.Value.Head).AsQueryable();
         }
 
-        public async Task<Transaction> WaitFor(Func<Transaction, bool> predicate, int timeout)
+        public override async Task<Transaction> WaitFor(Func<Transaction, bool> predicate, int timeout)
         {
             SemaphoreSlim sem = new SemaphoreSlim(0, 1);
             Transaction result = null;
