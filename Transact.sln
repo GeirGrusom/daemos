@@ -17,6 +17,11 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Transact.Api", "Transact.Ap
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Transact.Console", "Transact.Console\Transact.Console.xproj", "{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C7BD7FEF-7CF6-4CCE-ADD6-721242D95AFB}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE.txt = LICENSE.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
