@@ -64,7 +64,7 @@ namespace Transact.Console
                 }
             }
 
-            Thread listeningThread = new Thread(httpServer.Start)
+            var listeningThread = new Thread(httpServer.Start)
             {
                 Name = "Web Server"
             };
