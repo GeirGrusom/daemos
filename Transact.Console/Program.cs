@@ -3,6 +3,8 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Cons;
+using Cons.Configuration;
 using Transact.Api;
 using Transact.Postgres;
 using Transact.Scripting;
@@ -19,9 +21,30 @@ namespace Transact.Console
             Nito.AsyncEx.AsyncContext.Run(() => MainApp(args));
         }
 
+        private static ITransactionStorage CreateStorageFromSettings(Settings settings)
+        {
+            switch (settings.DatabaseType)
+            {
+                case DatabaseType.PostgreSql:
+                    return new PostgreSqlTransactionStorage(settings.ConnectionString);
+                case DatabaseType.Memory:
+                    return new MemoryStorage();
+                default:
+                    throw new NotSupportedException("Storage mode not supported.");
+            }
+        }
+
         public static async Task MainApp(string[] args)
         {
-            var storage = new PostgreSqlTransactionStorage();
+            var parser = new ConfigurationParser();
+            var settings = new Settings
+            {
+                DatabaseType = DatabaseType.Memory,
+                Listening = new ListenSettings {HttpPort = 5000, Scheme = Scheme.Http, WebSocketEnabled = true}
+            };
+            settings = parser.Parse(settings, args);
+
+            ITransactionStorage storage = CreateStorageFromSettings(settings);
             await storage.Open();
             var httpServer = new HttpServer(new Uri("http://localhost:8080/", UriKind.Absolute), storage);
 

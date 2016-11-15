@@ -110,8 +110,11 @@ namespace Transact.Postgres
             return _queryProviders.GetOrAdd(Thread.CurrentThread, thread => new PostgreSqlQueryProvider(conn, this));
         }
 
-        public PostgreSqlTransactionStorage()
+        private readonly string connectionString;
+
+        public PostgreSqlTransactionStorage(string connectionString)
         {
+            this.connectionString = connectionString;
         }
 
         private NpgsqlConnection CreateConnection()
@@ -125,7 +128,7 @@ namespace Transact.Postgres
                 Pooling = true
             };
             
-            return new NpgsqlConnection(builder);
+            return new NpgsqlConnection(connectionString);
         }
 
         public override Task Open()
