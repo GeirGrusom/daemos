@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Markurion", "Markurion\Markurion.xproj", "{0EA2FCFE-D6AC-4DEF-8112-BCD8106A4139}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Markurion.Postgres", "Markurion.Postgres\Markurion.Postgres.xproj", "{86504821-37D7-46F2-87E2-EBCC6FFAE235}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Markurion.Query", "Markurion.Query\Markurion.Query.xproj", "{387F25A9-6496-4BB3-A232-31FD137A3318}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Markurion.Api", "Markurion.Api\Markurion.Api.xproj", "{FDB688DF-8243-49A5-AF6F-72CC57F23351}"
+EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Markurion.Console", "Markurion.Console\Markurion.Console.xproj", "{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C7BD7FEF-7CF6-4CCE-ADD6-721242D95AFB}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE.txt = LICENSE.txt
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0EA2FCFE-D6AC-4DEF-8112-BCD8106A4139}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0EA2FCFE-D6AC-4DEF-8112-BCD8106A4139}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0EA2FCFE-D6AC-4DEF-8112-BCD8106A4139}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0EA2FCFE-D6AC-4DEF-8112-BCD8106A4139}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86504821-37D7-46F2-87E2-EBCC6FFAE235}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86504821-37D7-46F2-87E2-EBCC6FFAE235}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86504821-37D7-46F2-87E2-EBCC6FFAE235}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86504821-37D7-46F2-87E2-EBCC6FFAE235}.Release|Any CPU.Build.0 = Release|Any CPU
+		{387F25A9-6496-4BB3-A232-31FD137A3318}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{387F25A9-6496-4BB3-A232-31FD137A3318}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{387F25A9-6496-4BB3-A232-31FD137A3318}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{387F25A9-6496-4BB3-A232-31FD137A3318}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDB688DF-8243-49A5-AF6F-72CC57F23351}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDB688DF-8243-49A5-AF6F-72CC57F23351}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDB688DF-8243-49A5-AF6F-72CC57F23351}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDB688DF-8243-49A5-AF6F-72CC57F23351}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

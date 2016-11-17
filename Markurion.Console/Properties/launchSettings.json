@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Transact.Console": {
+      "commandName": "Project",
+      "commandLineArgs": "--database-type postgres --connection-string \"User ID=tr_user;Password=abc123;Host=localhost;Port=5432;Database=transact;\""
+    }
+  }
+}
