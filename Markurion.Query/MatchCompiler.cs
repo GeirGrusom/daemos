@@ -5,7 +5,8 @@ namespace Markurion.Query
 {
     public class MatchCompiler : ITransactionMatchCompiler
     {
-        public Expression<Func<Transaction, bool>> BuildExpression(string input)
+        [return: CanBeNull]
+        public Expression<Func<Transaction, bool>> BuildExpression([NotNull] string input)
         {
             var TransactQueryLexer = new TransactQueryLexer(new Antlr4.Runtime.AntlrInputStream(input));
             var parser = new TransactQueryParser(new Antlr4.Runtime.BufferedTokenStream(TransactQueryLexer));

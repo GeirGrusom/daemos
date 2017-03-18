@@ -60,6 +60,26 @@ namespace Markurion.Console.Configuration
                         settings.Listening.HttpPort = portNum;
                         break;
                     }
+                    case "--host-name":
+                    case "-h":
+                    {
+                        if (i == args.Length - 1)
+                        {
+                            throw new ArgumentOutOfRangeException(nameof(args), "Command line ended unexpectedly");
+                        }
+                        settings.Listening.Host = args[++i];
+                        break;
+                    }
+                    case "--path":
+                    case "-P":
+                    {
+                        if (i == args.Length - 1)
+                        {
+                            throw new ArgumentOutOfRangeException(nameof(args), "Command line ended unexpectedly");
+                        }
+                        settings.Listening.Path = args[++i];
+                        break;
+                    }
                     default:
                         throw new ArgumentException($"Unrecognized option {args[i]}",nameof(args));
                 }

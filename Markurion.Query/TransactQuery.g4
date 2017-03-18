@@ -11,70 +11,6 @@ options {
 	using System.Reflection;
 }
 
-@members {
-	public ParameterExpression Transaction { get; } = Parameter(typeof(Transaction));
-    public static MemberExpression GetPropertyCI(Expression owner, string name)
-    {
-        return Property(owner, owner.Type.GetProperty(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.GetProperty | System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public));
-    }
-
-	private static Expression In(Expression lhs, Expression rhs)
-	{
-		var method = rhs.Type.GetMethod("Contains", new [] { lhs.Type });
-
-		return Call(rhs, method, lhs);
-	}
-
-	private string Unescape(string input, char tokenBarrier)
-	{
-		var builder = new System.Text.StringBuilder(input.Length);
-
-		bool lastWasSlash = false;
-		int lastCodePoint = 0;
-
-		for (int i = 0; i < input.Length; ++i)
-		{
-			char c = input[i];
-			if (c == '\\')
-			{
-				lastWasSlash = !lastWasSlash;
-			}
-			else if (lastWasSlash)
-			{
-				int copyLen = i - lastCodePoint - 1;
-				builder.Append(input.Substring(lastCodePoint, copyLen));
-			
-				if (c == 'n')
-				{
-					builder.Append('\n');
-				}
-				else if (c == 'r')
-				{
-					builder.Append('\r');
-				}
-				else if (c == tokenBarrier)
-				{
-					builder.Append(tokenBarrier);
-				}
-				else if (c == 't')
-				{
-					builder.Append('\t');
-				}
-				lastCodePoint = i + 1;
-				lastWasSlash = false;
-			}
-		
-		}
-
-		if (lastCodePoint < input.Length)
-		{
-			builder.Append(input.Substring(lastCodePoint));
-		}
-		
-		return builder.ToString();
-	}
-}
-
 /*
  * Parser Rules
  */
@@ -202,7 +138,7 @@ identifierChain returns [Expression expr]
 	| owner = identifier '.' member = identifier {
 			string dynamicObject = $owner.value;
 			string memberName = $member.value;
-			var ctor = typeof(Transact.JsonValue).GetConstructor(new[] { typeof(IDictionary<string, object>), typeof(string), typeof(string) });
+			var ctor = typeof(Markurion.JsonValue).GetConstructor(new[] { typeof(IDictionary<string, object>), typeof(string), typeof(string) });
 			$expr =  New(ctor, Convert(GetPropertyCI(Transaction, dynamicObject), typeof(IDictionary<string, object>)), Constant(dynamicObject), Constant(memberName));
 	}
 	;
