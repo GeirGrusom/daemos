@@ -7,8 +7,8 @@
     <AssemblyName>Markurion.Console</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>Markurion.Console</PackageId>
-    <RuntimeFrameworkVersion>1.0.4</RuntimeFrameworkVersion>
-    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+    <RuntimeFrameworkVersion>1.1.1</RuntimeFrameworkVersion>
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50;</PackageTargetFallback>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
@@ -29,9 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
     <PackageReference Include="Nito.AsyncEx.Core" Version="1.0.0-rc2-001" />
-    <PackageReference Include="System.Diagnostics.Tracing" Version="4.1.0" />
+    <PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
   </ItemGroup>
 
 </Project>

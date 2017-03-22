@@ -6,7 +6,7 @@
     <TargetFramework>netstandard1.6</TargetFramework>
     <AssemblyName>Markurion.Query</AssemblyName>
     <PackageId>Markurion.Query</PackageId>
-    <NetStandardImplicitPackageVersion>1.6.0</NetStandardImplicitPackageVersion>
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
@@ -24,8 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Antlr4 Include="*.g4">
-      
+    <Antlr4 Include="TransactQuery.g4">
+      <Link>obj/%(Configuration)/%(TargetFramework)/TransactQueryParser.cs</Link>
+      <Link>obj/%(Configuration)/%(TargetFramework)/TransactQueryLexer.cs</Link>
+      <Link>obj/%(Configuration)/%(TargetFramework)/TransactQueryListener.cs</Link>
+      <Link>obj/%(Configuration)/%(TargetFramework)/TransactQueryVisitor.cs</Link>
     </Antlr4>
   </ItemGroup>
 </Project>

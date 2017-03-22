@@ -51,7 +51,7 @@ namespace Markurion.Console
             ITransactionStorage storage = CreateStorageFromSettings(settings);
             try
             {
-                System.Console.WriteLine("Initializing connection with the database provider...");
+                System.Console.WriteLine("Initializing a connection to the database provider...");
                 await storage.Open();
             }
             catch(System.Net.Sockets.SocketException ex)
@@ -100,7 +100,6 @@ namespace Markurion.Console
             _handlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)httpServer.Container.GetService(type));
 
             ScriptingProvider provider = new ScriptingProvider(storage);
-            provider.AddLanguageRunner("C#", new RoslynScriptRunner(_handlerFactory));
             await provider.Initialize();
 
             TransactionProcessor processor = new TransactionProcessor(storage, provider);
