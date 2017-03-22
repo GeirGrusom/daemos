@@ -20,6 +20,10 @@
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Henning Moe</Authors>
+    <PackageProjectUrl></PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>transaction</PackageTags>
+    <Version>0.1.0-pre</Version>
   </PropertyGroup>
 
   <ItemGroup>

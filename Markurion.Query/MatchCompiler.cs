@@ -8,8 +8,8 @@ namespace Markurion.Query
         [return: CanBeNull]
         public Expression<Func<Transaction, bool>> BuildExpression([NotNull] string input)
         {
-            var TransactQueryLexer = new TransactQueryLexer(new Antlr4.Runtime.AntlrInputStream(input));
-            var parser = new TransactQueryParser(new Antlr4.Runtime.BufferedTokenStream(TransactQueryLexer));
+            var transactQueryLexer = new TransactQueryLexer(new Antlr4.Runtime.AntlrInputStream(input));
+            var parser = new TransactQueryParser(new Antlr4.Runtime.BufferedTokenStream(transactQueryLexer));
 
             var result = parser.compileUnit();
 

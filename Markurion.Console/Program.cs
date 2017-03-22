@@ -40,11 +40,6 @@ namespace Markurion.Console
 
         public static async Task MainApp(string[] args)
         {
-            var eventSource = new System.Diagnostics.Tracing.EventSource("transaction");
-            System.Diagnostics.Tracing.EventSource.SendCommand(eventSource, EventCommand.Enable, null);
-            var listener = new ConsoleTraceLogger();
-            listener.EnableEvents(eventSource, EventLevel.LogAlways);
-
             var parser = new ConfigurationParser();
             var settings = new Settings
             {
@@ -54,7 +49,16 @@ namespace Markurion.Console
             settings = parser.Parse(settings, args);
 
             ITransactionStorage storage = CreateStorageFromSettings(settings);
-            await storage.Open();
+            try
+            {
+                System.Console.WriteLine("Initializing connection with the database provider...");
+                await storage.Open();
+            }
+            catch(System.Net.Sockets.SocketException ex)
+            {
+                System.Console.WriteLine(ex.Message);
+                return;
+            }
             var httpServer = new HttpServer(settings.Listening.BuildUri(), storage);
 
             var location = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
@@ -95,8 +99,6 @@ namespace Markurion.Console
 
             _handlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)httpServer.Container.GetService(type));
 
-            
-            
             ScriptingProvider provider = new ScriptingProvider(storage);
             provider.AddLanguageRunner("C#", new RoslynScriptRunner(_handlerFactory));
             await provider.Initialize();

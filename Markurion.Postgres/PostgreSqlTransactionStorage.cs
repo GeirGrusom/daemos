@@ -130,9 +130,11 @@ namespace Markurion.Postgres
             return new NpgsqlConnection(connectionString);
         }
 
-        public override Task Open()
+        public override async Task Open()
         {
-            return Task.CompletedTask;
+            var conn = await GetConnectionAsync();
+
+            conn.Dispose();
         }
 
         private Transaction Map(DbDataReader reader)
