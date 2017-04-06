@@ -37,7 +37,7 @@ namespace Markurion.Modules
                 {
                     instance = factory(type);
                 }
-                catch (Exception ex)
+                catch
                 {
                     // Should log!
                     continue;

@@ -58,7 +58,8 @@ namespace Markurion.Postgres
             [typeof(TransactionState)] = NpgsqlDbType.Enum,
             [typeof(bool)] = NpgsqlDbType.Boolean,
             [typeof(DateTime)] = NpgsqlDbType.Timestamp,
-            [typeof(decimal)] = NpgsqlDbType.Money
+            [typeof(decimal)] = NpgsqlDbType.Money,
+            [typeof(Guid)] = NpgsqlDbType.Uuid,
         };
 
         private NpgsqlDbType GetDbType(Type input)

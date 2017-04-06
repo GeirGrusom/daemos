@@ -20,8 +20,7 @@ namespace Markurion
         {
             while (!cancel.IsCancellationRequested)
             {
-                var now = DateTime.UtcNow;
-                var transactions = await Storage.GetExpiringTransactions(now, cancel);
+                var transactions = await Storage.GetExpiringTransactions(cancel);
                 int count = 0;
                 foreach (var transaction in transactions)
                 {
@@ -30,30 +29,24 @@ namespace Markurion
                     
                     ++count;
 
-
                     try
                     {
-                        if (transaction.Expires < now)
+                        if (!string.IsNullOrEmpty(transaction.Script))
                         {
-
-                            if (!string.IsNullOrEmpty(transaction.Script))
+                            var nextData = await ScriptRunner.Run(transaction.Script, transaction);
+                            await transaction.CreateDelta(transaction.Revision + 1, true, (ref TransactionMutableData x) =>
                             {
-                                var nextData = await ScriptRunner.Run(transaction.Script, transaction);
-                                await transaction.CreateDelta(transaction.Revision + 1, true, (ref TransactionMutableData x) =>
-                                {
-                                    x = nextData;
-                                });
-                            }
-                            else
-                            {
-                                await transaction.CreateDelta(transaction.Revision + 1, true,(ref TransactionMutableData x) =>
-                                {
-                                    x.Script = null;
-                                    x.Expires = null;
-                                });
-                            }                           
-
+                                x = nextData;
+                            });
                         }
+                        else
+                        {
+                            await transaction.CreateDelta(transaction.Revision + 1, true,(ref TransactionMutableData x) =>
+                            {
+                                x.Script = null;
+                                x.Expires = null;
+                            });
+                        }                           
                     }
                     catch (Exception ex)
                     {

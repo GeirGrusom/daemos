@@ -74,6 +74,14 @@ namespace Markurion
             _expiringEvent = new ManualResetEventSlim(false);
         }
 
+        public MemoryStorage(ITimeService timeService)
+            : base(timeService)
+        {
+            _transactions = new ConcurrentDictionary<Guid, TransactionSlot>();
+            _expiringEvent = new ManualResetEventSlim(false);
+        }
+
+
         public override Task Open()
         {
             return Task.CompletedTask;
@@ -171,51 +179,56 @@ namespace Markurion
         {
             lock (_transactionsByExpiriation)
             {
-                var slot = _transactions.GetOrAdd(transaction.Id, g =>
+                var transData = transaction.Data;
+
+                transData.Revision = 1;
+                var insertedTransaction = new Transaction(ref transData, transaction.Storage);
+
+                var slot = _transactions.GetOrAdd(insertedTransaction.Id, g =>
                 {
                     var newSlot = new TransactionSlot();
-                    newSlot.Chain.Add(transaction);
-                    newSlot.Head = transaction;
+                    newSlot.Chain.Add(insertedTransaction);
+                    newSlot.Head = insertedTransaction;
                     return newSlot;
                 });
                 if (slot.Chain.Count == 0)
                 {
-                    slot.Chain.Add(transaction);
-                    slot.Head = transaction;
+                    slot.Chain.Add(insertedTransaction);
+                    slot.Head = insertedTransaction;
                 }
                 else
                 {
                     if(slot.Chain.Count > 1)
                         throw new InvalidOperationException();
-                    if (slot.Chain[0] != transaction)
+                    if (slot.Chain[0] != insertedTransaction)
                         throw new InvalidOperationException("That transaction already exists.");
                 }
 
                 int index = _transactionsByExpiriation.IndexOfValue(slot);
                 if(index >= 0)
                     _transactionsByExpiriation.RemoveAt(index);
-                if(transaction.Expired == null && transaction.Expires != null)
-                    _transactionsByExpiriation.Add(transaction.Expires.Value, slot);
+                if(insertedTransaction.Expired == null && insertedTransaction.Expires != null)
+                    _transactionsByExpiriation.Add(insertedTransaction.Expires.Value, slot);
 
                 
-                OnTransactionCommitted(transaction);
-                return Task.FromResult(transaction);
+                OnTransactionCommitted(insertedTransaction);
+                return Task.FromResult(insertedTransaction);
             }
         }
 
-        public override Task<Transaction> CommitTransactionDelta(Transaction transaction, Transaction newTransaction)
+        public override Task<Transaction> CommitTransactionDelta(Transaction transaction, Transaction next)
         {
             var slot = _transactions[transaction.Id];
             var last = _transactions[transaction.Id].Chain.Last();
 
-            if(newTransaction.Id != transaction.Id)
-                throw new ArgumentException("The new transaction has a different id from the chain.", nameof(newTransaction));
+            if(next.Id != transaction.Id)
+                throw new ArgumentException("The new transaction has a different id from the chain.", nameof(next));
 
-            if(newTransaction.Revision != last.Revision + 1)
-                throw new ArgumentException("The specified revision already exists.", nameof(newTransaction));
+            if(next.Revision != last.Revision + 1)
+                throw new ArgumentException("The specified revision already exists.", nameof(next));
 
-            slot.Chain.Add(newTransaction);
-            slot.Head = newTransaction;
+            slot.Chain.Add(next);
+            slot.Head = next;
 
             lock (_transactionsByExpiriation)
             {
@@ -223,11 +236,11 @@ namespace Markurion
                 if(index >= 0)
                     _transactionsByExpiriation.RemoveAt(index);
 
-                if(newTransaction.Expired == null && newTransaction.Expires != null)
-                    _transactionsByExpiriation.Add(newTransaction.Expires.Value, slot);
+                if(next.Expired == null && next.Expires != null)
+                    _transactionsByExpiriation.Add(next.Expires.Value, slot);
             }
-            OnTransactionCommitted(newTransaction);
-            return Task.FromResult(newTransaction);
+            OnTransactionCommitted(next);
+            return Task.FromResult(next);
         }
 
         public override Task<bool> TransactionExists(Guid id)
@@ -236,8 +249,9 @@ namespace Markurion
         }
 
         private static readonly List<Transaction> EmptyTransactionList = new List<Transaction>();
-        protected override Task<List<Transaction>> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
+        protected override Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel)
         {
+            var now = TimeService.Now();
             DateTime[] list;
             TransactionSlot[] values;
             lock (_transactionsByExpiriation)
@@ -260,6 +274,7 @@ namespace Markurion
             }
 
             // Binary search
+            
             int mid = 0;
             while (min <= max)
             {

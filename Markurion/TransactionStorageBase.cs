@@ -13,10 +13,20 @@ namespace Markurion
         private ITransactionMatchCompiler _transactionMatchCompiler;
         private readonly AutoResetEvent _nextExpiringTransactionChangedEvent;
         private DateTime? _nextExpiringTransaction;
+        private readonly ITimeService _timeService;
+
+        public ITimeService TimeService => _timeService;
 
         protected TransactionStorageBase()
         {
             _nextExpiringTransactionChangedEvent = new AutoResetEvent(true);
+            _timeService = new UtcTimeService();
+        }
+
+        protected TransactionStorageBase(ITimeService timeService)
+        {
+            _nextExpiringTransactionChangedEvent = new AutoResetEvent(true);
+            _timeService = timeService;
         }
 
         protected virtual void OnTransactionCommitted(Transaction transaction)
@@ -26,9 +36,7 @@ namespace Markurion
                 _nextExpiringTransaction = transaction.Expires;
                 _nextExpiringTransactionChangedEvent.Set();
             }
-            var committed = TransactionCommitted;
-            if (committed != null)
-                committed(this, new TransactionCommittedEventArgs(transaction));
+            TransactionCommitted?.Invoke(this, new TransactionCommittedEventArgs(transaction));
         }
 
         public abstract Task<Transaction> CommitTransactionDelta(Transaction original, Transaction next);
@@ -66,46 +74,52 @@ namespace Markurion
             return result;
         }
 
-        public Task<List<Transaction>> GetExpiringTransactions(DateTime now, CancellationToken cancel)
+        public Task<List<Transaction>> GetExpiringTransactions(CancellationToken cancel)
         {
-            WaitForExpiringTransactions(now, cancel);
-            return GetExpiringTransactionsInternal(now, cancel);
+            WaitForExpiringTransactions(cancel);
+            return GetExpiringTransactionsInternal(cancel);
         }
 
-        protected abstract Task<List<Transaction>> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel);
+        protected abstract Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel);
 
         protected void SetNextExpiringTransactionTime(DateTime? next)
         {
             _nextExpiringTransaction = next;
         }
 
-        protected virtual void WaitForExpiringTransactions(DateTime now, CancellationToken cancel)
+        protected virtual void WaitForExpiringTransactions(CancellationToken cancel)
         {
             try
             {
-                if (_nextExpiringTransaction != null)
-                {
-                    int delta;
-                    do
-                    {
-                        var deltaSpan = (_nextExpiringTransaction.Value - DateTime.UtcNow);
-                        long deltaD = deltaSpan.Ticks / TimeSpan.TicksPerMillisecond;
-                        delta = deltaD > int.MaxValue ? int.MaxValue : (int)deltaD;
-                        if (delta > 0)
-                            _nextExpiringTransactionChangedEvent.WaitOne(delta);
-                    }
-                    while (delta > 0);
-                }
-                else
+                // This if-block looks like a race condition, but it *shouldn't* be.
+                // The idea is that _nextExpiringTransactionChangedEvent will be open
+                // or open soon if _nextExpiringTransaction changed in the meantime.
+                // No other threads is supposed to open it.
+                if (_nextExpiringTransaction == null)
                 {
                     _nextExpiringTransactionChangedEvent.WaitOne();
+                    return;
                 }
+
+                int delta;
+                do
+                {
+                    var deltaSpan = (_nextExpiringTransaction.Value - _timeService.Now());
+                    long deltaD = deltaSpan.Ticks / TimeSpan.TicksPerMillisecond;
+
+                    if (deltaD < 0)
+                        break;
+
+                    delta = deltaD > int.MaxValue ? int.MaxValue : (int)deltaD;
+                    if (delta > 0)
+                        _nextExpiringTransactionChangedEvent.WaitOne(delta);
+                }
+                while (delta > 0);
             }
             catch (OperationCanceledException)
             {
                 return;
             }
-
         }
     }
 }

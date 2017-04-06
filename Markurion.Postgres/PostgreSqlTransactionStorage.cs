@@ -116,6 +116,13 @@ namespace Markurion.Postgres
             this.connectionString = connectionString;
         }
 
+        public PostgreSqlTransactionStorage(string connectionString, ITimeService timeService)
+            : base(timeService)
+        {
+            this.connectionString = connectionString;
+        }
+
+
         private NpgsqlConnection CreateConnection()
         {
             NpgsqlConnectionStringBuilder builder = new NpgsqlConnectionStringBuilder
@@ -215,7 +222,7 @@ commit;
             {
                 cmd.Transaction = sqlTransaction;
                 cmd.Parameters["id"].Value = transaction.Id;
-                cmd.Parameters["revision"].Value = transaction.Revision;
+                cmd.Parameters["revision"].Value = 1;
                 cmd.Parameters["created"].Value = DateTime.UtcNow;
                 cmd.Parameters["expires"].Value = transaction.Expires != null ? (object)transaction.Expires.Value : DBNull.Value;
                 cmd.Parameters["expired"].Value = transaction.Expired != null ? (object)transaction.Expired.Value : DBNull.Value;
@@ -344,7 +351,7 @@ commit;
             }
         }
 
-        protected override async Task<List<Transaction>> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
+        protected override async Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel)
         {
             string sql = $"SELECT {SelectColumns} FROM tr.transactions_head WHERE expires <= @now";
             var results = new List<Transaction>();
@@ -353,7 +360,7 @@ commit;
             {
                 cmd.CommandText = sql;
                 var p = cmd.Parameters.Add(new NpgsqlParameter("now", Timestamp));
-                p.Value = now.ToUniversalTime();
+                p.Value = TimeService.Now();
                 cmd.Prepare();
                 bool failed = false;
 
@@ -399,12 +406,14 @@ commit;
 
         public override async Task<bool> TransactionExists(Guid id)
         {
-            using (var cmd = (await GetConnectionAsync()).CreateCommand())
+            using(var conn = await GetConnectionAsync())
+            using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "SELECT COUNT(*) FROM tr.transaction_head WHERE id = @id";
+                cmd.CommandText = "SELECT COUNT(*) FROM tr.transactions_head WHERE id = @id";
                 var idPar = cmd.CreateParameter();
                 idPar.Value = id;
-                idPar.ParameterName = "@id";
+                idPar.ParameterName = "id";
+                cmd.Parameters.Add(idPar);
                 var result = (long)await cmd.ExecuteScalarAsync();
                 return result > 0;
             }

@@ -197,6 +197,32 @@ namespace Markurion.Postgres
             return node;
         }
 
+        protected object ResolveMember(MemberExpression exp)
+        {
+            object baseObj;
+            if (exp.Expression is ConstantExpression cexp)
+            {
+                baseObj = cexp.Value;
+            }
+            else if (exp.Expression is MemberExpression mem)
+            {
+                baseObj = ResolveMember(mem);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+            if(exp.Member is FieldInfo fi)
+            {
+                return fi.GetValue(baseObj);
+            }
+            if(exp.Member is PropertyInfo pi)
+            {
+                return pi.GetValue(baseObj);
+            }
+            throw new NotImplementedException();
+        }
+
         protected override Expression VisitMember(MemberExpression node)
         {
             if (node.Member.DeclaringType == typeof(Transaction))
@@ -210,12 +236,26 @@ namespace Markurion.Postgres
                     VisitDateTime(node);
                     return node;
                 }
+                var objValue = ResolveMember(node);
+                    
+                builder.Append(":p" + (Parameters.Count + 1) + "");
+                Parameters.Add(objValue);
+                return node;
+                
                 throw new NotImplementedException();
             }
             return node;
         }
 
         protected void VisitDateTime(MemberExpression node)
+        {
+            if (node.Member.Name == "Now" || node.Member.Name == "UtcNow")
+            {
+                builder.Append("timestamp ('" + now.ToString("yyyy-MM-dd'T'HH:mm:ss") + "' AT TIME ZONE 'UTC')");
+            }
+        }
+
+        protected void VisitGuid(MemberExpression node)
         {
             if (node.Member.Name == "Now" || node.Member.Name == "UtcNow")
             {

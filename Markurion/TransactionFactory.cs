@@ -175,7 +175,7 @@ namespace Markurion
         Task<Transaction> FetchTransaction(Guid id, int revision = -1);
         Task<Transaction> CreateTransaction(Transaction transaction);
         Task<Transaction> CommitTransactionDelta(Transaction original, Transaction next);
-        Task<List<Transaction>> GetExpiringTransactions(DateTime now, CancellationToken cancel);
+        Task<List<Transaction>> GetExpiringTransactions(CancellationToken cancel);
         Task<IEnumerable<Transaction>> GetChildTransactions(Guid transaction, params TransactionState[] state);
         Task Open();
 
@@ -185,6 +185,8 @@ namespace Markurion
         Task<IEnumerable<Transaction>> GetChain(Guid id);
 
         Task<IQueryable<Transaction>> Query();
+
+        ITimeService  TimeService { get; }
     }
 
 
