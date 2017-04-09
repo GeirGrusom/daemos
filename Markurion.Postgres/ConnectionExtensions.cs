@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Linq.Expressions;
 using static System.Linq.Expressions.Expression;
 using NpgsqlTypes;
+using System.Threading.Tasks;
+using System.Data.Common;
 
 namespace Markurion.Postgres
 {
@@ -77,16 +79,16 @@ namespace Markurion.Postgres
             return lambda.Compile();
         }
 
-        public static IEnumerable<TResult> ExecuteReader<TResult, T>(this NpgsqlConnection conn, string sql, T parameters, Func<NpgsqlDataReader, TResult> mapper)
+        public static IEnumerable<TResult> ExecuteReader<TResult, T>(this NpgsqlConnection conn, string sql, T parameters, Func<NpgsqlDataReader, TResult> mapper, NpgsqlTransaction transaction = null)
         {
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = sql;
+                cmd.Transaction = transaction;
 
                 ApplyParameters(cmd, parameters);
 
                 cmd.Prepare();
-
 
                 using (var reader = cmd.ExecuteReader())
                 { 
@@ -94,6 +96,34 @@ namespace Markurion.Postgres
                     {
                         yield return mapper(reader);
                     }
+                }
+            }
+        }
+
+
+        public static async Task<IEnumerable<TResult>> ExecuteReaderAsync<TResult, T>(this NpgsqlConnection conn, string sql, T parameters, Func<NpgsqlDataReader, TResult> mapper, NpgsqlTransaction transaction = null)
+        {
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = sql;
+                cmd.Transaction = transaction;
+
+                ApplyParameters(cmd, parameters);
+
+                cmd.Prepare();
+
+                var it = (NpgsqlDataReader)await cmd.ExecuteReaderAsync();
+                return MapIterator(it, mapper);
+            }
+        }
+
+        private static IEnumerable<TResult> MapIterator<TResult>(NpgsqlDataReader reader, Func<NpgsqlDataReader, TResult> mapper)
+        {
+            using (reader)
+            {
+                while (reader.Read())
+                {
+                    yield return mapper(reader);
                 }
             }
         }

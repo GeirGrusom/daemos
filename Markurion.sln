@@ -25,6 +25,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{EC596B1F
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Markurion.Tests", "Tests\Markurion.Tests\Markurion.Tests.csproj", "{0BFC5FB3-4535-4181-899D-5B4859463CA8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Markurion.Benchmark", "Markurion.Benchmark\Markurion.Benchmark.csproj", "{7355FC73-8584-4800-83A7-1234E0CFCEB0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,11 +61,16 @@ Global
 		{0BFC5FB3-4535-4181-899D-5B4859463CA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BFC5FB3-4535-4181-899D-5B4859463CA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BFC5FB3-4535-4181-899D-5B4859463CA8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7355FC73-8584-4800-83A7-1234E0CFCEB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7355FC73-8584-4800-83A7-1234E0CFCEB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7355FC73-8584-4800-83A7-1234E0CFCEB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7355FC73-8584-4800-83A7-1234E0CFCEB0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0BFC5FB3-4535-4181-899D-5B4859463CA8} = {EC596B1F-38EB-456A-8E87-723121104A7C}
+		{7355FC73-8584-4800-83A7-1234E0CFCEB0} = {EC596B1F-38EB-456A-8E87-723121104A7C}
 	EndGlobalSection
 EndGlobal

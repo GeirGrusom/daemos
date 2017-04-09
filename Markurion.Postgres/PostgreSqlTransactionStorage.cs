@@ -169,42 +169,61 @@ namespace Markurion.Postgres
 
         public override async Task<Transaction> CommitTransactionDelta(Transaction original, Transaction next)
         {
-            if (next.Id != original.Id)
-                throw new ArgumentException("The new transaction has a different id from the chain.", nameof(next));
-
-            if (next.Revision != original.Revision + 1)
-                throw new ArgumentException("The specified revision already exists.", nameof(next));
-
-            var parentId = next.Parent?.Id;
-            var parentRevision = next.Parent?.Revision;
-
-            var delta = new
+            Transaction result;
+            var conn = await GetConnectionAsync();
+            using (var trans = conn.BeginTransaction())
             {
-                Id = original.Id,
-                Revision = next.Revision,
-                Expires = next.Expires,
-                Expired = next.Expired,
-                Created = DateTime.UtcNow,
-                Payload = new JsonContainer(JsonConvert.SerializeObject(next.Payload)),
-                Script = next.Script,
-                ParentId = parentId,
-                ParentRev = parentRevision,
-                State = (int)next.State,
-                Handler = next.Handler,
-                Error = new JsonContainer(JsonConvert.SerializeObject(next.Error)),
-            };
+                int lastRev;
+                using (var headRevCmd = conn.CreateCommand())
+                {
+                    var p = headRevCmd.CreateParameter();
+                    p.ParameterName = "id";
+                    p.Value = original.Id;
+                    headRevCmd.Parameters.Add(p);
+                    headRevCmd.CommandText = "select revision from tr.transactions_head where id = @id";
+                    headRevCmd.Transaction = trans;
+                    lastRev = (int)await headRevCmd.ExecuteScalarAsync();
+                }
 
-            const string query = @"
-begin transaction;
+                if (next.Id != original.Id)
+                    throw new ArgumentException("The new transaction has a different id from the chain.", nameof(next));
+
+                if (next.Revision <= lastRev && next.Revision > 0)
+                    throw new TransactionRevisionExistsException(next.Id, next.Revision);
+
+                if (next.Revision <= 0 || next.Revision > lastRev + 1)
+                    throw new ArgumentException("The specified revision number is not valid.", nameof(next));
+
+                var parentId = next.Parent?.Id;
+                var parentRevision = next.Parent?.Revision;
+
+                var delta = new
+                {
+                    Id = original.Id,
+                    Revision = next.Revision,
+                    Expires = next.Expires,
+                    Expired = next.Expired,
+                    Created = TimeService.Now(),
+                    Payload = new JsonContainer(JsonConvert.SerializeObject(next.Payload)),
+                    Script = next.Script,
+                    ParentId = parentId,
+                    ParentRev = parentRevision,
+                    State = (int)next.State,
+                    Handler = next.Handler,
+                    Error = new JsonContainer(JsonConvert.SerializeObject(next.Error)),
+                };
+
+                const string query = @"
 update tr.transactions set head = 'f' where id = @Id;
 INSERT INTO tr.transactions 
     (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) VALUES 
     (@Id, @Revision, @Created, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler, @Error) RETURNING id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error;
-commit;
 ";
 
-            Transaction result;
-            result = (await GetConnectionAsync()).ExecuteReader(query, delta, Map).Single();
+                
+                result = (await (conn).ExecuteReaderAsync(query, delta, Map, trans)).Single();
+                await trans.CommitAsync();
+            }
             OnTransactionCommitted(result);
             return result;
         }
@@ -218,12 +237,32 @@ commit;
         {
             Transaction result;
 
+
+
             using (var cmd = await InsertTransactionCommandAsync())
+            using (var trans = cmd.Connection.BeginTransaction())
             {
+                using (var checkCmd = cmd.Connection.CreateCommand())
+                {
+                    checkCmd.Transaction = trans;
+                    checkCmd.CommandText = "select exists(select 1 from tr.transactions_head where id = @id)";
+                    var p = checkCmd.CreateParameter();
+                    p.ParameterName = "id";
+                    p.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Uuid;
+                    p.Value = transaction.Id;
+                    checkCmd.Parameters.Add(p);
+                    checkCmd.Prepare();
+                    var exists = (bool)await checkCmd.ExecuteScalarAsync();
+                    if(exists)
+                    {
+                        await trans.RollbackAsync();
+                        throw new TransactionExistsException(transaction.Id);
+                    }
+                }
                 cmd.Transaction = sqlTransaction;
                 cmd.Parameters["id"].Value = transaction.Id;
                 cmd.Parameters["revision"].Value = 1;
-                cmd.Parameters["created"].Value = DateTime.UtcNow;
+                cmd.Parameters["created"].Value = TimeService.Now();
                 cmd.Parameters["expires"].Value = transaction.Expires != null ? (object)transaction.Expires.Value : DBNull.Value;
                 cmd.Parameters["expired"].Value = transaction.Expired != null ? (object)transaction.Expired.Value : DBNull.Value;
                 cmd.Parameters["payload"].Value = transaction.Payload != null ? JsonConvert.SerializeObject(transaction.Payload) : (object)DBNull.Value;
@@ -241,7 +280,7 @@ commit;
                 }
                 cmd.Parameters["state"].Value = (int)transaction.State;
                 cmd.Parameters["handler"].Value = transaction.Handler != null ? (object)transaction.Handler : DBNull.Value;
-                
+
                 using (var reader = (NpgsqlDataReader)await cmd.ExecuteReaderAsync())
                 {
                     if (!reader.Read())
@@ -250,6 +289,7 @@ commit;
                     }
                     result = Map(reader);
                 }
+                await trans.CommitAsync();
             }
 
             OnTransactionCommitted(result);
@@ -409,13 +449,14 @@ commit;
             using(var conn = await GetConnectionAsync())
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "SELECT COUNT(*) FROM tr.transactions_head WHERE id = @id";
+                cmd.CommandText = "select exists(select 1 from tr.transactions_head where id = @id)";
                 var idPar = cmd.CreateParameter();
                 idPar.Value = id;
+                idPar.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Uuid;
                 idPar.ParameterName = "id";
                 cmd.Parameters.Add(idPar);
-                var result = (long)await cmd.ExecuteScalarAsync();
-                return result > 0;
+                cmd.Prepare();
+                return (bool)await cmd.ExecuteScalarAsync();
             }
         }
 

@@ -231,11 +231,6 @@ namespace Markurion.Postgres
             }
             else
             {
-                if (node.Member.DeclaringType == typeof(DateTime))
-                {
-                    VisitDateTime(node);
-                    return node;
-                }
                 var objValue = ResolveMember(node);
                     
                 builder.Append(":p" + (Parameters.Count + 1) + "");
@@ -245,22 +240,6 @@ namespace Markurion.Postgres
                 throw new NotImplementedException();
             }
             return node;
-        }
-
-        protected void VisitDateTime(MemberExpression node)
-        {
-            if (node.Member.Name == "Now" || node.Member.Name == "UtcNow")
-            {
-                builder.Append("timestamp ('" + now.ToString("yyyy-MM-dd'T'HH:mm:ss") + "' AT TIME ZONE 'UTC')");
-            }
-        }
-
-        protected void VisitGuid(MemberExpression node)
-        {
-            if (node.Member.Name == "Now" || node.Member.Name == "UtcNow")
-            {
-                builder.Append("timestamp ('" + now.ToString("yyyy-MM-dd'T'HH:mm:ss") + "' AT TIME ZONE 'UTC')");
-            }
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)

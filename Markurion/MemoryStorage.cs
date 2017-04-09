@@ -32,6 +32,13 @@ namespace Markurion
                 Lock = new SemaphoreSlim(1, 1);
             }
 
+            public TransactionSlot(Transaction head)
+                : this()
+            {
+                Chain.Add(head);
+                Head = head;
+            }
+
             public override int GetHashCode()
             {
                 if (Chain.Count > 0)
@@ -182,26 +189,14 @@ namespace Markurion
                 var transData = transaction.Data;
 
                 transData.Revision = 1;
+                transData.Created = TimeService.Now();
                 var insertedTransaction = new Transaction(ref transData, transaction.Storage);
 
-                var slot = _transactions.GetOrAdd(insertedTransaction.Id, g =>
+                var slot = new TransactionSlot(insertedTransaction);
+
+                if(!_transactions.TryAdd(insertedTransaction.Id, slot))
                 {
-                    var newSlot = new TransactionSlot();
-                    newSlot.Chain.Add(insertedTransaction);
-                    newSlot.Head = insertedTransaction;
-                    return newSlot;
-                });
-                if (slot.Chain.Count == 0)
-                {
-                    slot.Chain.Add(insertedTransaction);
-                    slot.Head = insertedTransaction;
-                }
-                else
-                {
-                    if(slot.Chain.Count > 1)
-                        throw new InvalidOperationException();
-                    if (slot.Chain[0] != insertedTransaction)
-                        throw new InvalidOperationException("That transaction already exists.");
+                    throw new TransactionExistsException(insertedTransaction.Id);
                 }
 
                 int index = _transactionsByExpiriation.IndexOfValue(slot);
@@ -221,11 +216,18 @@ namespace Markurion
             var slot = _transactions[transaction.Id];
             var last = _transactions[transaction.Id].Chain.Last();
 
+            var trData = next.Data;
+            trData.Created = TimeService.Now();
+            next = new Transaction(trData, next.Storage);
+
             if(next.Id != transaction.Id)
                 throw new ArgumentException("The new transaction has a different id from the chain.", nameof(next));
 
-            if(next.Revision != last.Revision + 1)
-                throw new ArgumentException("The specified revision already exists.", nameof(next));
+            if (next.Revision <= 0 || next.Revision > last.Revision + 1 )
+                throw new ArgumentException("The specified revision is not a valid revision number.", nameof(next));
+
+            if(next.Revision < last.Revision + 1 && next.Revision > 0)
+                throw new TransactionRevisionExistsException(next.Id, next.Revision);
 
             slot.Chain.Add(next);
             slot.Head = next;

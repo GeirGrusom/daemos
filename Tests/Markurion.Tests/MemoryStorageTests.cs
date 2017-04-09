@@ -84,6 +84,22 @@ namespace Markurion.Tests
             Equal(transaction.State, committedTransaction.State);
         }
 
+        [Fact]
+        public async Task CreateTransaction_TransactionAlreadyExists_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var storage = CreateStorage();
+            var transaction = TransactionFactory.CreateNew(storage);
+            var committedTransaction = await storage.CreateTransaction(transaction);
+
+            // Act
+            await ThrowsAsync<TransactionExistsException>(() => storage.CreateTransaction(transaction));
+
+            // Assert
+            Equal(transaction.State, committedTransaction.State);
+        }
+
+
         [Theory]
         [InlineData(TransactionState.Initialized)]
         [InlineData(TransactionState.Authorized)]
@@ -176,11 +192,26 @@ namespace Markurion.Tests
             Equal(TransactionState.Authorized, result.State);
         }
 
+   
+        [Fact]
+        public async Task CommitTransactionDelta_RevisionExists_ThrowsTransactionRevisionExistsException()
+        {
+            // Arrange
+            var storage = CreateStorage();
+            var transaction = await storage.CreateTransaction(TransactionFactory.CreateNew(storage));
+
+            // Act
+            var ex = await ThrowsAsync<TransactionRevisionExistsException>(() => storage.CommitTransactionDelta(transaction, transaction));
+
+            // Assert
+            Equal(transaction.Id, ex.TransactionId);
+            Equal(transaction.Revision, ex.Revision);
+        }
+
         [Theory]
-        [InlineData(-1)] // Negative revision ID
-        [InlineData(0)] // Revision before first
-        [InlineData(1)] // Revision already exists (initial revision)
-        [InlineData(3)] // Revision past available value
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(3)]
         public async Task CommitTransactionDelta_RevisionInvalid_ThrowsArgumentException(int revision)
         {
             // Arrange
@@ -194,6 +225,7 @@ namespace Markurion.Tests
             // Assert
             Equal("next", ex.ParamName);
         }
+
 
         [Fact]
         public async Task GetExpiringTransactions_RetrivesExpiredTransacions()
@@ -272,6 +304,41 @@ namespace Markurion.Tests
             Equal(new[] { tr1, tr2 }, chain);
         }
 
+        public async Task CreateTransaction_UsesTimeService_AsCreatedTime()
+        {
+            // Arrange
+            var timeService = Substitute.For<ITimeService>();
+            var created = new DateTime(1999, 01, 05, 12, 0, 0, DateTimeKind.Utc);
+            timeService.Now().Returns(created);
+            var storage = CreateStorage(timeService);
+
+            // Act
+            var tr = await storage.CreateTransaction(TransactionFactory.CreateNew(storage));
+
+            // Assert
+            Equal(created, tr.Created);
+        }
+
+        public async Task CommitTransactionDelta_UsesTimeService_AsCreatedTime()
+        {
+            // Arrange
+            var timeService = Substitute.For<ITimeService>();
+            var created = new DateTime(1999, 01, 05, 12, 0, 0, DateTimeKind.Utc);
+            var updated = new DateTime(2000, 01, 05, 12, 0, 0, DateTimeKind.Utc);
+            timeService.Now().Returns(created, updated);
+            var storage = CreateStorage(timeService);
+            var tr = await storage.CreateTransaction(TransactionFactory.CreateNew(storage));
+            var trNext = tr.Data;
+            trNext.Revision += 1;
+
+            // Act
+            var result = await storage.CommitTransactionDelta(tr, new Transaction(trNext, storage));
+
+            // Assert
+            Equal(updated, result.Created);
+        }
+
+
         [Fact]
         public async Task Query_GetById_ReturnsTransaction()
         {
@@ -283,6 +350,25 @@ namespace Markurion.Tests
 
             // Act
             var result = (await storage.Query()).Where(x => x.Id == guid).ToArray();
+
+            // Assert
+            Equal(tr, result.Single());
+        }
+
+        [Fact]
+        public async Task Query_GetByCreated_ReturnsTransaction()
+        {
+            // Arrange
+            var created = new DateTime(1999, 01, 05, 12, 0, 0, DateTimeKind.Utc);
+            var timeService = Substitute.For<ITimeService>();
+            timeService.Now().Returns(created);
+            var storage = CreateStorage(timeService);
+            var tr = TransactionFactory.CreateNew(storage);
+            var guid = tr.Id;
+            tr = await storage.CreateTransaction(tr);
+
+            // Act
+            var result = (await storage.Query()).Where(x => x.Created == created).ToArray();
 
             // Assert
             Equal(tr, result.Single());
