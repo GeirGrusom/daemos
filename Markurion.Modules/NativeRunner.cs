@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Markurion.Modules
 {
+    using Scripting;
     public class NativeRunner : IScriptRunner
     {
         private readonly Dictionary<string, object> _modules;
@@ -46,7 +47,7 @@ namespace Markurion.Modules
             }
         }
 
-        public Task<TransactionMutableData> Run(string code, Transaction transaction)
+        public void Run(string code, IDependencyResolver resolver)
         {
             int pos = code.IndexOf(':');
             string left = code.Substring(0, pos);
@@ -58,10 +59,10 @@ namespace Markurion.Modules
 
             MethodInfo method = type.GetMethod(right);
 
-            return Task.FromResult((TransactionMutableData)method.Invoke(o, new object[] { transaction }));
+            method.Invoke(o, new object[] { resolver });
         }
 
-        public Task<Func<Transaction, Task<TransactionMutableData>>> Compile(string code)
+        public Action<IDependencyResolver> Compile(string code)
         {
             throw new NotImplementedException();
         }

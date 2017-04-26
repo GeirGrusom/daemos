@@ -112,17 +112,17 @@ namespace Markurion
     {
         public static Task Lock(this Transaction scope, LockFlags flags = LockFlags.None, int timeout = Timeout.Infinite)
         {
-            return scope.Storage.LockTransaction(scope.Id, flags, timeout);
+            return scope.Storage.LockTransactionAsync(scope.Id, flags, timeout);
         }
 
         public static Task<bool> TryLock(this Transaction scope, LockFlags flags = LockFlags.None, int timeout = Timeout.Infinite)
         {
-            return scope.Storage.TryLockTransaction(scope.Id, flags, timeout);
+            return scope.Storage.TryLockTransactionAsync(scope.Id, flags, timeout);
         }
 
         public static Task Free(this Transaction transaction)
         {
-            return transaction.Storage.FreeTransaction(transaction.Id);
+            return transaction.Storage.FreeTransactionAsync(transaction.Id);
         }
 
         public static Task<Transaction> CreateDelta(this Transaction original, int nextRevision, bool expired, MutateTransactionDataDelegate delta)
@@ -147,12 +147,12 @@ namespace Markurion
 
             var newTransaction = new Transaction(data, original.Storage);
 
-            return original.Storage.CommitTransactionDelta(original, newTransaction);
+            return original.Storage.CommitTransactionDeltaAsync(original, newTransaction);
         }
 
         public static Task<Transaction> Fetch(this Transaction scope, int revision = -1)
         {
-            return scope.Storage.FetchTransaction(scope.Id, revision);
+            return scope.Storage.FetchTransactionAsync(scope.Id, revision);
         }
     }
 
@@ -167,24 +167,25 @@ namespace Markurion
 
     public interface ITransactionStorage
     {
-        Task LockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = Timeout.Infinite);
-        Task<bool> TryLockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = Timeout.Infinite);
-        Task FreeTransaction(Guid id);
-        Task<bool> IsTransactionLocked(Guid id);
-        Task<bool> TransactionExists(Guid id);
-        Task<Transaction> FetchTransaction(Guid id, int revision = -1);
-        Task<Transaction> CreateTransaction(Transaction transaction);
-        Task<Transaction> CommitTransactionDelta(Transaction original, Transaction next);
-        Task<List<Transaction>> GetExpiringTransactions(CancellationToken cancel);
-        Task<IEnumerable<Transaction>> GetChildTransactions(Guid transaction, params TransactionState[] state);
-        Task Open();
+        Task LockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = Timeout.Infinite);
+        Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = Timeout.Infinite);
+        Task FreeTransactionAsync(Guid id);
+        Task<bool> IsTransactionLockedAsync(Guid id);
+        Task<bool> TransactionExistsAsync(Guid id);
+        Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1);
+        Task<Transaction> CreateTransactionAsync(Transaction transaction);
+        Task<Transaction> CommitTransactionDeltaAsync(Transaction original, Transaction next);
+        Transaction CommitTransactionDelta(Transaction original, Transaction next);
+        Task<List<Transaction>> GetExpiringTransactionsAsync(CancellationToken cancel);
+        Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state);
+        Task OpenAsync();
 
         event EventHandler<TransactionCommittedEventArgs> TransactionCommitted;
 
-        Task<Transaction> WaitFor(Func<Transaction, bool> predicate, int timeout = Timeout.Infinite);
-        Task<IEnumerable<Transaction>> GetChain(Guid id);
+        Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout = Timeout.Infinite);
+        Task<IEnumerable<Transaction>> GetChainAsync(Guid id);
 
-        Task<IQueryable<Transaction>> Query();
+        Task<IQueryable<Transaction>> QueryAsync();
 
         ITimeService  TimeService { get; }
     }
@@ -215,7 +216,7 @@ namespace Markurion
 
         public async Task<Transaction> ContinueTransaction(Guid id, int nextRevision, int timeout = Timeout.Infinite)
         {
-            var trans = await Storage.FetchTransaction(id);
+            var trans = await Storage.FetchTransactionAsync(id);
             if (!await trans.TryLock(timeout: timeout))
             {
                 throw new TimeoutException("Could not get a lock on the transaction.");
@@ -232,7 +233,7 @@ namespace Markurion
 
         public async Task<Transaction> ContinueTransaction(Guid id, int timeout = Timeout.Infinite)
         {
-            var trans = await Storage.FetchTransaction(id);
+            var trans = await Storage.FetchTransactionAsync(id);
             if (!await trans.TryLock(timeout: timeout))
             {
                 throw new TimeoutException("Could not get a lock on the transaction.");
@@ -243,7 +244,7 @@ namespace Markurion
 
         public async Task<Transaction> StartTransaction(Guid? id, DateTime? expires, object payload, string script, TransactionRevision? parent)
         {
-            var trans = await Storage.CreateTransaction(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionState.Initialized, parent, null, Storage));
+            var trans = await Storage.CreateTransactionAsync(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionState.Initialized, parent, null, Storage));
             await trans.Lock();
             return trans;
         }

@@ -19,16 +19,16 @@ namespace Markurion.Api.Controllers
 
         public async Task<IActionResult> Get(Guid id)
         {
-            await _storage.LockTransaction(id);
+            await _storage.LockTransactionAsync(id);
             try
             {
-                var transactions = await _storage.GetChain(id);
+                var transactions = await _storage.GetChainAsync(id);
 
                 return Json(transactions.Select(TransactionMapper.ToTransactionResult));
             }
             finally
             {
-                await _storage.FreeTransaction(id);
+                await _storage.FreeTransactionAsync(id);
             }
         }
 
@@ -37,7 +37,7 @@ namespace Markurion.Api.Controllers
         {
             try
             {
-                await _storage.LockTransaction(id);
+                await _storage.LockTransactionAsync(id);
             }
             catch (TransactionMissingException)
             {
@@ -45,14 +45,14 @@ namespace Markurion.Api.Controllers
             }
             try
             {
-                var transaction = await _storage.FetchTransaction(id, revision);
+                var transaction = await _storage.FetchTransactionAsync(id, revision);
 
                 return Json(transaction.ToTransactionResult());
 
             }
             finally
             {
-                await _storage.FreeTransaction(id);
+                await _storage.FreeTransactionAsync(id);
             }
         }
 

@@ -15,5 +15,12 @@ namespace Markurion.Tests
 
             return new Transaction(data, transaction.Storage);
         }
+
+        public static Transaction IncrementRevision(this Transaction transaction)
+        {
+            var data = transaction.Data;
+            data.Revision += 1;
+            return new Transaction(data, transaction.Storage);
+        }
     }
 }

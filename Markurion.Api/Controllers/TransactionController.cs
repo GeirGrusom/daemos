@@ -20,10 +20,10 @@ namespace Markurion.Api.Controllers
         {
             if(history)
             {
-                var results = await _storage.GetChain(id);
+                var results = await _storage.GetChainAsync(id);
                 return Json(results.Select(TransactionMapper.ToTransactionResult));
             }
-            var transaction = await _storage.FetchTransaction(id);
+            var transaction = await _storage.FetchTransactionAsync(id);
             return Json(transaction.ToTransactionResult());
         }
     }

@@ -4,23 +4,27 @@ using System.Threading.Tasks;
 
 namespace Markurion
 {
+    using Scripting;
     public class TransactionProcessor
     {
 
         public ITransactionStorage Storage { get; }
         public IScriptRunner ScriptRunner { get; }
 
-        public TransactionProcessor(ITransactionStorage storage, IScriptRunner scriptRunner)
+        public IContainer Container { get; }
+
+        public TransactionProcessor(ITransactionStorage storage, IScriptRunner scriptRunner, IContainer container )
         {
             Storage = storage;
             ScriptRunner = scriptRunner;
+            Container = container;
         }
 
         public async Task RunAsync(CancellationToken cancel)
         {
             while (!cancel.IsCancellationRequested)
             {
-                var transactions = await Storage.GetExpiringTransactions(cancel);
+                var transactions = await Storage.GetExpiringTransactionsAsync(cancel);
                 int count = 0;
                 foreach (var transaction in transactions)
                 {
@@ -29,15 +33,19 @@ namespace Markurion
                     
                     ++count;
 
+                    var dependencyResolver = Container.CreateProxy();
+                    dependencyResolver.Register(transaction);
+                    dependencyResolver.Register<IStateDeserializer>(new StateDeserializer());
+                    dependencyResolver.Register<IStateSerializer>(new StateSerializer());
                     try
                     {
                         if (!string.IsNullOrEmpty(transaction.Script))
                         {
-                            var nextData = await ScriptRunner.Run(transaction.Script, transaction);
-                            await transaction.CreateDelta(transaction.Revision + 1, true, (ref TransactionMutableData x) =>
+                            ScriptRunner.Run(transaction.Script, dependencyResolver);
+                            /*await transaction.CreateDelta(transaction.Revision + 1, true, (ref TransactionMutableData x) =>
                             {
                                 x = nextData;
-                            });
+                            });*/
                         }
                         else
                         {
@@ -81,7 +89,7 @@ namespace Markurion
                                 unlikelyException, 
                                 Storage);
 
-                            await Storage.CreateTransaction(trans);
+                            await Storage.CreateTransactionAsync(trans);
                         }
                     }
                     finally

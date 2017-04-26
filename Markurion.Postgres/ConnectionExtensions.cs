@@ -18,8 +18,7 @@ namespace Markurion.Postgres
         private static void ApplyParameters<T>(NpgsqlCommand cmd, T parameters)
         {
             Action<NpgsqlCommand, T> apply;
-            Delegate getValue;
-            if(!_parameterCache.TryGetValue(typeof(T), out getValue))
+            if (!_parameterCache.TryGetValue(typeof(T), out Delegate getValue))
             {
                 getValue = CreateApplyParameter<T>();
                 _parameterCache.Add(typeof(T), getValue);

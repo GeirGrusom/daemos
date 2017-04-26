@@ -108,13 +108,11 @@ namespace Markurion.Postgres
 
         private static int GetExpressionPresedense(Expression exp)
         {
-            int pres = 0;
-            if (binaryPresedenseLookup.TryGetValue(exp.NodeType, out pres))
+            if (binaryPresedenseLookup.TryGetValue(exp.NodeType, out int pres))
             {
-                var binExp = exp as BinaryExpression;
-                if(binExp != null)
+                if (exp is BinaryExpression binExp)
                 {
-                    if(binExp.NodeType == Equal && binExp.Method == LikeMethod)
+                    if (binExp.NodeType == Equal && binExp.Method == LikeMethod)
                     {
                         return 5;
                     }
@@ -122,7 +120,7 @@ namespace Markurion.Postgres
                 return pres;
             }
 
-            if(exp is MethodCallExpression)
+            if (exp is MethodCallExpression)
             {
                 UnaryExpression un = (UnaryExpression)exp;
             }
@@ -139,8 +137,7 @@ namespace Markurion.Postgres
 
         protected override Expression VisitUnary(UnaryExpression node)
         {
-            string op;
-            if (!unaryOperatorLookup.TryGetValue(node.NodeType, out op))
+            if (!unaryOperatorLookup.TryGetValue(node.NodeType, out string op))
                 throw new NotSupportedException();
 
             if (node.NodeType != Quote)
@@ -275,8 +272,6 @@ namespace Markurion.Postgres
                             builder.Append(node.Arguments[1]);
                             return node;
                         }
-
-
                 }
             }
             return node;
@@ -284,8 +279,7 @@ namespace Markurion.Postgres
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
-            string op;
-            if (!binaryOperatorLookup.TryGetValue(node.NodeType, out op))
+            if (!binaryOperatorLookup.TryGetValue(node.NodeType, out string op))
                 throw new NotSupportedException();
 
             if (op == "+" && (node.Left.Type == typeof(string) || node.Right.Type == typeof(string)))

@@ -13,6 +13,7 @@ using Markurion.Postgres;
 
 namespace Markurion.Console
 {
+    using Scripting;
     public class Program
     {
         private static CancellationToken _cancel;
@@ -41,6 +42,7 @@ namespace Markurion.Console
         public static async Task MainApp(string[] args)
         {
             var parser = new ConfigurationParser();
+            var dependencyResolver = new DefaultDependencyResolver();
             var settings = new Settings
             {
                 DatabaseType = DatabaseType.Memory,
@@ -52,7 +54,7 @@ namespace Markurion.Console
             try
             {
                 System.Console.WriteLine("Initializing a connection to the database provider...");
-                await storage.Open();
+                await storage.OpenAsync();
             }
             catch(System.Net.Sockets.SocketException ex)
             {
@@ -102,7 +104,7 @@ namespace Markurion.Console
             ScriptingProvider provider = new ScriptingProvider(storage);
             await provider.Initialize();
 
-            TransactionProcessor processor = new TransactionProcessor(storage, provider);
+            TransactionProcessor processor = new TransactionProcessor(storage, provider, dependencyResolver);
          
             var cancelSource = new CancellationTokenSource();
             _cancel = cancelSource.Token;

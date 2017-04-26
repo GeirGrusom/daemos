@@ -45,7 +45,7 @@ namespace Markurion.Api.Controllers
                     data.Expires = DateTime.UtcNow;
                     data.Script = $"Handler.{verb}(Transaction);";
                 });
-                waitTask = _storage.WaitFor(x => x.Id == id && (x.State == state || x.State == TransactionState.Failed), timeout);
+                waitTask = _storage.WaitForAsync(x => x.Id == id && (x.State == state || x.State == TransactionState.Failed), timeout);
             }
             finally
             {

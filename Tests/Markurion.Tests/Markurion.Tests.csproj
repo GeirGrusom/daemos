@@ -18,6 +18,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\..\Markurion.Mute\Markurion.Mute.csproj" />
     <ProjectReference Include="..\..\Markurion.Postgres\Markurion.Postgres.csproj" />
     <ProjectReference Include="..\..\Markurion\Markurion.csproj" />
   </ItemGroup>

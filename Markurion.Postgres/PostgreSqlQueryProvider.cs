@@ -80,8 +80,10 @@ namespace Markurion.Postgres
                 int id = 0;
                 foreach(var param in visitor.Parameters)
                 {
-                    var p = new NpgsqlParameter("p" + (++id), param);
-                    p.NpgsqlDbType = GetDbType(param.GetType());
+                    var p = new NpgsqlParameter("p" + (++id), param)
+                    {
+                        NpgsqlDbType = GetDbType(param.GetType())
+                    };
                     cmd.Parameters.Add(p);
                 }
 

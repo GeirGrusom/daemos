@@ -103,6 +103,25 @@ namespace Markurion.Postgres
             return result;
         }
 
+        private NpgsqlConnection GetConnection()
+        {
+            NpgsqlConnection conn = null;
+            var result = _threadConnections.GetOrAdd(Thread.CurrentThread, thread => conn = CreateConnection());
+
+
+            if (conn != null && conn != result)
+            {
+                conn.Dispose();
+            }
+
+            if (result.State != ConnectionState.Open)
+            {
+                result.Open();
+            }
+
+            return result;
+        }
+
         private async Task<PostgreSqlQueryProvider> GetQueryProviderAsync()
         {
             NpgsqlConnection conn = await GetConnectionAsync();
@@ -137,7 +156,7 @@ namespace Markurion.Postgres
             return new NpgsqlConnection(connectionString);
         }
 
-        public override async Task Open()
+        public override async Task OpenAsync()
         {
             var conn = await GetConnectionAsync();
 
@@ -146,19 +165,20 @@ namespace Markurion.Postgres
 
         private Transaction Map(DbDataReader reader)
         {
-            TransactionData data = new TransactionData();
-            data.Id = reader.GetGuid(0);
-            data.Revision = reader.GetInt32(1);
-            data.Created = reader.GetDateTime(2);
-            data.Expires = reader.IsDBNull(3) ? default(DateTime?) : reader.GetFieldValue<DateTime>(3);
-            data.Expired = reader.IsDBNull(4) ? default(DateTime?) : reader.GetFieldValue<DateTime>(4);
-            data.Payload = reader.IsDBNull(5) ? null : JsonConvert.DeserializeObject<ExpandoObject>(reader.GetString(5));
-            data.Script = reader.IsDBNull(6) ? null : reader.GetString(6);
+            TransactionData data = new TransactionData()
+            {
+                Id = reader.GetGuid(0),
+                Revision = reader.GetInt32(1),
+                Created = reader.GetDateTime(2),
+                Expires = reader.IsDBNull(3) ? default(DateTime?) : reader.GetFieldValue<DateTime>(3),
+                Expired = reader.IsDBNull(4) ? default(DateTime?) : reader.GetFieldValue<DateTime>(4),
+                Payload = reader.IsDBNull(5) ? null : JsonConvert.DeserializeObject<ExpandoObject>(reader.GetString(5)),
+                Script = reader.IsDBNull(6) ? null : reader.GetString(6)
+            };
             Guid? pid = reader.IsDBNull(7) ? default(Guid?) : reader.GetFieldValue<Guid>(7);
             if (pid != null)
             {
                 data.Parent = new TransactionRevision(pid.Value, reader.GetInt32(8));
-
             }
 
             data.State = (TransactionState)reader.GetInt32(9);
@@ -167,7 +187,7 @@ namespace Markurion.Postgres
             return new Transaction(data, this);
         }
 
-        public override async Task<Transaction> CommitTransactionDelta(Transaction original, Transaction next)
+        public override async Task<Transaction> CommitTransactionDeltaAsync(Transaction original, Transaction next)
         {
             Transaction result;
             var conn = await GetConnectionAsync();
@@ -228,7 +248,68 @@ INSERT INTO tr.transactions
             return result;
         }
 
-        public override Task<Transaction> CreateTransaction(Transaction transaction)
+        public override Transaction CommitTransactionDelta(Transaction original, Transaction next)
+        {
+            Transaction result;
+            var conn = GetConnection();
+            using (var trans = conn.BeginTransaction())
+            {
+                int lastRev;
+                using (var headRevCmd = conn.CreateCommand())
+                {
+                    var p = headRevCmd.CreateParameter();
+                    p.ParameterName = "id";
+                    p.Value = original.Id;
+                    headRevCmd.Parameters.Add(p);
+                    headRevCmd.CommandText = "select revision from tr.transactions_head where id = @id";
+                    headRevCmd.Transaction = trans;
+                    lastRev = (int)headRevCmd.ExecuteScalar();
+                }
+
+                if (next.Id != original.Id)
+                    throw new ArgumentException("The new transaction has a different id from the chain.", nameof(next));
+
+                if (next.Revision <= lastRev && next.Revision > 0)
+                    throw new TransactionRevisionExistsException(next.Id, next.Revision);
+
+                if (next.Revision <= 0 || next.Revision > lastRev + 1)
+                    throw new ArgumentException("The specified revision number is not valid.", nameof(next));
+
+                var parentId = next.Parent?.Id;
+                var parentRevision = next.Parent?.Revision;
+
+                var delta = new
+                {
+                    Id = original.Id,
+                    Revision = next.Revision,
+                    Expires = next.Expires,
+                    Expired = next.Expired,
+                    Created = TimeService.Now(),
+                    Payload = new JsonContainer(JsonConvert.SerializeObject(next.Payload)),
+                    Script = next.Script,
+                    ParentId = parentId,
+                    ParentRev = parentRevision,
+                    State = (int)next.State,
+                    Handler = next.Handler,
+                    Error = new JsonContainer(JsonConvert.SerializeObject(next.Error)),
+                };
+
+                const string query = @"
+update tr.transactions set head = 'f' where id = @Id;
+INSERT INTO tr.transactions 
+    (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) VALUES 
+    (@Id, @Revision, @Created, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler, @Error) RETURNING id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error;
+";
+
+
+                result = conn.ExecuteReader(query, delta, Map, trans).Single();
+                trans.Commit();
+            }
+            OnTransactionCommitted(result);
+            return result;
+        }
+
+        public override Task<Transaction> CreateTransactionAsync(Transaction transaction)
         {
             return CreateTransaction(transaction, null);
         }
@@ -297,7 +378,7 @@ INSERT INTO tr.transactions
             
         }
 
-        public override async Task<Transaction> FetchTransaction(Guid id, int revision = -1)
+        public override async Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1)
         {
             if(revision == -1)
             {
@@ -334,13 +415,13 @@ INSERT INTO tr.transactions
             }
         }
         
-        public override Task FreeTransaction(Guid id)
+        public override Task FreeTransactionAsync(Guid id)
         {
             return Task.CompletedTask;
 
         }
 
-        public override async Task<IEnumerable<Transaction>> GetChain(Guid id)
+        public override async Task<IEnumerable<Transaction>> GetChainAsync(Guid id)
         {
             using (var selectChain = await SelectTransactionChainCommandAsync())
             {
@@ -360,7 +441,7 @@ INSERT INTO tr.transactions
             
         }
 
-        public override async Task<IEnumerable<Transaction>> GetChildTransactions(Guid transaction, params TransactionState[] state)
+        public override async Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state)
         {
             using (var cmd = await SelectChildTransactionsCommandAsync())
             {
@@ -428,23 +509,23 @@ INSERT INTO tr.transactions
 
         }
 
-        public override Task<bool> IsTransactionLocked(Guid id)
+        public override Task<bool> IsTransactionLockedAsync(Guid id)
         {
             return Task.FromResult(false);
 
         }
 
-        public override Task LockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
+        public override Task LockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
         {
             return Task.CompletedTask;
         }
 
-        public override async Task<IQueryable<Transaction>> Query()
+        public override async Task<IQueryable<Transaction>> QueryAsync()
         {
             return new PostgreSqlOrderedQuerableProvider<Transaction>(await GetQueryProviderAsync());
         }
 
-        public override async Task<bool> TransactionExists(Guid id)
+        public override async Task<bool> TransactionExistsAsync(Guid id)
         {
             using(var conn = await GetConnectionAsync())
             using (var cmd = conn.CreateCommand())
@@ -460,7 +541,7 @@ INSERT INTO tr.transactions
             }
         }
 
-        public override Task<bool> TryLockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
+        public override Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
         {
             return Task.FromResult(true);
 

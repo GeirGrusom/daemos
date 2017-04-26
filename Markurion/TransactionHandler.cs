@@ -45,7 +45,7 @@ namespace Markurion
 
         public async Task Cancel(Transaction transaction)
         {
-            var children = await Storage.GetChildTransactions(transaction.Id, TransactionState.Authorized, TransactionState.Initialized);
+            var children = await Storage.GetChildTransactionsAsync(transaction.Id, TransactionState.Authorized, TransactionState.Initialized);
 
             foreach (var child in children)
             {
@@ -61,12 +61,12 @@ namespace Markurion
             data.Script = null;
             data.Created = DateTime.UtcNow;
             var newTrans = new Transaction(data, Storage);
-            await Storage.CommitTransactionDelta(transaction, newTrans);
+            await Storage.CommitTransactionDeltaAsync(transaction, newTrans);
         }
 
         public async Task Authorize(Transaction transaction)
         {
-            var children = await Storage.GetChildTransactions(transaction.Id, TransactionState.Authorized, TransactionState.Initialized);
+            var children = await Storage.GetChildTransactionsAsync(transaction.Id, TransactionState.Authorized, TransactionState.Initialized);
 
             foreach (var child in children)
             {
@@ -87,12 +87,12 @@ namespace Markurion
             data.Script = null;
             data.Created = DateTime.UtcNow;
             var newTrans = new Transaction(data, Storage);
-            await Storage.CommitTransactionDelta(transaction, newTrans);
+            await Storage.CommitTransactionDeltaAsync(transaction, newTrans);
         }
 
         public async Task Complete(Transaction transaction)
         {
-            var children = await Storage.GetChildTransactions(transaction.Id, TransactionState.Authorized, TransactionState.Initialized);
+            var children = await Storage.GetChildTransactionsAsync(transaction.Id, TransactionState.Authorized, TransactionState.Initialized);
 
             foreach (var child in children)
             {
@@ -114,7 +114,7 @@ namespace Markurion
             data.Script = null;
             data.Created = DateTime.UtcNow;
             var newTrans = new Transaction(data, Storage);
-            await Storage.CommitTransactionDelta(transaction, newTrans);
+            await Storage.CommitTransactionDeltaAsync(transaction, newTrans);
         }
 
         public Task Fail(Transaction transaction)

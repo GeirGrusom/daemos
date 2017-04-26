@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Linq;
+using Markurion.Scripting;
 
 namespace Markurion.Api.Scripting
 {
@@ -13,7 +14,7 @@ namespace Markurion.Api.Scripting
 
         private readonly ConcurrentDictionary<string, IScriptRunner> _runners;
 
-        private readonly ConcurrentDictionary<string, Func<Transaction, Task<TransactionMutableData>>> _compiled;
+        private readonly ConcurrentDictionary<string, Action<IDependencyResolver>> _compiled;
 
         private readonly EventHandler<TransactionCommittedEventArgs> _transactionCommittedEventHandler;
 
@@ -23,57 +24,9 @@ namespace Markurion.Api.Scripting
         {
             _transactionCommittedEventHandler = OnTransactionCommitted;
             _runners = new ConcurrentDictionary<string, IScriptRunner>(StringComparer.OrdinalIgnoreCase);
-            _compiled = new ConcurrentDictionary<string, Func<Transaction, Task<TransactionMutableData>>>(StringComparer.OrdinalIgnoreCase);
+            _compiled = new ConcurrentDictionary<string, Action<IDependencyResolver>>(StringComparer.OrdinalIgnoreCase);
 
-            _compiled.TryAdd("hello", HelloWorld);
-            _compiled.TryAdd("stage1", Stage1);
-            _compiled.TryAdd("stage2", Stage2);
             _storage = storage;
-        }
-
-        private Task<TransactionMutableData> HelloWorld(Transaction tr)
-        {
-            TransactionMutableData m = new TransactionMutableData();
-            m.Payload = tr.Payload;
-            m.Error = tr.Error;
-            m.Expires = null;
-            m.Handler = tr.Handler;
-            m.Script = tr.Script;
-            m.State = TransactionState.Completed;
-
-            Console.WriteLine("Hello World!");
-
-            return Task.FromResult(m);
-        }
-
-        private Task<TransactionMutableData> Stage1(Transaction tr)
-        {
-            TransactionMutableData m = new TransactionMutableData();
-            m.Payload = tr.Payload;
-            m.Error = tr.Error;
-            m.Expires = tr.Expires.Value.AddMinutes(1);
-            m.Handler = tr.Handler;
-            m.Script = "#ref=stage2";
-            m.State = TransactionState.Authorized;
-
-            Console.WriteLine("Hello World, Stage1!");
-
-            return Task.FromResult(m);
-        }
-
-        private Task<TransactionMutableData> Stage2(Transaction tr)
-        {
-            TransactionMutableData m = new TransactionMutableData();
-            m.Payload = tr.Payload;
-            m.Error = tr.Error;
-            m.Expires = null;
-            m.Handler = tr.Handler;
-            m.Script = null;
-            m.State = TransactionState.Completed;
-
-            Console.WriteLine("Hello World, Stage2!");
-
-            return Task.FromResult(m);
         }
 
         public void AddLanguageRunner(string language, IScriptRunner runner)
@@ -86,7 +39,7 @@ namespace Markurion.Api.Scripting
             _runners.TryAdd(language, runner);
         }
 
-        public Task<TransactionMutableData> Run(string code, Transaction transaction)
+        public void Run(string code, IDependencyResolver resolver)
         {
             var m = LanguageTest.Match(code);
             if (m.Success)
@@ -95,15 +48,17 @@ namespace Markurion.Api.Scripting
                 {
                     string language = m.Groups["Language"].Value;
                     string script = code.Substring(m.Length);
-                    return RunScript(language, script, transaction);
+                    RunScript(language, script, resolver);
+                    return;
                 }
                 if (m.Groups["Reference"].Success)
                 {
                     string reference = code.Substring(m.Length).Trim();
-                    return RunReference(reference, transaction);
+                    RunReference(reference, resolver);
+                    return;
                 }
             }
-            return RunScript("C#", code, transaction);
+            RunScript("Mute", code, resolver);
         }
 
         private async void OnTransactionCommitted(object sender, TransactionCommittedEventArgs e)
@@ -111,9 +66,8 @@ namespace Markurion.Api.Scripting
             if (e.Transaction.Payload != null)
             {
                 var o = (IDictionary<string, object>)e.Transaction.Payload;
-                object @internal;
-                
-                if (o.TryGetValue("@internal", out @internal) && "script".Equals(@internal))
+
+                if (o.TryGetValue("@internal", out object @internal) && "script".Equals(@internal))
                 {
                     if (e.Transaction.State == TransactionState.Authorized)
                     {
@@ -137,7 +91,7 @@ namespace Markurion.Api.Scripting
                     string language = (string) payload["language"];
                     string code = (string) payload["code"];
 
-                    await RegisterScript(name, language, code);
+                    RegisterScript(name, language, code);
                 }
                 else if(tr.State == TransactionState.Cancelled)
                 {
@@ -146,7 +100,7 @@ namespace Markurion.Api.Scripting
             }
             catch (Exception ex)
             {
-                await _storage.CommitTransactionDelta(tr,
+                await _storage.CommitTransactionDeltaAsync(tr,
                     new Transaction(tr.Id, tr.Revision + 1, DateTime.UtcNow, null, null, tr.Payload, tr.Script,
                         TransactionState.Failed, tr.Parent, ex, _storage));
             }
@@ -154,7 +108,7 @@ namespace Markurion.Api.Scripting
 
         public async Task Initialize()
         {
-            var query = await _storage.Query();
+            var query = await _storage.QueryAsync();
             var scripts = query.Where(
                     tr => new JsonValue((IDictionary<string, object>) tr.Payload, "Payload", "@internal") == "script" && tr.State == TransactionState.Authorized)
                 .ToArray();
@@ -167,55 +121,48 @@ namespace Markurion.Api.Scripting
             _storage.TransactionCommitted += _transactionCommittedEventHandler;
         }
 
-        public Task<Func<Transaction, Task<TransactionMutableData>>> Compile(string code)
+        public Action<IDependencyResolver> Compile(string code)
         {
-            return Task.FromResult(new Func<Transaction, Task<TransactionMutableData>>(tr => Run(code, tr)));
+            return new Action<IDependencyResolver>(tr => Run(code, tr));
         }
 
-        public Task<TransactionMutableData> RunScript(string language, string script, Transaction transaction)
+        public void RunScript(string language, string script, IDependencyResolver resolver)
         {
-            IScriptRunner runner;
-
-            if (!_runners.TryGetValue(language, out runner))
+            if (!_runners.TryGetValue(language, out IScriptRunner runner))
             {
                 throw new ArgumentException($"Could not locate a language runner named {language}.", nameof(language));
             }
 
-            return runner.Run(script, transaction);
+            runner.Run(script, resolver);
 
         }
 
-        public Task<TransactionMutableData> RunReference(string reference, Transaction transaction)
+        public void RunReference(string reference, IDependencyResolver resolver)
         {
-
-            Func<Transaction, Task<TransactionMutableData>> result;
-            if (!_compiled.TryGetValue(reference, out result))
+            if (!_compiled.TryGetValue(reference, out Action<IDependencyResolver> result))
             {
                 throw new ArgumentException($"Could not locate a script with name {reference}.", nameof(reference));
             }
 
-            return result(transaction);
+            result(resolver);
         }
 
-        public async Task RegisterScript(string reference, string language, string script)
+        public void RegisterScript(string reference, string language, string script)
         {
-            IScriptRunner runner;
-
-            if (!_runners.TryGetValue(language, out runner))
+            if (!_runners.TryGetValue(language, out IScriptRunner runner))
             {
                 throw new ArgumentException($"Could not locate a language runner name {language}.");
             }
 
 
-            var func = await runner.Compile(script);
+            var func = runner.Compile(script);
 
             _compiled.GetOrAdd(reference, r => func);
         }
 
         public void RemoveReference(string reference)
         {
-            Func<Transaction, Task<TransactionMutableData>> res;
-            _compiled.TryRemove(reference, out res);
+            _compiled.TryRemove(reference, out Action<IDependencyResolver> res);
         }
 
         public void Dispose()

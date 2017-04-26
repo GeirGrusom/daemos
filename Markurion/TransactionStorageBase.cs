@@ -10,7 +10,6 @@ namespace Markurion
     {
         public event EventHandler<TransactionCommittedEventArgs> TransactionCommitted;
 
-        private ITransactionMatchCompiler _transactionMatchCompiler;
         private readonly AutoResetEvent _nextExpiringTransactionChangedEvent;
         private DateTime? _nextExpiringTransaction;
         private readonly ITimeService _timeService;
@@ -39,19 +38,20 @@ namespace Markurion
             TransactionCommitted?.Invoke(this, new TransactionCommittedEventArgs(transaction));
         }
 
-        public abstract Task<Transaction> CommitTransactionDelta(Transaction original, Transaction next);
-        public abstract Task<Transaction> CreateTransaction(Transaction transaction);
-        public abstract Task<Transaction> FetchTransaction(Guid id, int revision = -1);
-        public abstract Task FreeTransaction(Guid id);
-        public abstract Task<IEnumerable<Transaction>> GetChain(Guid id);
-        public abstract Task<IEnumerable<Transaction>> GetChildTransactions(Guid transaction, params TransactionState[] state);
-        public abstract Task<bool> IsTransactionLocked(Guid id);
-        public abstract Task LockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
-        public abstract Task<IQueryable<Transaction>> Query();
-        public abstract Task<bool> TransactionExists(Guid id);
-        public abstract Task<bool> TryLockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
-        public abstract Task Open();
-        public virtual async Task<Transaction> WaitFor(Func<Transaction, bool> predicate, int timeout)
+        public abstract Task<Transaction> CommitTransactionDeltaAsync(Transaction original, Transaction next);
+        public abstract Transaction CommitTransactionDelta(Transaction original, Transaction next);
+        public abstract Task<Transaction> CreateTransactionAsync(Transaction transaction);
+        public abstract Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1);
+        public abstract Task FreeTransactionAsync(Guid id);
+        public abstract Task<IEnumerable<Transaction>> GetChainAsync(Guid id);
+        public abstract Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state);
+        public abstract Task<bool> IsTransactionLockedAsync(Guid id);
+        public abstract Task LockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
+        public abstract Task<IQueryable<Transaction>> QueryAsync();
+        public abstract Task<bool> TransactionExistsAsync(Guid id);
+        public abstract Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
+        public abstract Task OpenAsync();
+        public virtual async Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout)
         {
             SemaphoreSlim sem = new SemaphoreSlim(0, 1);
             Transaction result = null;
@@ -74,7 +74,7 @@ namespace Markurion
             return result;
         }
 
-        public Task<List<Transaction>> GetExpiringTransactions(CancellationToken cancel)
+        public Task<List<Transaction>> GetExpiringTransactionsAsync(CancellationToken cancel)
         {
             WaitForExpiringTransactions(cancel);
             return GetExpiringTransactionsInternal(cancel);

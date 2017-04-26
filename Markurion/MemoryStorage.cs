@@ -89,15 +89,14 @@ namespace Markurion
         }
 
 
-        public override Task Open()
+        public override Task OpenAsync()
         {
             return Task.CompletedTask;
         }
 
-        public override async Task LockTransaction(Guid id, LockFlags flags, int timeout)
+        public override async Task LockTransactionAsync(Guid id, LockFlags flags, int timeout)
         {
-            TransactionSlot slot;
-            bool found = _transactions.TryGetValue(id, out slot);
+            bool found = _transactions.TryGetValue(id, out TransactionSlot slot);
             if (!found)
             {
                 if ((flags & LockFlags.CreateIfNotExists) == LockFlags.CreateIfNotExists)
@@ -117,7 +116,7 @@ namespace Markurion
                 throw new TimeoutException();
         }
 
-        public override Task<IEnumerable<Transaction>> GetChildTransactions(Guid id, params TransactionState[] states)
+        public override Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid id, params TransactionState[] states)
         {
             return Task.FromResult(from slot in _transactions
                 let trans = slot.Value.Chain.Last()
@@ -126,10 +125,9 @@ namespace Markurion
 
         }
 
-        public override Task<bool> TryLockTransaction(Guid id, LockFlags flags, int timeout)
+        public override Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags, int timeout)
         {
-            TransactionSlot slot;
-            bool found = _transactions.TryGetValue(id, out slot);
+            bool found = _transactions.TryGetValue(id, out TransactionSlot slot);
             if (!found)
             {
                 if ((flags & LockFlags.CreateIfNotExists) == LockFlags.CreateIfNotExists)
@@ -146,35 +144,33 @@ namespace Markurion
             return slot.Lock.WaitAsync(timeout);
         }
 
-        public override Task FreeTransaction(Guid id)
+        public override Task FreeTransactionAsync(Guid id)
         {
             var slot = _transactions[id];
             slot.Lock.Release();
             return Task.FromResult(0);
         }
 
-        public override async Task<bool> IsTransactionLocked(Guid id)
+        public override async Task<bool> IsTransactionLockedAsync(Guid id)
         {
             return !await _transactions[id].Lock.WaitAsync(0);
         }
 
-        public override Task<Transaction> FetchTransaction(Guid id, int revision = -1)
+        public override Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1)
         {
-            TransactionSlot slot;
-            if (!_transactions.TryGetValue(id, out slot))
+            if (!_transactions.TryGetValue(id, out TransactionSlot slot))
             {
                 throw new TransactionMissingException(id);
             }
-            
+
             if (revision > -1)
                 return Task.FromResult(slot.Chain[revision]);
             return Task.FromResult(slot.Chain[slot.Chain.Count - 1]);
         }
 
-        public override Task<IEnumerable<Transaction>> GetChain(Guid id)
+        public override Task<IEnumerable<Transaction>> GetChainAsync(Guid id)
         {
-            TransactionSlot slot;
-            if (!_transactions.TryGetValue(id, out slot))
+            if (!_transactions.TryGetValue(id, out TransactionSlot slot))
             {
                 throw new TransactionMissingException(id);
             }
@@ -182,7 +178,7 @@ namespace Markurion
             return Task.FromResult((IEnumerable<Transaction>)slot.Chain);
         }
 
-        public override Task<Transaction> CreateTransaction(Transaction transaction)
+        public override Task<Transaction> CreateTransactionAsync(Transaction transaction)
         {
             lock (_transactionsByExpiriation)
             {
@@ -211,7 +207,12 @@ namespace Markurion
             }
         }
 
-        public override Task<Transaction> CommitTransactionDelta(Transaction transaction, Transaction next)
+        public override Task<Transaction> CommitTransactionDeltaAsync(Transaction transaction, Transaction next)
+        {
+            return Task.FromResult(CommitTransactionDelta(transaction, next));
+        }
+
+        public override Transaction CommitTransactionDelta(Transaction transaction, Transaction next)
         {
             var slot = _transactions[transaction.Id];
             var last = _transactions[transaction.Id].Chain.Last();
@@ -220,13 +221,13 @@ namespace Markurion
             trData.Created = TimeService.Now();
             next = new Transaction(trData, next.Storage);
 
-            if(next.Id != transaction.Id)
+            if (next.Id != transaction.Id)
                 throw new ArgumentException("The new transaction has a different id from the chain.", nameof(next));
 
-            if (next.Revision <= 0 || next.Revision > last.Revision + 1 )
+            if (next.Revision <= 0 || next.Revision > last.Revision + 1)
                 throw new ArgumentException("The specified revision is not a valid revision number.", nameof(next));
 
-            if(next.Revision < last.Revision + 1 && next.Revision > 0)
+            if (next.Revision < last.Revision + 1 && next.Revision > 0)
                 throw new TransactionRevisionExistsException(next.Id, next.Revision);
 
             slot.Chain.Add(next);
@@ -235,17 +236,17 @@ namespace Markurion
             lock (_transactionsByExpiriation)
             {
                 int index = _transactionsByExpiriation.IndexOfValue(slot);
-                if(index >= 0)
+                if (index >= 0)
                     _transactionsByExpiriation.RemoveAt(index);
 
-                if(next.Expired == null && next.Expires != null)
+                if (next.Expired == null && next.Expires != null)
                     _transactionsByExpiriation.Add(next.Expires.Value, slot);
             }
             OnTransactionCommitted(next);
-            return Task.FromResult(next);
+            return next;
         }
 
-        public override Task<bool> TransactionExists(Guid id)
+        public override Task<bool> TransactionExistsAsync(Guid id)
         {
             return Task.FromResult(_transactions.ContainsKey(id));
         }
@@ -310,12 +311,12 @@ namespace Markurion
 
         }
 
-        public override Task<IQueryable<Transaction>> Query()
+        public override Task<IQueryable<Transaction>> QueryAsync()
         {
             return Task.FromResult(_transactions.Select(x => x.Value.Head).AsQueryable());
         }
 
-        public override async Task<Transaction> WaitFor(Func<Transaction, bool> predicate, int timeout)
+        public override async Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout)
         {
             SemaphoreSlim sem = new SemaphoreSlim(0, 1);
             Transaction result = null;

@@ -54,7 +54,7 @@ namespace Markurion.Api.Controllers
             var compiler = new Query.MatchCompiler();
             var exp = compiler.BuildExpression(query);
 
-            var whereQuery = (await _storage.Query()).Where(exp);
+            var whereQuery = (await _storage.QueryAsync()).Where(exp);
 
             if(skip != null)
             {
@@ -69,7 +69,7 @@ namespace Markurion.Api.Controllers
             var results = whereQuery.Select(TransactionMapper.ToTransactionResult).AsEnumerable();
             if (rows)
             {
-                var count = (await _storage.Query()).Where(exp).Count();
+                var count = (await _storage.QueryAsync()).Where(exp).Count();
                 return Json(new { count, results });
             }
 

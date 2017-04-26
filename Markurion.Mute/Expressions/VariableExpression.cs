@@ -1,0 +1,23 @@
+﻿using System;
+using Antlr4.Runtime;
+
+namespace Markurion.Mute.Expressions
+{
+    public class VariableExpression : Expressions.Expression
+    {
+        public string Name { get; }
+        public bool Mutable { get; }
+
+        public VariableExpression(string name, bool mutable, DataType type, ParserRuleContext context)
+             : base(type, context)
+        {
+            Name = name;
+            Mutable = mutable;
+        }
+
+        public override string ToString()
+        {
+            return Name;
+        }
+    }
+}

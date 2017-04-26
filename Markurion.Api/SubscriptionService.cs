@@ -62,7 +62,7 @@ namespace Markurion.Api
         public async Task<Guid> ListAndSubscribe(Guid transactionId, Action<Guid, Transaction> callback)
         {
 
-            await Storage.LockTransaction(transactionId);
+            await Storage.LockTransactionAsync(transactionId);
 
             var subscriptionId = Guid.NewGuid();
 
@@ -73,7 +73,7 @@ namespace Markurion.Api
                 if (!_subscriptions.TryAdd(subscriptionId, sub))
                     throw new Exception();
 
-                var transactions = await Storage.GetChain(transactionId);
+                var transactions = await Storage.GetChainAsync(transactionId);
 
                 foreach (var trans in transactions)
                 {
@@ -90,7 +90,7 @@ namespace Markurion.Api
             }
             finally
             {
-                await Storage.FreeTransaction(transactionId);
+                await Storage.FreeTransactionAsync(transactionId);
             }
         }
 

@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Markurion.Tests
 {
+    using Scripting;
     public class TransactionProcessorTests
     {
 
@@ -17,12 +18,15 @@ namespace Markurion.Tests
             public ITransactionStorage Storage { get; }
             public IScriptRunner ScriptRunner { get; }
             public TransactionProcessor Processor { get; }
+            public IContainer Container { get; }
 
             public Service()
             {
                 Storage = Substitute.For<ITransactionStorage>();
                 ScriptRunner = Substitute.For<IScriptRunner>();
-                Processor = new TransactionProcessor(Storage, ScriptRunner);
+                Container = Substitute.For<IContainer>();
+                Container.CreateProxy().Returns(Container);
+                Processor = new TransactionProcessor(Storage, ScriptRunner, Container);
             }
 
             [DebuggerStepThrough]
@@ -39,13 +43,13 @@ namespace Markurion.Tests
         {
             // Arrange
             var service = new Service();
-            service.Storage.GetExpiringTransactions(Arg.Any<CancellationToken>()).Returns(new List<Transaction>());
+            service.Storage.GetExpiringTransactionsAsync(Arg.Any<CancellationToken>()).Returns(new List<Transaction>());
 
             // Act
             await service.RunAsync();
 
             // Assert
-            await service.Storage.Received().GetExpiringTransactions(Arg.Any<CancellationToken>());
+            await service.Storage.Received().GetExpiringTransactionsAsync(Arg.Any<CancellationToken>());
         }
     }
 }

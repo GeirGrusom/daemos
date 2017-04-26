@@ -64,7 +64,7 @@ namespace Markurion.Tests
             var transaction = TransactionFactory.CreateNew(storage);
 
             // Act
-            var committedTransaction = await storage.CreateTransaction(transaction);
+            var committedTransaction = await storage.CreateTransactionAsync(transaction);
 
             // Assert
             Equal(transaction.Id, committedTransaction.Id);
@@ -78,7 +78,7 @@ namespace Markurion.Tests
             var transaction = TransactionFactory.CreateNew(storage);
 
             // Act
-            var committedTransaction = await storage.CreateTransaction(transaction);
+            var committedTransaction = await storage.CreateTransactionAsync(transaction);
 
             // Assert
             Equal(transaction.State, committedTransaction.State);
@@ -90,10 +90,10 @@ namespace Markurion.Tests
             // Arrange
             var storage = CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
-            var committedTransaction = await storage.CreateTransaction(transaction);
+            var committedTransaction = await storage.CreateTransactionAsync(transaction);
 
             // Act
-            await ThrowsAsync<TransactionExistsException>(() => storage.CreateTransaction(transaction));
+            await ThrowsAsync<TransactionExistsException>(() => storage.CreateTransactionAsync(transaction));
 
             // Assert
             Equal(transaction.State, committedTransaction.State);
@@ -113,7 +113,7 @@ namespace Markurion.Tests
             var transaction = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => t.State = state);
 
             // Act
-            var committedTransaction = (await storage.CreateTransaction(transaction));
+            var committedTransaction = (await storage.CreateTransactionAsync(transaction));
 
             // Assert
             Equal(state, committedTransaction.State);
@@ -127,7 +127,7 @@ namespace Markurion.Tests
             var transaction = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => { t.Revision = 2; });
 
             // Act
-            var committedTransaction = await storage.CreateTransaction(transaction);
+            var committedTransaction = await storage.CreateTransactionAsync(transaction);
 
             // Assert
             Equal(1, committedTransaction.Revision);
@@ -141,7 +141,7 @@ namespace Markurion.Tests
             var transaction = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => { t.Revision = 2; });
 
             // Act
-            var ev = await RaisesAsync<TransactionCommittedEventArgs>(v => storage.TransactionCommitted += v, v => storage.TransactionCommitted -= v, () => storage.CreateTransaction(transaction));
+            var ev = await RaisesAsync<TransactionCommittedEventArgs>(v => storage.TransactionCommitted += v, v => storage.TransactionCommitted -= v, () => storage.CreateTransactionAsync(transaction));
 
             // Assert
             Equal(transaction.Id, ev.Arguments.Transaction.Id);
@@ -153,10 +153,10 @@ namespace Markurion.Tests
             // Arrange
             var storage = CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
-            var committedTransaction = await storage.CreateTransaction(transaction);
+            var committedTransaction = await storage.CreateTransactionAsync(transaction);
 
             // Act
-            var fetchedTransaction = await storage.FetchTransaction(transaction.Id);
+            var fetchedTransaction = await storage.FetchTransactionAsync(transaction.Id);
 
             // Assert
             Equal(committedTransaction, fetchedTransaction);
@@ -170,7 +170,7 @@ namespace Markurion.Tests
             var transactionId = Guid.NewGuid();
 
             // Act
-            var ex = await ThrowsAsync<TransactionMissingException>(() => storage.FetchTransaction(transactionId));
+            var ex = await ThrowsAsync<TransactionMissingException>(() => storage.FetchTransactionAsync(transactionId));
 
             // Assert
             Equal(transactionId, ex.TransactionId);
@@ -181,11 +181,11 @@ namespace Markurion.Tests
         {
             // Arrange
             var storage = CreateStorage();
-            var transaction = await storage.CreateTransaction(TransactionFactory.CreateNew(storage));
+            var transaction = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
             var delta = transaction.With((ref TransactionData t) => { t.State = TransactionState.Authorized; t.Revision = 2; });
 
             // Act
-            var result = await storage.CommitTransactionDelta(transaction, delta);
+            var result = await storage.CommitTransactionDeltaAsync(transaction, delta);
 
             // Assert
             Equal(2, result.Revision);
@@ -198,10 +198,10 @@ namespace Markurion.Tests
         {
             // Arrange
             var storage = CreateStorage();
-            var transaction = await storage.CreateTransaction(TransactionFactory.CreateNew(storage));
+            var transaction = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
 
             // Act
-            var ex = await ThrowsAsync<TransactionRevisionExistsException>(() => storage.CommitTransactionDelta(transaction, transaction));
+            var ex = await ThrowsAsync<TransactionRevisionExistsException>(() => storage.CommitTransactionDeltaAsync(transaction, transaction));
 
             // Assert
             Equal(transaction.Id, ex.TransactionId);
@@ -216,11 +216,11 @@ namespace Markurion.Tests
         {
             // Arrange
             var storage = CreateStorage();
-            var transaction = await storage.CreateTransaction(TransactionFactory.CreateNew(storage));
+            var transaction = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
             var delta = transaction.With((ref TransactionData t) => { t.Revision = revision; });
 
             // Act
-            var ex = await ThrowsAsync<ArgumentException>(() => storage.CommitTransactionDelta(transaction, delta));
+            var ex = await ThrowsAsync<ArgumentException>(() => storage.CommitTransactionDeltaAsync(transaction, delta));
 
             // Assert
             Equal("next", ex.ParamName);
@@ -235,10 +235,10 @@ namespace Markurion.Tests
             timeService.Now().Returns(new DateTime(1999, 05, 15));
             var storage = CreateStorage(timeService);
             var trans = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => { t.Expires = new DateTime(1999, 05, 14); });
-            trans = await storage.CreateTransaction(trans);
+            trans = await storage.CreateTransactionAsync(trans);
 
             // Act
-            var expiringTransactions = await storage.GetExpiringTransactions(CancellationToken.None);
+            var expiringTransactions = await storage.GetExpiringTransactionsAsync(CancellationToken.None);
 
             // Assert
             Equal(trans, expiringTransactions[0]);
@@ -253,7 +253,7 @@ namespace Markurion.Tests
             var storage = CreateStorage(timeService);
 
             // Act
-            var expiringTransactions = await storage.GetExpiringTransactions(CancellationToken.None);
+            var expiringTransactions = await storage.GetExpiringTransactionsAsync(CancellationToken.None);
 
             // Assert
             Empty(expiringTransactions);
@@ -265,10 +265,10 @@ namespace Markurion.Tests
             // Arrange
             var storage = CreateStorage();
             var trans = TransactionFactory.CreateNew(storage);
-            await storage.CreateTransaction(trans);
+            await storage.CreateTransactionAsync(trans);
 
             // Act
-            var result = await storage.TransactionExists(trans.Id);
+            var result = await storage.TransactionExistsAsync(trans.Id);
 
             // Assert
             True(result);
@@ -281,7 +281,7 @@ namespace Markurion.Tests
             var storage = CreateStorage();
 
             // Act
-            var result = await storage.TransactionExists(Guid.NewGuid());
+            var result = await storage.TransactionExistsAsync(Guid.NewGuid());
 
             // Assert
             False(result);
@@ -294,11 +294,11 @@ namespace Markurion.Tests
             var storage = CreateStorage();
             var tr1 = TransactionFactory.CreateNew(storage);
             var tr2 = tr1.With((ref TransactionData tr) => { tr.Revision = 2; });
-            tr1 = await storage.CreateTransaction(tr1);
-            tr2 = await storage.CommitTransactionDelta(tr1, tr2);
+            tr1 = await storage.CreateTransactionAsync(tr1);
+            tr2 = await storage.CommitTransactionDeltaAsync(tr1, tr2);
 
             // Act
-            var chain = (await storage.GetChain(tr1.Id)).ToArray();
+            var chain = (await storage.GetChainAsync(tr1.Id)).ToArray();
 
             // Assert
             Equal(new[] { tr1, tr2 }, chain);
@@ -313,7 +313,7 @@ namespace Markurion.Tests
             var storage = CreateStorage(timeService);
 
             // Act
-            var tr = await storage.CreateTransaction(TransactionFactory.CreateNew(storage));
+            var tr = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
 
             // Assert
             Equal(created, tr.Created);
@@ -327,12 +327,12 @@ namespace Markurion.Tests
             var updated = new DateTime(2000, 01, 05, 12, 0, 0, DateTimeKind.Utc);
             timeService.Now().Returns(created, updated);
             var storage = CreateStorage(timeService);
-            var tr = await storage.CreateTransaction(TransactionFactory.CreateNew(storage));
+            var tr = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
             var trNext = tr.Data;
             trNext.Revision += 1;
 
             // Act
-            var result = await storage.CommitTransactionDelta(tr, new Transaction(trNext, storage));
+            var result = await storage.CommitTransactionDeltaAsync(tr, new Transaction(trNext, storage));
 
             // Assert
             Equal(updated, result.Created);
@@ -346,10 +346,10 @@ namespace Markurion.Tests
             var storage = CreateStorage();
             var tr = TransactionFactory.CreateNew(storage);
             var guid = tr.Id;
-            tr = await storage.CreateTransaction(tr);
+            tr = await storage.CreateTransactionAsync(tr);
 
             // Act
-            var result = (await storage.Query()).Where(x => x.Id == guid).ToArray();
+            var result = (await storage.QueryAsync()).Where(x => x.Id == guid).ToArray();
 
             // Assert
             Equal(tr, result.Single());
@@ -365,10 +365,10 @@ namespace Markurion.Tests
             var storage = CreateStorage(timeService);
             var tr = TransactionFactory.CreateNew(storage);
             var guid = tr.Id;
-            tr = await storage.CreateTransaction(tr);
+            tr = await storage.CreateTransactionAsync(tr);
 
             // Act
-            var result = (await storage.Query()).Where(x => x.Created == created).ToArray();
+            var result = (await storage.QueryAsync()).Where(x => x.Created == created).ToArray();
 
             // Assert
             Equal(tr, result.Single());
