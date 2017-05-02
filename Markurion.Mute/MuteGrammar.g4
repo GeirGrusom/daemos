@@ -166,7 +166,7 @@ literalExpression returns [Expression expr]
 	| NULL { $expr = ConstantExpression.NullExpression; }
 	| INTEGER { $expr = new ConstantExpression(DataType.NonNullInt, $INTEGER.int, $ctx); }
 	| THIS { $expr = new VariableExpression("this", false, new DataType(typeof(Markurion.Transaction), false), $ctx); }
-	| futureTime { $expr = $futureTime.expr; }
+	| DATETIME { $expr = DateTime($DATETIME.text, $ctx); }
 	| quotedString { $expr = new ConstantExpression(DataType.NonNullString, $quotedString.value, $ctx); }
 	| singleQuotedString { $expr = new ConstantExpression(DataType.NonNullString, $singleQuotedString.value, $ctx); }
 	| TRANSACTION_STATE { $expr = TransactionState($TRANSACTION_STATE.text, $ctx); }
@@ -179,9 +179,6 @@ whileExpression returns [Expression expr]
 
 quotedString returns [string value]: QUOTED_STRING { $value = Unescape($QUOTED_STRING.text.Substring(1, $QUOTED_STRING.text.Length - 2), '"'); } ;
 singleQuotedString returns [string value]: SINGLE_QUOTED_STRING { $value = Unescape($SINGLE_QUOTED_STRING.text.Substring(1, $SINGLE_QUOTED_STRING.text.Length - 2), '\''); };
-
-
-futureTime returns [Expression expr]: 'in' years? months? weeks? days? hours? minutes? seconds?;
 
 years returns [Expression value]: expression 'years' { $value = Valid<int>($expression.expr); } ;
 months returns [Expression value]: expression 'months' { $value = Valid<int>($expression.expr); } ;
@@ -261,6 +258,7 @@ dataType returns [DataType type]
 	| IDENTIFIER ('.' IDENTIFIER)* nullable { $type = new DataType(TypeLookupFunction($ctx.GetText()), $nullable.result); }
 	;
 
+
 /*
  * Lexer Rules
  */
@@ -301,6 +299,39 @@ MOD: '%';
 NOT: 'not';
 EQ: '=';
 NEQ: '!=';
+
+fragment DATETIME_PREFIX: '@';
+fragment DATE_YEAR: [0-9][0-9][0-9][0-9];
+fragment DATE_MONTH: [0-9][0-9];
+fragment DATE_DAY: [0-9][0-9];
+fragment DATE_SEPARATOR: '-';
+
+
+fragment DATETIME_TIME: 'T';
+fragment TIME_SEPARATOR: ':';
+fragment TIME_HOUR: [0-9][0-9];
+fragment TIME_MINUTE: [0-9][0-9];
+fragment TIME_SECOND: [0-9][0-9];
+fragment TIME_UTC: 'Z';
+fragment TIME_OFFSET: [+\-];
+fragment TIME_OFFSET_HOUR: [0-9][0-9];
+fragment TIME_OFFSET_MINUTE: [0-9][0-9];
+
+DATETIME
+	: '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'T' TIME_HOUR ':' TIME_MINUTE ':' TIME_SECOND ('+' | '-') TIME_OFFSET_HOUR ':' TIME_OFFSET_MINUTE 
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'T' TIME_HOUR ':' TIME_MINUTE ':' TIME_SECOND ('+' | '-') TIME_OFFSET_HOUR
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'T' TIME_HOUR ':' TIME_MINUTE ':' TIME_SECOND 'Z'
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'T' TIME_HOUR ':' TIME_MINUTE ':' TIME_SECOND
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'T' TIME_HOUR ':' TIME_MINUTE ('+' | '-') TIME_OFFSET_HOUR ':' TIME_OFFSET_MINUTE 
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'T' TIME_HOUR ':' TIME_MINUTE ('+' | '-') TIME_OFFSET_HOUR
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'T' TIME_HOUR ':' TIME_MINUTE 'Z'
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'T' TIME_HOUR ':' TIME_MINUTE 
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY ('+' | '-') TIME_OFFSET_HOUR ':' TIME_OFFSET_MINUTE 
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY ('+' | '-') TIME_OFFSET_HOUR
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'Z'
+	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY ;
+	
+
 CHILD: 'child';
 TRANSACTION_STATE: 'commit' | 'initialize' | 'authorize' | 'complete' | 'cancel' | 'fail';
 GREATER_THAN_OR_EQ: '>=';

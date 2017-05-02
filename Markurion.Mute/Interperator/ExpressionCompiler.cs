@@ -256,8 +256,8 @@ namespace Markurion.Mute.Interperator
 
         public override void OnVisit(BinaryLessOrEqualExpression exp)
         {
-            Visit(exp.Right);
             Visit(exp.Left);
+            Visit(exp.Right);
             il.Emit(OpCodes.Cgt);
             il.Emit(OpCodes.Ldc_I4_0);
             il.Emit(OpCodes.Ceq);
@@ -272,8 +272,8 @@ namespace Markurion.Mute.Interperator
 
         public override void OnVisit(BinaryGreaterOrEqualExpression exp)
         {
-            Visit(exp.Right);
             Visit(exp.Left);
+            Visit(exp.Right);
             il.Emit(OpCodes.Clt);
             il.Emit(OpCodes.Ldc_I4_0);
             il.Emit(OpCodes.Ceq);

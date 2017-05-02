@@ -124,6 +124,12 @@ namespace Markurion.Tests
             
         }
 
+        public static readonly object[][] ResultData = 
+        {
+            new object[] {"@2017-01-01Z", new DateTime(2017, 01, 01, 0, 0, 0, DateTimeKind.Utc)},
+            new object[] {"@2017-01-01+02:00", new DateTime(2016, 12, 31, 22, 0, 0, DateTimeKind.Utc)}
+        };
+
         [Theory]
         [InlineData("2 + 2", 4)]
         [InlineData("2 * 2", 4)]
@@ -146,6 +152,7 @@ namespace Markurion.Tests
         [InlineData("1 >= 1", true)]
         [InlineData("2 <= 1", false)]
         [InlineData("0 <= 1", true)]
+        [MemberData(nameof(ResultData))]
         public void Expression_CorrectResult(string expression, object result)
         {
                 // Arrange

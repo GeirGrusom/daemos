@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Xml;
@@ -582,6 +583,179 @@ namespace Markurion.Mute
             }
 
             return builder.ToString();
+        }
+
+
+        private void ValidateDate(int year, int month, int day, ParserRuleContext ctx)
+        {
+            if (year <= 0 || year >= 9999 || month <= 0 || month > 12 || day <= 0 || day > CultureInfo.CurrentCulture.Calendar.GetDaysInMonth(year, month))
+            {
+                AddSyntaxError("The specified date is outside of valid values.", ctx);
+            }
+        }
+
+        private void ValidateTime(int hour, int minute, int second, ParserRuleContext ctx)
+        {
+            if (hour >= 24 || minute >= 60 || second >= 60)
+            {
+                AddSyntaxError("The specified date is outside of valid values.", ctx);
+            }
+        }
+
+        private void ValidateOffset(int hour, int minute, ParserRuleContext ctx)
+        {
+            if (hour >= 24)
+            {
+                AddSyntaxError("The specified date is outside of valid values.", ctx);
+            }
+        }
+
+
+        protected ConstantExpression DateTime(int year, int month, int day, int hour, int minute, int second,
+            string offsetType, int offsetHour, int offsetMinute, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, minute, second, context);
+            ValidateOffset(offsetHour, offsetMinute, context);
+            var ts = offsetType == "+" ? new TimeSpan(offsetHour, offsetMinute, 0) : -new TimeSpan(offsetHour, offsetMinute, 0);
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTimeOffset(year, month, day, hour, minute, second, new TimeSpan(offsetHour, offsetMinute, 0)).UtcDateTime, context);
+        }
+        
+        protected ConstantExpression DateTime(int year, int month, int day, int hour, int minute, int second,
+            string offsetType, int offsetHour, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, minute, second, context);
+            ValidateOffset(offsetHour, 0, context);
+            var ts = offsetType == "+" ? new TimeSpan(offsetHour, 0, 0) : -new TimeSpan(offsetHour, 0, 0);
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTimeOffset(year, month, day, hour, minute, second, ts).UtcDateTime, context);
+        }
+
+        protected ConstantExpression DateTime(int year, int month, int day, int hour, int minute,
+            string offsetType, int offsetHour, int offsetMinute, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, minute, 0, context);
+            ValidateOffset(offsetHour, offsetMinute, context);
+
+            var ts = offsetType == "+" ? new TimeSpan(offsetHour, offsetMinute, 0) : -new TimeSpan(offsetHour, offsetMinute, 0);
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTimeOffset(year, month, day, hour, minute, 0, new TimeSpan(offsetHour, offsetMinute, 0)).UtcDateTime, context);
+        }
+
+        protected ConstantExpression DateTime(int year, int month, int day, 
+            string offsetType, int offsetHour, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateOffset(offsetHour, 0, context);
+
+            var ts = offsetType == "+" ? new TimeSpan(offsetHour, 0, 0) : -new TimeSpan(offsetHour, 0, 0);
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTimeOffset(year, month, day, 0, 0, 0, ts).UtcDateTime, context);
+        }
+
+        protected ConstantExpression DateTime(int year, int month, int day, 
+            string offsetType, int offsetHour, int offsetMinute, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateOffset(offsetHour, offsetMinute, context);
+
+            var ts = offsetType == "+" ? new TimeSpan(offsetHour, offsetMinute, 0) : -new TimeSpan(offsetHour, offsetMinute, 0);
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTimeOffset(year, month, day, 0, 0, 0, new TimeSpan(offsetHour, offsetMinute, 0)).UtcDateTime, context);
+        }
+
+        protected ConstantExpression DateTime(int year, int month, int day, int hour, int minute,
+            string offsetType, int offsetHour, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, minute, 0, context);
+            ValidateOffset(offsetHour, 0, context);
+
+            var ts = offsetType == "+" ? new TimeSpan(offsetHour, 0, 0) : -new TimeSpan(offsetHour, 0, 0);
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTimeOffset(year, month, day, hour, minute, 0, ts).UtcDateTime, context);
+        }
+
+        protected ConstantExpression DateTime(int year, int month, int day, int hour, int minute, int second, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, minute, second, context);
+
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTime(year, month, day, hour, minute, second, DateTimeKind.Local).ToUniversalTime(), context);
+        }
+
+        protected ConstantExpression DateTimeUtc(int year, int month, int day, int hour, int minute, int second, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, minute, second, context);
+
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTime(year, month, day, hour, minute, second, DateTimeKind.Utc), context);
+        }
+
+
+        protected ConstantExpression DateTime(int year, int month, int day, int hour, int minute, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, minute, 0, context);
+
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Local).ToUniversalTime(), context);
+        }
+
+        protected ConstantExpression DateTimeUtc(int year, int month, int day, int hour, int minute, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, minute, 0, context);
+
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Utc), context);
+        }
+
+
+        protected ConstantExpression DateTime(int year, int month, int day, int hour, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, 0, 0, context);
+
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTime(year, month, day, hour, 0, 0, DateTimeKind.Local).ToUniversalTime(), context);
+        }
+
+        protected ConstantExpression DateTimeUtc(int year, int month, int day, int hour, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+            ValidateTime(hour, 0, 0, context);
+
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTime(year, month, day, hour, 0, 0, DateTimeKind.Utc), context);
+        }
+
+
+        protected ConstantExpression DateTime(int year, int month, int day, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Local).ToUniversalTime(), context);
+        }
+
+        protected ConstantExpression DateTimeUtc(int year, int month, int day, ParserRuleContext context)
+        {
+            ValidateDate(year, month, day, context);
+
+            return new ConstantExpression(DataType.NonNullDateTime, new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc), context);
+        }
+
+        private static readonly string[] DateTimeFormats =
+        {
+            "'@'yyyy'-'MM'-'dd'T'HH':'mm':'ssK",
+            "'@'yyyy'-'MM'-'dd'T'HH':'mm':'ss",
+            "'@'yyyy'-'MM'-'dd'T'HH':'mmK",
+            "'@'yyyy'-'MM'-'dd'T'HH':'mm",
+            "'@'yyyy'-'MM'-'ddK",
+            "'@'yyyy'-'MM'-'dd",
+        };
+        protected ConstantExpression DateTime(string input, ParserRuleContext context)
+        {
+            DateTime result;
+            if (!System.DateTime.TryParseExact(input, DateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out result))
+            {
+                AddSyntaxError("The specified datetime is not in a valid format.", context);
+                return null;
+            }
+            return new ConstantExpression(DataType.NonNullDateTime, result, context);
         }
 
         protected CommitTransactionExpression CommitTransaction(string state, Expression commitValue, ParserRuleContext context)

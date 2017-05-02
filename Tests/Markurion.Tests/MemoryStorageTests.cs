@@ -108,7 +108,7 @@ namespace Markurion.Tests
     }
 
     //[Collection("Postgres collection")]
-    public class PostgreSqlStorageTests : TransactionStorageTests<Postgres.PostgreSqlTransactionStorage>, IDisposable
+    public class PostgreSqlStorageTests : TransactionStorageTests<PostgreSqlTransactionStorage>, IDisposable
     {
         private readonly PostgresDatabaseFixture _collection;
         public PostgreSqlStorageTests()
@@ -331,7 +331,7 @@ namespace Markurion.Tests
             var expiringTransactions = await storage.GetExpiringTransactionsAsync(CancellationToken.None);
 
             // Assert
-            Equal(trans, expiringTransactions[0]);
+            Contains(trans, expiringTransactions);
         }
 
         [Fact]
@@ -339,7 +339,7 @@ namespace Markurion.Tests
         {
             // Arrange
             var timeService = Substitute.For<ITimeService>();
-            timeService.Now().Returns(new DateTime(1999, 05, 15));
+            timeService.Now().Returns(new DateTime(1995, 05, 15));
             var storage = CreateStorage(timeService);
 
             // Act
