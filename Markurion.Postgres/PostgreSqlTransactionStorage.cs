@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Npgsql;
 using static NpgsqlTypes.NpgsqlDbType;
-
+using System.Reflection;
 
 namespace Markurion.Postgres
 {
@@ -20,10 +20,14 @@ namespace Markurion.Postgres
 
         private const string SelectColumns = "id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error";
 
+        private static readonly byte[] EmptyArray = new byte[0];
         private async Task<NpgsqlCommand> InsertTransactionCommandAsync()
         {
             NpgsqlCommand cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"INSERT INTO tr.transactions (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) VALUES (@id, @revision, @created, @expires, @expired, @payload, @script, @parentId, @parentRev, @state, @handler, @error) RETURNING {SelectColumns}";
+            cmd.CommandText = $@"
+INSERT INTO markurion.transactions (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) 
+VALUES (@id, @revision, @created, @expires, @expired, @payload, @script, @parentId, @parentRev, @state, @handler, @error)
+RETURNING {SelectColumns};";
             cmd.CommandType = System.Data.CommandType.Text;
 
             cmd.Parameters.Add(new NpgsqlParameter("id", Uuid) { IsNullable = false });
@@ -46,7 +50,7 @@ namespace Markurion.Postgres
         private async Task<NpgsqlCommand> SelectTransactionRevisionCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.transactions WHERE id = @id AND revision = @revision";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM markurion.transactions WHERE id = @id AND revision = @revision";
             cmd.Parameters.Add(new NpgsqlParameter("id", Uuid));
             cmd.Parameters.Add(new NpgsqlParameter("revision", Integer));
             cmd.Prepare();
@@ -56,7 +60,7 @@ namespace Markurion.Postgres
         private async Task<NpgsqlCommand> SelectTransactionCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.transactions_head WHERE id = @id";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM markurion.transactions_head WHERE id = @id";
             cmd.Parameters.Add(new NpgsqlParameter("id", Uuid));
             cmd.Prepare();
             return cmd;
@@ -65,7 +69,7 @@ namespace Markurion.Postgres
         private async Task<NpgsqlCommand> SelectTransactionChainCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.transactions WHERE id = @id ORDER BY revision ASC";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM markurion.transactions WHERE id = @id ORDER BY revision ASC";
             cmd.Parameters.Add(new NpgsqlParameter("id", Uuid));
             cmd.Prepare();
             return cmd;
@@ -74,7 +78,7 @@ namespace Markurion.Postgres
         private async Task<NpgsqlCommand> SelectChildTransactionsCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = "SELECT DISTINCT (id) FROM tr.transactions_head WHERE parentId = @parentId AND state = ANY(@states)";
+            cmd.CommandText = "SELECT DISTINCT (id) FROM markurion.transactions_head WHERE parentId = @parentId AND state = ANY(@states)";
             cmd.Parameters.Add("parentId", Uuid);
             cmd.Parameters.Add("states", NpgsqlTypes.NpgsqlDbType.Array | Integer);
             cmd.Prepare();
@@ -144,17 +148,68 @@ namespace Markurion.Postgres
 
         private NpgsqlConnection CreateConnection()
         {
-            NpgsqlConnectionStringBuilder builder = new NpgsqlConnectionStringBuilder
-            {
-                Database = "transaction",
-                Host = "localhost",
-                Username = "transact",
-                Password = "abc123",
-                Pooling = true
-            };
-            
             return new NpgsqlConnection(connectionString);
         }
+
+        public override async Task InitializeAsync()
+        {
+            var conn = await GetConnectionAsync();
+
+            using (var trans = conn.BeginTransaction())
+            {
+
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE  table_schema = 'markurion'
+    AND table_name = 'transactions'
+   ); ";
+                    int exists = (int)await cmd.ExecuteScalarAsync();
+
+                    if(exists != 0)
+                    {
+                        await trans.CommitAsync();
+                        return;
+                    }
+                }
+
+                string initScript;
+                using (var streamReader = new System.IO.StreamReader(GetType().GetTypeInfo().Assembly.GetManifestResourceStream("Markurion.Postgres.Sql.v000_init.sql")))
+                {
+                    initScript = streamReader.ReadToEnd();
+                }
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = initScript;
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                await trans.CommitAsync();
+            }
+        }
+
+        public override async Task<System.IO.Stream> GetTransactionStateAsync(Guid id, int revision)
+        {
+            var conn = await GetConnectionAsync();
+
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT state FROM markurion.transaction_state where id = @Id and revision = @Revision";
+                var idParam = cmd.CreateParameter();
+                idParam.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Uuid;
+                idParam.ParameterName = "Id";
+                var revisionParam = cmd.CreateParameter();
+                revisionParam.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Integer;
+                revisionParam.ParameterName = "Revision";
+                cmd.Parameters.Add(idParam);
+                cmd.Parameters.Add(revisionParam);
+                cmd.Prepare();
+                var result = (byte[])await cmd.ExecuteScalarAsync(CancellationToken.None);
+                return new System.IO.MemoryStream(result);
+            }            
+        }
+
 
         public override async Task OpenAsync()
         {
@@ -200,7 +255,7 @@ namespace Markurion.Postgres
                     p.ParameterName = "id";
                     p.Value = original.Id;
                     headRevCmd.Parameters.Add(p);
-                    headRevCmd.CommandText = "select revision from tr.transactions_head where id = @id";
+                    headRevCmd.CommandText = "select revision from markurion.transactions_head where id = @id";
                     headRevCmd.Transaction = trans;
                     lastRev = (int)await headRevCmd.ExecuteScalarAsync();
                 }
@@ -234,8 +289,8 @@ namespace Markurion.Postgres
                 };
 
                 const string query = @"
-update tr.transactions set head = 'f' where id = @Id;
-INSERT INTO tr.transactions 
+update markurion.transactions set head = 'f' where id = @Id;
+INSERT INTO markurion.transactions 
     (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) VALUES 
     (@Id, @Revision, @Created, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler, @Error) RETURNING id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error;
 ";
@@ -261,7 +316,7 @@ INSERT INTO tr.transactions
                     p.ParameterName = "id";
                     p.Value = original.Id;
                     headRevCmd.Parameters.Add(p);
-                    headRevCmd.CommandText = "select revision from tr.transactions_head where id = @id";
+                    headRevCmd.CommandText = "select revision from markurion.transactions_head where id = @id";
                     headRevCmd.Transaction = trans;
                     lastRev = (int)headRevCmd.ExecuteScalar();
                 }
@@ -295,12 +350,11 @@ INSERT INTO tr.transactions
                 };
 
                 const string query = @"
-update tr.transactions set head = 'f' where id = @Id;
-INSERT INTO tr.transactions 
+update markurion.transactions set head = 'f' where id = @Id;
+INSERT INTO markurion.transactions 
     (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) VALUES 
     (@Id, @Revision, @Created, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler, @Error) RETURNING id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error;
 ";
-
 
                 result = conn.ExecuteReader(query, delta, Map, trans).Single();
                 trans.Commit();
@@ -318,15 +372,13 @@ INSERT INTO tr.transactions
         {
             Transaction result;
 
-
-
             using (var cmd = await InsertTransactionCommandAsync())
             using (var trans = cmd.Connection.BeginTransaction())
             {
                 using (var checkCmd = cmd.Connection.CreateCommand())
                 {
                     checkCmd.Transaction = trans;
-                    checkCmd.CommandText = "select exists(select 1 from tr.transactions_head where id = @id)";
+                    checkCmd.CommandText = "select exists(select 1 from markurion.transactions_head where id = @id)";
                     var p = checkCmd.CreateParameter();
                     p.ParameterName = "id";
                     p.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Uuid;
@@ -461,7 +513,7 @@ INSERT INTO tr.transactions
 
         private async Task<DateTime?> GetNextExpiringTransactionTime()
         {
-            string sql = "SELECT expires FROM tr.transactions_head WHERE expires IS NOT NULL ORDER BY expires ASC LIMIT 1";
+            string sql = "SELECT expires FROM markurion.transactions_head WHERE expires IS NOT NULL ORDER BY expires ASC LIMIT 1";
             using (var cmd = (await GetConnectionAsync()).CreateCommand())
             {
                 cmd.CommandText = sql;
@@ -474,7 +526,7 @@ INSERT INTO tr.transactions
 
         protected override async Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel)
         {
-            string sql = $"SELECT {SelectColumns} FROM tr.transactions_head WHERE expires <= @now";
+            string sql = $"SELECT {SelectColumns} FROM markurion.transactions_head WHERE expires <= @now";
             var results = new List<Transaction>();
 
             using (var cmd = (await GetConnectionAsync()).CreateCommand())
@@ -530,7 +582,7 @@ INSERT INTO tr.transactions
             using(var conn = await GetConnectionAsync())
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "select exists(select 1 from tr.transactions_head where id = @id)";
+                cmd.CommandText = "select exists(select 1 from markurion.transactions_head where id = @id)";
                 var idPar = cmd.CreateParameter();
                 idPar.Value = id;
                 idPar.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Uuid;
@@ -545,6 +597,38 @@ INSERT INTO tr.transactions
         {
             return Task.FromResult(true);
 
+        }
+
+        public override void SaveTransactionState(Guid id, int revision, byte[] state)
+        {
+            var conn = GetConnection();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.Parameters.Add("id", NpgsqlTypes.NpgsqlDbType.Uuid);
+                cmd.Parameters.Add("revision", NpgsqlTypes.NpgsqlDbType.Integer);
+                cmd.Parameters.Add("state", NpgsqlTypes.NpgsqlDbType.Bytea);
+                cmd.Parameters["id"].Value = id;
+                cmd.Parameters["revision"].Value = revision;
+                cmd.Parameters["state"].Value = state;
+                cmd.CommandText = "INSERT INTO markurion.transaction_state (id, revision, state) VALUES (@id, @revision, @state)";
+                cmd.ExecuteNonQuery();
+            }            
+        }
+
+        public override async Task SaveTransactionStateAsync(Guid id, int revision, byte[] state)
+        {
+            var conn = await GetConnectionAsync();
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.Parameters.Add("id", NpgsqlTypes.NpgsqlDbType.Uuid);
+                cmd.Parameters.Add("revision", NpgsqlTypes.NpgsqlDbType.Integer);
+                cmd.Parameters.Add("state", NpgsqlTypes.NpgsqlDbType.Bytea);
+                cmd.Parameters["id"].Value = id;
+                cmd.Parameters["revision"].Value = revision;
+                cmd.Parameters["state"].Value = state;
+                cmd.CommandText = "INSERT INTO markurion.transaction_state (id, revision, state) VALUES (@id, @revision, @state)";
+                await cmd.ExecuteNonQueryAsync();
+            }
         }
     }
 }

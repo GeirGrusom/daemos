@@ -22,7 +22,6 @@ namespace Markurion.Postgres
 
         private static Type GetElementType(Type expType)
         {
-            // Unsupported in .NET Core 1.0 for some odd reason. Slated for 1.2 as far as I can tell.
             var interf = expType.GetInterfaces().Single(x => x.Name == "IEnumerable`1");
             return interf.GetGenericArguments()[0];            
         }

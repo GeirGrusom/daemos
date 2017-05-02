@@ -52,7 +52,8 @@ namespace Markurion.Tests
                 StateDeserializer = Substitute.For<IStateDeserializer>();
                 DependencyResolver = Substitute.For<IDependencyResolver>();
                 Storage = Substitute.For<ITransactionStorage>();
-                Storage.CommitTransactionDeltaAsync(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => x.ArgAt<Transaction>(1));
+                Storage.CommitTransactionDeltaAsync(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => Task.FromResult(x.ArgAt<Transaction>(1)));
+                Storage.CommitTransactionDelta(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => x.ArgAt<Transaction>(1));
                 Transaction = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, null, Storage);
             }
 
@@ -140,13 +141,13 @@ namespace Markurion.Tests
         [InlineData("1 > 0", true)]
         [InlineData("1 < 1", false)]
         [InlineData("0 < 1", true)]
+        [InlineData("2 >= 1", true)]
+        [InlineData("0 >= 1", false)]
         [InlineData("1 >= 1", true)]
-        [InlineData("1 <= 1", true)]
+        [InlineData("2 <= 1", false)]
+        [InlineData("0 <= 1", true)]
         public void Expression_CorrectResult(string expression, object result)
         {
-            using (var textWriter = new StreamWriter(File.OpenWrite(@"C:\temp\foo.txt")))
-            {
-                Console.SetOut(textWriter);
                 // Arrange
                 var service = new Service();
 
@@ -155,7 +156,6 @@ namespace Markurion.Tests
 
                 // Assert
                 Equal(result, res);
-            }
         }
 
         [Fact]

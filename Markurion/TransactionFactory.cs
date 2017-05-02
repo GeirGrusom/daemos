@@ -173,19 +173,25 @@ namespace Markurion
         Task<bool> IsTransactionLockedAsync(Guid id);
         Task<bool> TransactionExistsAsync(Guid id);
         Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1);
-        Task<Transaction> CreateTransactionAsync(Transaction transaction);
-        Task<Transaction> CommitTransactionDeltaAsync(Transaction original, Transaction next);
-        Transaction CommitTransactionDelta(Transaction original, Transaction next);
+        Task<Transaction> CreateTransactionAsync([NotNull] Transaction transaction);
+        Task<Transaction> CommitTransactionDeltaAsync([NotNull] Transaction original, [NotNull] Transaction next);
+        Transaction CommitTransactionDelta([NotNull] Transaction original, [NotNull] Transaction next);
         Task<List<Transaction>> GetExpiringTransactionsAsync(CancellationToken cancel);
         Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state);
         Task OpenAsync();
 
         event EventHandler<TransactionCommittedEventArgs> TransactionCommitted;
 
+        Task<System.IO.Stream> GetTransactionStateAsync(Guid id, int revision);
+
         Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout = Timeout.Infinite);
         Task<IEnumerable<Transaction>> GetChainAsync(Guid id);
 
         Task<IQueryable<Transaction>> QueryAsync();
+
+        Task InitializeAsync();
+
+        void SaveTransactionState(Guid id, int revision, byte[] state);
 
         ITimeService  TimeService { get; }
     }

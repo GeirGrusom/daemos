@@ -7,6 +7,9 @@ using Xunit;
 
 using static Xunit.Assert;
 using Markurion.Postgres;
+using Docker.DotNet;
+using Docker.DotNet.Models;
+using System.Collections.Generic;
 
 namespace Markurion.Tests
 {
@@ -25,21 +28,108 @@ namespace Markurion.Tests
 
     }
 
-    public class PostgreSqlStorageTests : TransactionStorageTests<Postgres.PostgreSqlTransactionStorage>, IDisposable
+    public class PostgresDatabaseFixture : IDisposable
     {
-        protected override PostgreSqlTransactionStorage CreateStorage()
+        public string ConnectionString { get; }
+
+        public string ContainerId { get; private set; }
+
+        public string PostgresHostName { get; }
+
+        public PostgresDatabaseFixture()
         {
-            return new PostgreSqlTransactionStorage("User ID=transact_test;Password=qwerty12345;Host=localhost;Port=5432;Database=transact;Pooling = true;");
+            
+            PostgresHostName = "localhost";
+            //transact_test; Password = qwerty12345
+            string username = "transact_test";//Guid.NewGuid().ToString("N").Substring(0, 10);
+            string password = "qwerty12345";//Guid.NewGuid().ToString("N").Substring(0, 10);
+
+            //InitPostgres(username, password).Wait();
+
+
+            ConnectionString = $@"User ID={username};Password={password};Host={PostgresHostName};Port=5432;Database=transact;Pooling = true;";
+
+            //var storage = new PostgreSqlTransactionStorage(ConnectionString);
+            //storage.InitializeAsync().Wait();
+
         }
 
-        protected override PostgreSqlTransactionStorage CreateStorage(ITimeService timeService)
+        private DockerClient CreateDockerClient() => new DockerClientConfiguration(new Uri("npipe://./pipe/docker_engine")).CreateClient();
+        public async Task InitPostgres(string username, string password)
         {
-            return new PostgreSqlTransactionStorage("User ID=transact_test;Password=qwerty12345;Host=localhost;Port=5432;Database=transact;Pooling = true;", timeService);
+            var client = CreateDockerClient();
+
+            var postgresImageResult = await client.Images.PullImageAsync(new ImagesPullParameters { Parent = "postgres", Tag = "9.6.2" }, null);
+
+            var buffer = new byte[65536];
+            var builder = new System.Text.StringBuilder();
+            int readBytes = 0;
+            do
+            {
+                readBytes = await postgresImageResult.ReadAsync(buffer, 0, buffer.Length);
+                builder.Append(System.Text.Encoding.UTF8.GetString(buffer, 0, readBytes));
+            } while (readBytes > 0);
+
+
+
+            var createParameters = new CreateContainerParameters();
+            createParameters.Env = new List<string>
+            {
+                $"POSTGRES_USER={username}",
+                $"POSTGRES_PASSWORD={password}"
+            };
+            createParameters.Hostname = PostgresHostName;
+            createParameters.Image = "postgres:9.6.2";
+            createParameters.HostConfig = new HostConfig
+            {
+                
+            };
+                
+            var createdContainer = await client.Containers.CreateContainerAsync(createParameters);
+
+            var startedContainer = await client.Containers.StartContainerAsync(createdContainer.ID, new ContainerStartParameters());
+
+            this.ContainerId = createdContainer.ID;
         }
 
         public void Dispose()
         {
-            using (var conn = new Npgsql.NpgsqlConnection("User ID=transact_test;Password=qwerty12345;Host=localhost;Port=5432;Database=transact;Pooling = true;"))
+            var client = CreateDockerClient();
+
+            client.Containers.StopContainerAsync(ContainerId, new ContainerStopParameters() { WaitBeforeKillSeconds = 30 }, CancellationToken.None).Wait();
+            client.Containers.RemoveContainerAsync(ContainerId, new ContainerRemoveParameters());
+        }
+    }
+
+    //[CollectionDefinition("Postgres collection")]
+    public class PostgresDatabaseFixtureCollection : ICollectionFixture<PostgresDatabaseFixture>
+    {
+        
+    }
+
+    //[Collection("Postgres collection")]
+    public class PostgreSqlStorageTests : TransactionStorageTests<Postgres.PostgreSqlTransactionStorage>, IDisposable
+    {
+        private readonly PostgresDatabaseFixture _collection;
+        public PostgreSqlStorageTests()
+        {
+            //_collection = collection;
+            _collection = new PostgresDatabaseFixture();
+        }
+
+        protected override PostgreSqlTransactionStorage CreateStorage()
+        {
+            return new PostgreSqlTransactionStorage(_collection.ConnectionString);
+        }
+
+        protected override PostgreSqlTransactionStorage CreateStorage(ITimeService timeService)
+        {
+            return new PostgreSqlTransactionStorage(_collection.ConnectionString, timeService);
+        }
+
+        public void Dispose()
+        {
+            using (var conn = new Npgsql.NpgsqlConnection(_collection.ConnectionString))
             {
                 conn.Open();
                 using (var cmd = conn.CreateCommand())
@@ -359,7 +449,7 @@ namespace Markurion.Tests
         public async Task Query_GetByCreated_ReturnsTransaction()
         {
             // Arrange
-            var created = new DateTime(1999, 01, 05, 12, 0, 0, DateTimeKind.Utc);
+            var created = DateTime.UtcNow;
             var timeService = Substitute.For<ITimeService>();
             timeService.Now().Returns(created);
             var storage = CreateStorage(timeService);
@@ -371,7 +461,7 @@ namespace Markurion.Tests
             var result = (await storage.QueryAsync()).Where(x => x.Created == created).ToArray();
 
             // Assert
-            Equal(tr, result.Single());
+            Contains(tr, result);
         }
     }
 }

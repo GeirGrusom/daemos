@@ -149,11 +149,6 @@ namespace Markurion.Mute.Interperator
             il.Emit(OpCodes.Stloc, stageLocal);
 
             il.MarkLabel(endOfScript);
-            il.Emit(OpCodes.Ldarg_0);
-            il.EmitCall(OpCodes.Callvirt, typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.WriteEndStage)), null);
-
-            il.Emit(OpCodes.Ldarg_0);
-            il.EmitCall(OpCodes.Callvirt, typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose)), null);
 
             il.Emit(OpCodes.Ldloc, stageLocal);
             il.Emit(OpCodes.Ret);            
@@ -264,7 +259,8 @@ namespace Markurion.Mute.Interperator
             Visit(exp.Right);
             Visit(exp.Left);
             il.Emit(OpCodes.Cgt);
-            il.Emit(OpCodes.Not);
+            il.Emit(OpCodes.Ldc_I4_0);
+            il.Emit(OpCodes.Ceq);
         }
 
         public override void OnVisit(BinaryGreaterExpression exp)
@@ -279,7 +275,8 @@ namespace Markurion.Mute.Interperator
             Visit(exp.Right);
             Visit(exp.Left);
             il.Emit(OpCodes.Clt);
-            il.Emit(OpCodes.Not);
+            il.Emit(OpCodes.Ldc_I4_0);
+            il.Emit(OpCodes.Ceq);
         }
 
         public override void OnVisit(ConditionalExpression exp)
@@ -542,10 +539,9 @@ namespace Markurion.Mute.Interperator
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Ldc_I4, stage);
             il.EmitCall(OpCodes.Callvirt, SaveStageMethod, null);
-            
+            var tmpLocal = il.DeclareLocal(exp.Type.ClrType);
             Visit(exp.Operand);
-            il.Emit(OpCodes.Pop);
-
+            il.Emit(OpCodes.Stloc, tmpLocal);
             // Stores state
             foreach (var item in _variableIndices.Where(x => !x.Value.IsImport).OrderBy(x => x.Value.Index))
             {
@@ -577,7 +573,27 @@ namespace Markurion.Mute.Interperator
                 il.EmitCall(OpCodes.Callvirt, meth, null);
                 il.MarkLabel(nextLabel);
             }
+
+            il.Emit(OpCodes.Ldarg_0);
+            il.EmitCall(OpCodes.Callvirt, typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.WriteEndStage)), null);
+
+            il.Emit(OpCodes.Ldarg_0);
+            il.EmitCall(OpCodes.Callvirt, typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose)), null);
+
             
+            //il.EmitWriteLine(tmpLocal);
+            il.Emit(OpCodes.Ldloc, tmpLocal);
+            il.Emit(OpCodes.Brfalse, endOfScript);
+            il.Emit(OpCodes.Ldloc, tmpLocal);
+            il.Emit(OpCodes.Call, typeof(Transaction).GetProperty(nameof(Transaction.Storage)).GetMethod);
+            il.Emit(OpCodes.Ldloc, tmpLocal);
+            il.Emit(OpCodes.Call, typeof(Transaction).GetProperty(nameof(Transaction.Id)).GetMethod);
+            il.Emit(OpCodes.Ldloc, tmpLocal);
+            il.Emit(OpCodes.Call, typeof(Transaction).GetProperty(nameof(Transaction.Revision)).GetMethod);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Callvirt, typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.GetState)));
+            il.Emit(OpCodes.Callvirt, typeof(ITransactionStorage).GetMethod(nameof(ITransactionStorage.SaveTransactionState)));
+
             il.Emit(OpCodes.Br, endOfScript);
             il.MarkLabel(stageLabel);
 
@@ -781,7 +797,7 @@ namespace Markurion.Mute.Interperator
             il.Emit(OpCodes.Ldloc, originalTransaction);
             il.Emit(OpCodes.Ldloc, nextTransaction);
             var commitTransaction = typeof(ITransactionStorage).GetMethod(nameof(ITransactionStorage.CommitTransactionDelta));
-            il.EmitCall(OpCodes.Callvirt, commitTransaction, null);
+            il.Emit(OpCodes.Callvirt, commitTransaction);
         }
 
         public Transaction IncrementTransactionRevision(Transaction tr)

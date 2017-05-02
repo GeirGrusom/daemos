@@ -7,15 +7,6 @@ using System.Threading.Tasks;
 
 namespace Markurion
 {
-    public sealed class TransactionCommittedEventArgs : EventArgs
-    {
-        public Transaction Transaction { get; }
-
-        public TransactionCommittedEventArgs(Transaction transaction)
-        {
-            Transaction = transaction;
-        }
-    }
 
     public sealed class MemoryStorage : TransactionStorageBase
     {
@@ -73,10 +64,12 @@ namespace Markurion
         }
 
         private readonly ConcurrentDictionary<Guid, TransactionSlot> _transactions;
+        private readonly ConcurrentDictionary<TransactionRevision, byte[]> _transactionStates;
         private readonly SortedList<DateTime, TransactionSlot> _transactionsByExpiriation = new SortedList<DateTime, TransactionSlot>(ReverseDateTimeComparer.Instance);
         private readonly ManualResetEventSlim _expiringEvent;
         public MemoryStorage()
         {
+            _transactionStates = new ConcurrentDictionary<TransactionRevision, byte[]>();
             _transactions = new ConcurrentDictionary<Guid, TransactionSlot>();
             _expiringEvent = new ManualResetEventSlim(false);
         }
@@ -84,10 +77,15 @@ namespace Markurion
         public MemoryStorage(ITimeService timeService)
             : base(timeService)
         {
+            _transactionStates = new ConcurrentDictionary<TransactionRevision, byte[]>();
             _transactions = new ConcurrentDictionary<Guid, TransactionSlot>();
             _expiringEvent = new ManualResetEventSlim(false);
         }
 
+        public override Task InitializeAsync()
+        {
+            return Task.CompletedTask;
+        }
 
         public override Task OpenAsync()
         {
@@ -123,6 +121,11 @@ namespace Markurion
                 where trans.Parent != null && trans.Parent.Value.Id == id && states.Any(x => x == trans.State)
                 select trans);
 
+        }
+
+        public override Task<System.IO.Stream> GetTransactionStateAsync(Guid id, int revision)
+        {
+            throw new NotImplementedException();
         }
 
         public override Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags, int timeout)
@@ -242,6 +245,7 @@ namespace Markurion
                 if (next.Expired == null && next.Expires != null)
                     _transactionsByExpiriation.Add(next.Expires.Value, slot);
             }
+
             OnTransactionCommitted(next);
             return next;
         }
@@ -337,6 +341,17 @@ namespace Markurion
                 return null;
 
             return result;
+        }
+
+        public override void SaveTransactionState(Guid id, int revision, byte[] state)
+        {
+            _transactionStates[new TransactionRevision(id, revision)] = state;
+        }
+
+        public override Task SaveTransactionStateAsync(Guid id, int revision, byte[] state)
+        {
+            _transactionStates[new TransactionRevision(id, revision)] = state;
+            return Task.CompletedTask;
         }
     }
 }

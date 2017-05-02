@@ -38,10 +38,13 @@ namespace Markurion
             TransactionCommitted?.Invoke(this, new TransactionCommittedEventArgs(transaction));
         }
 
+        public abstract Task InitializeAsync();
         public abstract Task<Transaction> CommitTransactionDeltaAsync(Transaction original, Transaction next);
         public abstract Transaction CommitTransactionDelta(Transaction original, Transaction next);
         public abstract Task<Transaction> CreateTransactionAsync(Transaction transaction);
         public abstract Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1);
+        public abstract void SaveTransactionState(Guid id, int revision, byte[] state);
+        public abstract Task SaveTransactionStateAsync(Guid id, int revision, byte[] state);
         public abstract Task FreeTransactionAsync(Guid id);
         public abstract Task<IEnumerable<Transaction>> GetChainAsync(Guid id);
         public abstract Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state);
@@ -51,6 +54,8 @@ namespace Markurion
         public abstract Task<bool> TransactionExistsAsync(Guid id);
         public abstract Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
         public abstract Task OpenAsync();
+        public abstract Task<System.IO.Stream> GetTransactionStateAsync(Guid id, int revision);
+        
         public virtual async Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout)
         {
             SemaphoreSlim sem = new SemaphoreSlim(0, 1);

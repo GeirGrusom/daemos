@@ -9,9 +9,11 @@ using Markurion.Scripting;
 using NSubstitute;
 using static Xunit.Assert;
 using System.Threading.Tasks;
+using System.Reflection;
 
 namespace Markurion.Tests
 {
+    using static ExpressionHelper;
     public class ExpressionCompilerTests
     {
 
@@ -39,6 +41,13 @@ namespace Markurion.Tests
             {
                 var func = ExpressionCompiler.PartialCompile<T>(expression);
                 return func(StateSerializer, StateDeserializer, DependencyResolver);
+            }
+
+            public object CompileAndRun(Expression expression, Type resultType)
+            {
+                var meth = typeof(ExpressionCompiler).GetMethod(nameof(ExpressionCompiler.PartialCompile), new[] { typeof(Expression) }).MakeGenericMethod(resultType);
+                var func = (Delegate)meth.Invoke(ExpressionCompiler, new object[] { expression });
+                return func.DynamicInvoke(StateSerializer, StateDeserializer, DependencyResolver);
             }
 
             public T CompileAndRun<T>(Action<ExpressionCompiler, Expression> action, Expression expression)
@@ -128,6 +137,29 @@ namespace Markurion.Tests
             // Assert
             service.Storage.Received().CommitTransactionDelta(Arg.Any<Transaction>(), Arg.Any<Transaction>());
             Equal(2, trans.Revision);
+        }
+
+
+        public static readonly object[][] Expressions =
+        {
+           new object[] { Add(Constant(1), Constant(1)), 2 },
+           new object[] { Mul(Constant(3), Constant(4)), 12},
+           new object[] { Div(Constant(3), Constant(4)), 0 }
+        };
+
+        [Theory]
+        [MemberData(nameof(Expressions))]
+        public void Expression_Results(Expression expression, object expectedResult)
+        {
+            // Arrange
+            var service = new Service();
+            
+            // Act
+            object result = service.CompileAndRun(expression, expectedResult.GetType());
+
+            // Assert
+            Equal(expectedResult, result);
+            
         }
     }
 }
