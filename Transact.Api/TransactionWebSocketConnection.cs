@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.WebSockets.Server;
 using Transact.Api.Models;
+using System.Threading;
 
 namespace Transact.Api
 {
@@ -13,16 +14,20 @@ namespace Transact.Api
     {
         private readonly List<Guid> _subscriptions;
         private readonly SubscriptionService _service;
+        private readonly WebSocket _socket;
+        private readonly CancellationToken _cancel;
 
-        public TransactionWebSocketConnection(SubscriptionService service)
+        public TransactionWebSocketConnection(WebSocket socket, SubscriptionService service, CancellationToken cancel)
         {
+            _socket = socket;
             _service = service;
             _subscriptions = new List<Guid>();
+            _cancel = cancel;
         }
 
-        public Task SendText(byte[] data, bool foo)
+        public Task SendText(byte[] data)
         {
-            return Task.CompletedTask;
+            return _socket.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Text, true, _cancel);
         }
 
         public async Task OnMessageReceived(ArraySegment<byte> message, WebSocketMessageType type)
@@ -31,26 +36,33 @@ namespace Transact.Api
 
             
             var action = JsonConvert.DeserializeObject<WebSocketEvent>(contents);
-            if (action.Action == "subscribe")
+            try
             {
-                var newSub = _service.Subscribe(action.Filter, Callback);
-                _subscriptions.Add(newSub);
-                var obj = JsonConvert.SerializeObject(new { type = "subscription", id = newSub});
-                await SendText(Encoding.UTF8.GetBytes(obj), true);
+                if (action.Action == "subscribe")
+                {
+                    var newSub = _service.Subscribe(action.Filter, Callback);
+                    _subscriptions.Add(newSub);
+                    var obj = JsonConvert.SerializeObject(new { type = "subscription", id = newSub });
+                    await SendText(Encoding.UTF8.GetBytes(obj));
+                }
+                if (action.Action == "list+subscribe")
+                {
+                    var newSub = await _service.ListAndSubscribe(action.Id.Value, Callback);
+                    _subscriptions.Add(newSub);
+                    var obj = JsonConvert.SerializeObject(new { type = "subscription", id = newSub });
+                    await SendText(Encoding.UTF8.GetBytes(obj));
+                }
+                if (action.Action == "unsubscribe")
+                {
+                    if (action.Id == null)
+                        return;
+                    _service.Unsubscribe(action.Id.Value);
+                    _subscriptions.Remove(action.Id.Value);
+                }
             }
-            if (action.Action == "list+subscribe")
+            catch(Exception ex)
             {
-                var newSub = await _service.ListAndSubscribe(action.Id.Value, Callback);
-                _subscriptions.Add(newSub);
-                var obj = JsonConvert.SerializeObject(new { type = "subscription", id = newSub });
-                await SendText(Encoding.UTF8.GetBytes(obj), true);
-            }
-            if (action.Action == "unsubscribe")
-            {
-                if (action.Id == null)
-                    return;
-                _service.Unsubscribe(action.Id.Value);
-                _subscriptions.Remove(action.Id.Value);
+                await SendText(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { type = "exception", exception = ex })));
             }
         }
 
@@ -59,7 +71,7 @@ namespace Transact.Api
             var model = TransactionMapper.Map(transaction);
 
             var obj = JsonConvert.SerializeObject(new {type = "transaction", transaction = model});
-            SendText(Encoding.UTF8.GetBytes(obj), true);
+            SendText(Encoding.UTF8.GetBytes(obj));
         }
 
         public void OnClose(WebSocketCloseStatus? closeStatus, string closeStatusDescription)

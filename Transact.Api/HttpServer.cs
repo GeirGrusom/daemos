@@ -27,7 +27,6 @@ namespace Transact.Api
 
     public class HttpServer
     {
-        private IDisposable _server;
         private readonly Uri _baseAddress;
         public IServiceProvider Container { get; }
         private readonly SubscriptionService _subscriptionService;
@@ -78,10 +77,9 @@ namespace Transact.Api
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<ITransactionStorage>(Storage);
-            services.AddSingleton<SubscriptionService>(_subscriptionService);
+            services.AddSingleton(Storage);
+            services.AddSingleton(_subscriptionService);
             services.AddMvc(x => x.Filters.Add(typeof(ExceptionFilter)));
-            //services.AddRouting();
         }
 
         public void Configuration(IApplicationBuilder appBuilder)
@@ -90,16 +88,25 @@ namespace Transact.Api
             appBuilder.UseMvc();
             
 
-            /*appBuilder.Use(async (http, next) => {
+            appBuilder.Use(async (http, next) => {
                 if(http.WebSockets.IsWebSocketRequest)
                 {
+                    var socket = await http.WebSockets.AcceptWebSocketAsync();
+                    var conn = new TransactionWebSocketConnection(socket, _subscriptionService, cancel.Token);
+                    byte[] arr = new byte[8192];
+                    while (socket.State == System.Net.WebSockets.WebSocketState.Open && !cancel.IsCancellationRequested)
+                    {
+                        var buffer = new ArraySegment<byte>(arr);
+                        var rec = await socket.ReceiveAsync(buffer, cancel.Token);
 
+                        await conn.OnMessageReceived(buffer, rec.MessageType);
+                    }                    
                 }
                 else
                 {
                     await next();
                 }
-            });*/
+            });
         }
     }
     

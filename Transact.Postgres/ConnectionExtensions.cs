@@ -87,8 +87,22 @@ namespace Transact.Postgres
 
                 ApplyParameters(cmd, parameters);
 
-                return cmd.ExecuteReader();
+                bool failed = false;
+
+                do
+                {
+                    try
+                    {
+                        return cmd.ExecuteReader();
+                    }
+                    catch(InvalidOperationException)
+                    {
+                        failed = true;
+                    }
+                }
+                while (failed);
             }
+            throw new InvalidOperationException();
         }
 
         public static T ExecuteScalar<T>(this NpgsqlConnection conn, string sql, T parameters)
