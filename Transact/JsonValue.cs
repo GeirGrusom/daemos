@@ -15,6 +15,20 @@ namespace Transact
         public string MemberOf => _memberOf;
         public string Member => _member;
 
+        public override int GetHashCode()
+        {
+            return GetValue().GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if(obj is JsonValue)
+            {
+                return Equals(GetValue(),((JsonValue)obj).GetValue());
+            }
+            return Equals(GetValue(), obj);            
+        }
+
         public JsonValue(IDictionary<string, object> owner, string memberOf, string member)
         {
             _owner = owner;

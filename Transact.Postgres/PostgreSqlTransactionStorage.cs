@@ -31,7 +31,7 @@ namespace Transact.Postgres
         {
             
             const string SelectColumns = "\"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\"";
-            const string SelectChildColumns = "DISTINCT ON (\"Id\") \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\"";
+            //const string SelectChildColumns = "DISTINCT ON (\"Id\") \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\"";
             NpgsqlCommand cmd = connection.CreateCommand();
             cmd.CommandText = "INSERT INTO tr.\"Transactions\" (\"Id\", \"Revision\", \"Expires\", \"Expired\", \"Payload\",\"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\") VALUES (@id, @revision, @expires, @expired, @payload, @script, @parentId, @parentRev, @state, @handler) RETURNING \"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\"";
             cmd.CommandType = System.Data.CommandType.Text;
