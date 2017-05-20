@@ -99,7 +99,7 @@ namespace Transact.Api
         public Guid Subscribe(string expression, Action<Guid, Transaction> callback)
         {
             var subscriptionId = Guid.NewGuid();
-            var compiler = new Compiler();
+            var compiler = new MatchCompiler();
             var exp = compiler.BuildExpression(expression).Compile();
             var sub = new Subscription(subscriptionId, exp, callback);
             if (!_subscriptions.TryAdd(subscriptionId, sub))

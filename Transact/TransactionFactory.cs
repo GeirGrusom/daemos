@@ -272,8 +272,7 @@ namespace Transact
         public async Task<Transaction> StartTransaction(Guid id)
         {
 
-            var trans = await Storage.CreateTransaction(new Transaction(id, 0, DateTime.UtcNow, null, null, new ExpandoObject(),
-                null, TransactionState.Initialized, null, Storage));
+            var trans = await Storage.CreateTransaction(new Transaction(id, 0, DateTime.UtcNow, null, null, new ExpandoObject(), null, TransactionState.Initialized, null, Storage));
             await trans.Lock();
             return trans;
         }

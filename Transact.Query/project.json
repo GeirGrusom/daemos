@@ -2,11 +2,10 @@
   "version": "1.0.0-*",
 
   "dependencies": {
-    "Antlr4": "4.5.3.1-beta001",
+    "Antlr4.Runtime": "4.5.3.1-beta001",
     "NETStandard.Library": "1.6.0",
     "Transact": "1.0.0-*"
   },
-
   "frameworks": {
     "netstandard1.6": {
       "imports": "dnxcore50"

@@ -46,10 +46,7 @@ namespace Transact.Api.Controllers
             var trans = await factory.StartTransaction(id);
             Transaction result;
             try
-            {
-
-                    
-
+            {                   
                 result = await trans.CreateDelta((ref TransactionMutableData data) =>
                 {
                     data.Expires = expires;
@@ -76,7 +73,7 @@ namespace Transact.Api.Controllers
                 return BadRequest("No query was specified.");
             }
 
-            var compiler = new Transact.Query.Compiler();
+            var compiler = new Query.MatchCompiler();
             var exp = compiler.BuildExpression(query);
 
             var results = _storage.Query().Where(exp).Select(TransactionMapper.Map).AsEnumerable();
