@@ -148,15 +148,21 @@ namespace Transact.Postgres
                 Handler = next.Handler
             };
 
-            var reader = connection.ExecuteReader(@"
+            Transaction result;
+            using (var reader = connection.ExecuteReader(@"
 begin transaction;
 update tr.""Transactions"" set ""Head"" = 'f' where ""Id"" = @Id;
 INSERT INTO tr.""Transactions"" 
     (""Id"", ""Revision"", ""Expires"", ""Expired"", ""Payload"",""Script"", ""ParentId"", ""ParentRevision"", ""State"", ""Handler"") VALUES 
     (@Id, @Revision, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler) RETURNING ""Id"", ""Revision"", ""Created"", ""Expires"", ""Expired"", ""Payload"", ""Script"", ""ParentId"", ""ParentRevision"", ""State"", ""Handler"";
 commit;
-", delta);
-            return Task.FromResult(Map(reader).Single());
+", delta))
+            {
+                
+                result = Map(reader).Single();
+            }
+            OnTransactionCommitted(result);
+            return Task.FromResult(result);
         }
 
         public override Task<Transaction> CreateTransaction(Transaction transaction)

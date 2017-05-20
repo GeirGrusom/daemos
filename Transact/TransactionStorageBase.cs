@@ -84,10 +84,16 @@ namespace Transact
             {
                 if (_nextExpiringTransaction != null)
                 {
-                    var deltaD = (_nextExpiringTransaction.Value - now).TotalMilliseconds;
-                    var delta = deltaD > int.MaxValue ? int.MaxValue : (int)deltaD;
-                    if (delta > 0)
-                        _nextExpiringTransactionChangedEvent.WaitOne(delta);
+                    int delta;
+                    do
+                    {
+                        var deltaSpan = (_nextExpiringTransaction.Value - DateTime.UtcNow);
+                        long deltaD = deltaSpan.Ticks / TimeSpan.TicksPerMillisecond;
+                        delta = deltaD > int.MaxValue ? int.MaxValue : (int)deltaD;
+                        if (delta > 0)
+                            _nextExpiringTransactionChangedEvent.WaitOne(delta);
+                    }
+                    while (delta > 0);
                 }
                 else
                 {

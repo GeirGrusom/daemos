@@ -10,6 +10,7 @@ using System.Web.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Transact.Api.Models;
+using System.Dynamic;
 
 namespace Transact.Api
 {
@@ -19,7 +20,7 @@ namespace Transact.Api
         [JsonProperty("id")]
         public Guid? Id { get; set; }
         [JsonProperty("payload")]
-        public object Payload { get; set; }
+        public ExpandoObject Payload { get; set; }
         [JsonProperty("expires")]
         public DateTime? Expires { get; set; }
         [JsonProperty("script")]

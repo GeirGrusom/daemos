@@ -24,6 +24,9 @@ namespace Transact.Api.Controllers
         [HttpPost]
         public async Task<HttpResponseMessage> Post([FromBody]NewTransactionModel model)
         {
+            if (model == null)
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+
             var factory = new TransactionFactory(_storage);
 
             Guid id = model.Id.GetValueOrDefault(Guid.NewGuid());
