@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Markurion Console</Description>
+    <AssemblyTitle>Markurion Console</AssemblyTitle>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <AssemblyName>mark</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <PackageId>Markurion.Console</PackageId>
+    <RuntimeFrameworkVersion>1.1.1</RuntimeFrameworkVersion>
+    <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
+    <PackageTargetFallback>$(PackageTargetFallback);dnxcore50;</PackageTargetFallback>
+    <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
+    <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <StartupObject />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\Daemos.Modules.csproj" />
+    <ProjectReference Include="..\Mute\Daemos.Mute.csproj" />
+    <ProjectReference Include="..\Postgres\Daemos.Postgres.csproj" />
+    <ProjectReference Include="..\Query\Daemos.Query.csproj" />
+    <ProjectReference Include="..\WebApi\Daemos.WebApi.csproj" />
+    <ProjectReference Include="..\Daemos\Daemos.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
+    <PackageReference Include="Nito.AsyncEx.Core" Version="1.0.0-rc2-001" />
+    <PackageReference Include="System.Diagnostics.Tracing" Version="4.3.0" />
+  </ItemGroup>
+
+  <!-- ILRepack -->
+  <Target Name="AfterBuild">
+
+    <ItemGroup>
+      <InputAssemblies Include="$(OutputPath)\*.dll" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <!-- Must be a fully qualified name -->
+      
+    </ItemGroup>
+
+    <ILRepack Parallel="true" Internalize="false" Wildcards="true" InputAssemblies="@(InputAssemblies)" TargetKind="SameAsPrimaryAssembly" OutputFile="$(OutputPath)\$(AssemblyName)" />
+    <Warning Text="Fooooo" />
+  </Target>
+  <!-- /ILRepack -->
+  
+</Project>
