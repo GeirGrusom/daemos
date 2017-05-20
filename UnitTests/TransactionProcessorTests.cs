@@ -22,7 +22,14 @@ namespace UnitTests
 
             var processor = new TransactionProcessor(storage, scriptRunner);
 
+            var transaction = new Transaction(Guid.NewGuid(), 0, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, storage);
+
+            storage.GetExpiringTransactions(Arg.Any<DateTime>(), CancellationToken.None)
+                .Returns(new[] {transaction}, Enumerable.Empty<Transaction>());
+
             await processor.RunAsync(cancel.Token);
+
+
         }
     }
 }
