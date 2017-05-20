@@ -24,6 +24,11 @@ namespace Transact.Postgres
             Parameters = new List<object>();
         }
 
+        public override Expression Visit(Expression node)
+        {
+            return base.Visit(node);
+        }
+
         private static readonly Dictionary<string, string> tableNameLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["id"] = "\"Id\"",
@@ -179,6 +184,22 @@ namespace Transact.Postgres
             return node;
         }
 
+        protected override Expression VisitNewArray(NewArrayExpression node)
+        {
+            builder.Append("(");
+            for(int i = 0; i < node.Expressions.Count; ++i)
+            {
+                Visit(node.Expressions[i]);
+
+                if(i < node.Expressions.Count - 1)
+                {
+                    builder.Append(", ");
+                }
+            }
+            builder.Append(")");
+            return node;
+        }
+
         protected override Expression VisitMember(MemberExpression node)
         {
             if (node.Member.DeclaringType == typeof(Transaction))
@@ -207,6 +228,20 @@ namespace Transact.Postgres
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
+            if (node.Method.DeclaringType == typeof(System.Linq.Enumerable))
+            {
+                switch (node.Method.Name)
+                {
+                    case "Contains":
+                    {
+                        Visit(node.Arguments[1]);
+                        builder.Append(" in ");
+                        Visit(node.Arguments[0]);
+                        return node;
+                    }
+                }
+
+            }
             if (node.Method.DeclaringType == typeof(System.Math))
             {
                 switch (node.Method.Name)
@@ -224,6 +259,8 @@ namespace Transact.Postgres
                             builder.Append(node.Arguments[1]);
                             return node;
                         }
+
+
                 }
             }
             return node;

@@ -58,7 +58,12 @@ namespace Transact
             public static ReverseDateTimeComparer Instance { get; } = new ReverseDateTimeComparer();
             public int Compare(DateTime x, DateTime y)
             {
-                return y.CompareTo(x);
+                var result = y.CompareTo(x);
+                if(result == 0)
+                {
+                    return 1;
+                }
+                return result;
             }
         }
 

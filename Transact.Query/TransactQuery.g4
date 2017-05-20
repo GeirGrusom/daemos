@@ -6,6 +6,7 @@ options {
 
 @header {
 	using System.Linq.Expressions;
+	using System.Linq;
 	using static System.Linq.Expressions.Expression;
 	using System.Reflection;
 }
@@ -16,6 +17,13 @@ options {
     {
         return Property(owner, owner.Type.GetProperty(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.GetProperty | System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public));
     }
+
+	private static Expression In(Expression lhs, Expression rhs)
+	{
+		var method = rhs.Type.GetMethod("Contains", new [] { lhs.Type });
+
+		return Call(rhs, method, lhs);
+	}
 }
 
 /*
@@ -28,15 +36,23 @@ compileUnit returns [Expression expr]
 	|;
 
 logicalExpression returns [Expression expr]
-	: orExpression { $expr = $orExpression.expr; };
+	: containmentExpression { $expr = $containmentExpression.expr; }
+	;
+
+containmentExpression returns [Expression expr] 
+	: lhs = containmentExpression IN rhs = orExpression { $expr = In($lhs.expr, $rhs.expr); }
+	| orExpression { $expr = $orExpression.expr; }
+	;
 
 orExpression returns [Expression expr]
 	: lhs = orExpression OR rhs = xorExpression { $expr = OrElse($lhs.expr, $rhs.expr); }
-	| xorExpression { $expr = $xorExpression.expr; };
+	| xorExpression { $expr = $xorExpression.expr; }
+	;
 
 xorExpression returns [Expression expr]
 	: lhs = xorExpression XOR rhs = andExpression { $expr = ExclusiveOr($lhs.expr, $rhs.expr); }
-	| andExpression { $expr = $andExpression.expr; };
+	| andExpression { $expr = $andExpression.expr; }
+	;
 
 andExpression returns [Expression expr]
 	: lhs = andExpression AND rhs = equalityExpression { $expr = AndAlso($lhs.expr, $rhs.expr); }
@@ -125,6 +141,7 @@ literalExpression returns [Expression expr]
 	| date { $expr = Constant($date.value, typeof(System.DateTime)); }
 	| guid { $expr = Constant($guid.value, typeof(System.Guid)); }
 	| identifierChain { $expr = $identifierChain.expr; }
+	| array { $expr = $array.expr; }
 	;
 
 identifierChain returns [Expression expr] 
@@ -144,6 +161,11 @@ constant returns [Expression expr]
 	: NULL { $expr = Constant(null); }
 	| TRUE { $expr = Constant(true); }
 	| FALSE { $expr = Constant(false); }
+	| INITIALIZED { $expr = Constant(TransactionState.Initialized); }
+	| AUTHORIZED { $expr = Constant(TransactionState.Authorized); }
+	| COMPLETED {$expr = Constant(TransactionState.Completed); }
+	| CANCELLED { $expr = Constant(TransactionState.Cancelled); }
+	| FAILED { $expr = Constant(TransactionState.Failed); }
 	;
 
 identifier returns [string value]
@@ -181,7 +203,11 @@ date returns [System.DateTime value]
 	: '@' DATE { $value = System.DateTime.ParseExact($DATE.text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture); }
 	| '@' DATETIME { $value = System.DateTime.ParseExact($DATETIME.text, new [] { "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.fff" }, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal); }
 	;
-									
+
+array returns [Expression expr] : '[' (members += expression (',' members += expression)*)? ']' {
+	var type = ($members)[0].expr.Type;
+	$expr = NewArrayInit(type, ($members).Select(x => x.expr));
+};
 
 /*
  * Lexer Rules
@@ -208,14 +234,18 @@ GUID: '{' HEX_DIGIT_8 HEX_DIGIT_4 HEX_DIGIT_4 HEX_DIGIT_4 HEX_DIGIT_8 HEX_DIGIT_
 INT: [0-9]+;
 fragment ID_HEAD: [a-zA-Z_];
 fragment ID_TAIL: [a-zA-Z_0-9];
-NULL: 'null';
-TRUE: 'true';
-FALSE: 'false';
-AND: 'and';
-OR:'or';
-XOR: 'xor';
-ID: ID_HEAD ID_TAIL*;
-fragment FLOAT_INT: [0-9]+;
+NULL: [Nn][Uu][Ll][Ll];
+TRUE: [Tt][Rr][Uu][Ee];
+FALSE: [Ff][Aa][Ll][Ss][Ee];
+AND: [Aa][Nn][Dd];
+OR:[Oo][Rr];
+XOR: [Xx][Oo][Rr];
+IN: [Ii][Nn];
+INITIALIZED: [Ii][Nn][Ii][Tt][Ii][Aa][Ll][Ii][Zz][Ee][Dd]; // Case insensitive Initialized
+AUTHORIZED: [Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Ee][Dd]; // Case insensitive Autorized
+COMPLETED: [Cc][Oo][Mm][Pp][Ll][Ee][Tt][Ee][Dd]; // Case insensitive Completed
+CANCELLED: [Cc][Aa][Nn][Cc][Ee][Ll][Ll][Ee][Dd]; // Case insensitive Cancelled
+FAILED: [Ff][Aa][Ii][Ll][Ee][Dd]; // Case insensitive Failed
 
 fragment YEAR: [0-9][0-9][0-9][0-9];
 fragment MONTH: [0-1][0-9];
@@ -244,6 +274,7 @@ LESS_OR_EQUAL: '<=';
 NOT: '!'|'not';
 SUB: '-';
 ADD: '+';
+ID: ID_HEAD ID_TAIL*;
 
 MUL: '*';
 DIV: '/';
