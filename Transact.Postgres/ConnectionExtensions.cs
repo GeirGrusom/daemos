@@ -40,7 +40,7 @@ namespace Transact.Postgres
             [typeof(JsonContainer)] = NpgsqlDbType.Jsonb,
             [typeof(decimal)] = NpgsqlDbType.Money,
             [typeof(DateTime)] = NpgsqlDbType.Timestamp,
-            [typeof(DateTime?)] = NpgsqlDbType.Timestamp
+            [typeof(DateTime?)] = NpgsqlDbType.Timestamp,
         };
 
         private static NpgsqlDbType GetSqlTypeForType(Type t)
@@ -79,7 +79,7 @@ namespace Transact.Postgres
             return lambda.Compile();
         }
 
-        public static NpgsqlDataReader ExecuteReader<T>(this NpgsqlConnection conn, string sql, T parameters)
+        public static IEnumerable<TResult> ExecuteReader<TResult, T>(this NpgsqlConnection conn, string sql, T parameters, Func<NpgsqlDataReader, TResult> mapper)
         {
             using (var cmd = conn.CreateCommand())
             {
@@ -89,22 +89,35 @@ namespace Transact.Postgres
 
                 cmd.Prepare();
 
-                bool failed = false;
+                NpgsqlDataReader reader = null;
 
-                do
+                try
                 {
-                    try
+                    do
                     {
-                        return cmd.ExecuteReader();
-                    }
-                    catch(InvalidOperationException)
+
+                        try
+                        {
+                            reader = cmd.ExecuteReader();
+                            break;
+                        }
+                        catch (InvalidOperationException)
+                        {
+
+                        }
+
+                    } while (true);
+
+                    while (reader.Read())
                     {
-                        failed = true;
+                        yield return mapper(reader);
                     }
                 }
-                while (failed);
+                finally
+                {
+                    reader.Dispose();
+                }
             }
-            throw new InvalidOperationException();
         }
 
         public static T ExecuteScalar<T>(this NpgsqlConnection conn, string sql, T parameters)

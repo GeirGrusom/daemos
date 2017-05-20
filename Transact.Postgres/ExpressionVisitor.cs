@@ -61,7 +61,7 @@ namespace Transact.Postgres
 
         public IEnumerable<object> Parameters => predicateVisitor.Parameters;
 
-        private static string defaultSelect = "\"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\"";
+        private static readonly string defaultSelect = "\"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Error\"";
 
         public override string ToString()
         {

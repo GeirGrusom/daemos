@@ -37,10 +37,10 @@ namespace Transact
         public abstract Task<Transaction> FetchTransaction(Guid id, int revision = -1);
         public abstract Task FreeTransaction(Guid id);
         public abstract Task<IEnumerable<Transaction>> GetChain(Guid id);
-        public abstract IEnumerable<Transaction> GetChildTransactions(Guid transaction, params TransactionState[] state);
+        public abstract Task<IEnumerable<Transaction>> GetChildTransactions(Guid transaction, params TransactionState[] state);
         public abstract Task<bool> IsTransactionLocked(Guid id);
         public abstract Task LockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
-        public abstract IQueryable<Transaction> Query();
+        public abstract Task<IQueryable<Transaction>> Query();
         public abstract Task<bool> TransactionExists(Guid id);
         public abstract Task<bool> TryLockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
         public abstract Task Open();
@@ -67,13 +67,13 @@ namespace Transact
             return result;
         }
 
-        public Transaction[] GetExpiringTransactions(DateTime now, CancellationToken cancel)
+        public Task<List<Transaction>> GetExpiringTransactions(DateTime now, CancellationToken cancel)
         {
             WaitForExpiringTransactions(now, cancel);
             return GetExpiringTransactionsInternal(now, cancel);
         }
 
-        protected abstract Transaction[] GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel);
+        protected abstract Task<List<Transaction>> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel);
 
         protected void SetNextExpiringTransactionTime(DateTime? next)
         {

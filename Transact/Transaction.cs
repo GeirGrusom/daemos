@@ -38,6 +38,7 @@ namespace Transact
         public TransactionRevision? Parent { get; set; }
         public TransactionState State { get; set; }
         public string Handler { get; set; }
+        public object Error { get; set; }
     }
 
     public struct TransactionMutableData
@@ -48,14 +49,15 @@ namespace Transact
         public string Script { get; set; }
         public TransactionState State { get; set; }
         public string Handler { get; set; }
+        public object Error { get; set; }
     }
 
 
     public sealed class Transaction : IEquatable<Transaction>, IEquatable<TransactionRevision>
     {
 
-        public Transaction(Guid id, int revision, DateTime created, DateTime? expires, DateTime? expired, object payload, string script, TransactionState state, TransactionRevision? parent, ITransactionStorage storage)
-            : this(new TransactionData { Id = id, Revision  = revision, Created = created, Expires = expires, Expired = expired, Parent = parent, Payload = payload, Script = script, State = state}, storage)
+        public Transaction(Guid id, int revision, DateTime created, DateTime? expires, DateTime? expired, object payload, string script, TransactionState state, TransactionRevision? parent, object error, ITransactionStorage storage)
+            : this(new TransactionData { Id = id, Revision  = revision, Created = created, Expires = expires, Expired = expired, Parent = parent, Payload = payload, Script = script, State = state, Error = error }, storage)
         {
         }
 
@@ -80,6 +82,7 @@ namespace Transact
         public string Script => _data.Script;
         public TransactionState State => _data.State;
         public TransactionRevision? Parent => _data.Parent;
+        public object Error => _data.Error;
         public string Handler => _data.Handler;
 
         public bool Equals(Transaction other)

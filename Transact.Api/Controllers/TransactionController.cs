@@ -77,6 +77,9 @@ namespace Transact.Api
 
         [JsonProperty("handler")]
         public string Handler => _transaction.Handler;
+
+        [JsonProperty("error")]
+        public object Error => _transaction.Error;
     }
 
     [Route("transactions/{id:guid}")]

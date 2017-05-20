@@ -52,7 +52,7 @@ namespace Transact.Api.Controllers
         }
 
         [HttpGet(Name = "TransactionQuery")]
-        public IActionResult Get([FromQuery] string query, [FromQuery] int? skip = null, [FromQuery] int? take = null, [FromQuery] bool rows = true)
+        public async Task<IActionResult> Get([FromQuery] string query, [FromQuery] int? skip = null, [FromQuery] int? take = null, [FromQuery] bool rows = true)
         {
             if(string.IsNullOrEmpty(query))
             {
@@ -62,7 +62,7 @@ namespace Transact.Api.Controllers
             var compiler = new Query.MatchCompiler();
             var exp = compiler.BuildExpression(query);
 
-            var whereQuery = _storage.Query().Where(exp);
+            var whereQuery = (await _storage.Query()).Where(exp);
 
             if(skip != null)
             {
@@ -77,7 +77,7 @@ namespace Transact.Api.Controllers
             var results = whereQuery.Select(TransactionMapper.ToTransactionResult).AsEnumerable();
             if (rows)
             {
-                var count = _storage.Query().Where(exp).Count();
+                var count = (await _storage.Query()).Where(exp).Count();
                 return Json(new { count, results });
             }
 

@@ -104,16 +104,13 @@ namespace Transact
                 throw new TimeoutException();
         }
 
-        public override IEnumerable<Transaction> GetChildTransactions(Guid id, params TransactionState[] states)
+        public override Task<IEnumerable<Transaction>> GetChildTransactions(Guid id, params TransactionState[] states)
         {
-            foreach (var transactionSlot in _transactions)
-            {
-                var trans = transactionSlot.Value.Chain.Last();
-                if (trans.Parent == null)
-                    continue;
-                if (trans.Parent.Value.Id == id && states.Any(x => x == trans.State))
-                    yield return trans;
-            }
+            return Task.FromResult(from slot in _transactions
+                let trans = slot.Value.Chain.Last()
+                where trans.Parent != null && trans.Parent.Value.Id == id && states.Any(x => x == trans.State)
+                select trans);
+
         }
 
         public override Task<bool> TryLockTransaction(Guid id, LockFlags flags, int timeout)
@@ -240,8 +237,8 @@ namespace Transact
             return Task.FromResult(_transactions.ContainsKey(id));
         }
 
-        private static readonly Transaction[] EmptyTransactionArray = new Transaction[0];
-        protected override Transaction[] GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
+        private static readonly List<Transaction> EmptyTransactionList = new List<Transaction>();
+        protected override Task<List<Transaction>> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
         {
             DateTime[] list;
             TransactionSlot[] values;
@@ -261,7 +258,7 @@ namespace Transact
                     SetNextExpiringTransactionTime(values.Last().Chain.Last().Expires);
                 }
                 
-                return EmptyTransactionArray;
+                return Task.FromResult(EmptyTransactionList);
             }
 
             // Binary search
@@ -285,7 +282,7 @@ namespace Transact
                 }
             }
 
-            var result = values.Skip(mid).Select(x => x.Chain.Last()).ToArray();
+            var result = values.Skip(mid).Select(x => x.Chain.Last()).ToList();
             if (mid == 0)
             {
                 SetNextExpiringTransactionTime(null);
@@ -294,13 +291,13 @@ namespace Transact
             {
                 SetNextExpiringTransactionTime(values.Skip(mid - 1).Select(x => x.Chain.Last().Expires).FirstOrDefault());
             }
-            return result;
+            return Task.FromResult(result);
 
         }
 
-        public override IQueryable<Transaction> Query()
+        public override Task<IQueryable<Transaction>> Query()
         {
-            return _transactions.Select(x => x.Value.Head).AsQueryable();
+            return Task.FromResult(_transactions.Select(x => x.Value.Head).AsQueryable());
         }
 
         public override async Task<Transaction> WaitFor(Func<Transaction, bool> predicate, int timeout)

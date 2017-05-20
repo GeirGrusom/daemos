@@ -106,6 +106,7 @@ namespace Transact
         public DateTime? Expires { get; set; }
         public object Payload { get; set; }
         public string Script { get; set; }
+        public object Error { get; set; }
     }
 
     public delegate void MutateTransactionDataDelegate(ref TransactionMutableData data);
@@ -160,7 +161,7 @@ namespace Transact
 
         public static Task<Transaction> CreateChild(this Transaction trans, NewChildTransactionData data)
         {
-            var newTransaction = new Transaction(data.Id, 0, DateTime.UtcNow, data.Expires, null, data.Payload, data.Script, TransactionState.Initialized, new TransactionRevision(trans.Id, trans.Revision), trans.Storage);
+            var newTransaction = new Transaction(data.Id, 0, DateTime.UtcNow, data.Expires, null, data.Payload, data.Script, TransactionState.Initialized, new TransactionRevision(trans.Id, trans.Revision), data.Error, trans.Storage);
             return trans.Storage.CreateTransaction(newTransaction);
         }
 
@@ -205,8 +206,8 @@ namespace Transact
         Task<Transaction> FetchTransaction(Guid id, int revision = -1);
         Task<Transaction> CreateTransaction(Transaction transaction);
         Task<Transaction> CommitTransactionDelta(Transaction original, Transaction next);
-        Transaction[] GetExpiringTransactions(DateTime now, CancellationToken cancel);
-        IEnumerable<Transaction> GetChildTransactions(Guid transaction, params TransactionState[] state);
+        Task<List<Transaction>> GetExpiringTransactions(DateTime now, CancellationToken cancel);
+        Task<IEnumerable<Transaction>> GetChildTransactions(Guid transaction, params TransactionState[] state);
         Task Open();
 
         event EventHandler<TransactionCommittedEventArgs> TransactionCommitted;
@@ -214,7 +215,7 @@ namespace Transact
         Task<Transaction> WaitFor(Func<Transaction, bool> predicate, int timeout = Timeout.Infinite);
         Task<IEnumerable<Transaction>> GetChain(Guid id);
 
-        IQueryable<Transaction> Query();
+        Task<IQueryable<Transaction>> Query();
     }
 
 
@@ -271,7 +272,7 @@ namespace Transact
 
         public async Task<Transaction> StartTransaction(Guid? id, DateTime? expires, object payload, string script, TransactionRevision? parent)
         {
-            var trans = await Storage.CreateTransaction(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionState.Initialized, parent, Storage));
+            var trans = await Storage.CreateTransaction(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionState.Initialized, parent, null, Storage));
             await trans.Lock();
             return trans;
         }

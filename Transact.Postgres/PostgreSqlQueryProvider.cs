@@ -13,7 +13,6 @@ namespace Transact.Postgres
 
         private readonly NpgsqlConnection connection;
         private readonly ITransactionStorage storage;
-        private long results;
 
         public PostgreSqlQueryProvider(NpgsqlConnection conn, ITransactionStorage storage)
         {
@@ -59,6 +58,7 @@ namespace Transact.Postgres
             [typeof(TransactionState)] = NpgsqlDbType.Enum,
             [typeof(bool)] = NpgsqlDbType.Boolean,
             [typeof(DateTime)] = NpgsqlDbType.Timestamp,
+            [typeof(decimal)] = NpgsqlDbType.Money
         };
 
         private NpgsqlDbType GetDbType(Type input)
@@ -145,7 +145,8 @@ namespace Transact.Postgres
             const int Expired   = 4;
             const int Payload   = 5;
             const int Script    = 6;
-            const int State     = 9;  
+            const int State     = 9;
+            const int Error     = 10;
 
             Guid? parentId = GetValue<Guid>(reader, 7);
             int? parentRevision = GetValue<int>(reader, 8);
@@ -157,10 +158,15 @@ namespace Transact.Postgres
             var created = reader.GetDateTime(Created);
             var expires = GetValue<DateTime>(reader, Expires);
             var expired = GetValue<DateTime>(reader, Expired);
-            var payload = Newtonsoft.Json.JsonConvert.DeserializeObject(GetObjectValue<string>(reader, Payload));
+            string payloadValue = GetObjectValue<string>(reader, Payload);
+            object payload = payloadValue != null ? Newtonsoft.Json.JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(payloadValue) : null; 
+
             var script = GetObjectValue<string>(reader, Script);
             var state = (TransactionState)reader.GetInt32(State);
-            return new Transaction(id, rev, created, expires, expired, payload, script, state, parent , storage);
+
+            string errorValue = GetObjectValue<string>(reader, Error);
+            object error = errorValue != null ? Newtonsoft.Json.JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(errorValue) : null;
+            return new Transaction(id, rev, created, expires, expired, payload, script, state, parent, error, storage);
         } 
     }
 }

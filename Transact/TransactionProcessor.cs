@@ -22,7 +22,7 @@ namespace Transact
             while (!cancel.IsCancellationRequested)
             {
                 var now = DateTime.UtcNow;
-                var transactions = Storage.GetExpiringTransactions(now, cancel).ToArray();
+                var transactions = await Storage.GetExpiringTransactions(now, cancel);
                 int count = 0;
                 foreach (var transaction in transactions)
                 {
@@ -61,7 +61,8 @@ namespace Transact
                         await transaction.CreateDelta((ref TransactionMutableData x) =>
                         {
                             x.State = TransactionState.Failed;
-                            x.Payload = ex;
+                            x.Payload = transaction.Payload;
+                            x.Error = ex;
                             x.Expires = null;
                             x.Script = null;
                         });
