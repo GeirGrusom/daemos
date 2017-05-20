@@ -131,13 +131,44 @@ namespace Transact.Postgres
             if (next.Revision != original.Revision + 1)
                 throw new ArgumentException("The specified revision already exists.", nameof(next));
 
-            return CreateTransaction(next);
+            var parentId = next.Parent != null ? next.Parent.Value.Id : default(Guid?);
+            var parentRevision = next.Parent != null ? next.Parent.Value.Revision : default(int?);
+
+            var delta = new
+            {
+                Id = original.Id,
+                Revision = next.Revision,
+                Expires = next.Expires,
+                Expired = default(DateTime?),
+                Payload = new JsonContainer(JsonConvert.SerializeObject(next.Payload)),
+                Script = next.Script,
+                ParentId = parentId,
+                ParentRev = parentRevision,
+                State = (int)next.State,
+                Handler = next.Handler
+            };
+
+            var reader = connection.ExecuteReader(@"
+begin transaction;
+update tr.""Transactions"" set ""Head"" = 'f' where ""Id"" = @Id;
+INSERT INTO tr.""Transactions"" 
+    (""Id"", ""Revision"", ""Expires"", ""Expired"", ""Payload"",""Script"", ""ParentId"", ""ParentRevision"", ""State"", ""Handler"") VALUES 
+    (@Id, @Revision, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler) RETURNING ""Id"", ""Revision"", ""Created"", ""Expires"", ""Expired"", ""Payload"", ""Script"", ""ParentId"", ""ParentRevision"", ""State"", ""Handler"";
+commit;
+", delta);
+            return Task.FromResult(Map(reader).Single());
         }
 
-        public override async Task<Transaction> CreateTransaction(Transaction transaction)
+        public override Task<Transaction> CreateTransaction(Transaction transaction)
+        {
+            return CreateTransaction(transaction, null);
+        }
+
+        public async Task<Transaction> CreateTransaction(Transaction transaction, NpgsqlTransaction sqlTransaction)
         {
             using(var cmd = InsertTransactionCommand.Clone())
             {
+                cmd.Transaction = sqlTransaction;
                 cmd.Parameters["id"].Value = transaction.Id;
                 cmd.Parameters["revision"].Value = transaction.Revision;
                 cmd.Parameters["expires"].Value = transaction.Expires != null ? (object)transaction.Expires.Value : DBNull.Value;
@@ -262,12 +293,12 @@ namespace Transact.Postgres
 
         private DateTime? GetNextExpiringTransactionTime()
         {
-            string sql = "SELECT \"Expires\" FROM tr.\"TransactionHead\" ORDER BY \"Expires\" ASC LIMIT 1";
+            string sql = "SELECT \"Expires\" FROM tr.\"TransactionHead\" WHERE \"Expired\" IS NULL AND \"Expires\" IS NOT NULL ORDER BY \"Expires\" ASC LIMIT 1";
             using (var cmd = connection.CreateCommand())
             {
                 cmd.CommandText = sql;
                 object result = cmd.ExecuteScalar();
-                if (DBNull.Value == result)
+                if (result == null || result == DBNull.Value)
                     return null;
                 return (DateTime)result;
             }
@@ -280,7 +311,7 @@ namespace Transact.Postgres
             {
                 cmd.CommandText = sql;
                 var p = cmd.Parameters.Add(new NpgsqlParameter("now", Timestamp));
-                p.Value = now;
+                p.Value = now.ToUniversalTime();
                 var reader = cmd.ExecuteReader();
                 var results = Map(reader).ToArray();
 
@@ -360,7 +391,6 @@ namespace Transact.Postgres
                 transactionLockSync.Release();
                 return await lc.LockAsync(timeout);
             }
-            transactionLockSync.Release();
             return false;
         }
     }
