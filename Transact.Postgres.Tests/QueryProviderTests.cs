@@ -14,7 +14,7 @@ namespace Transact.Postgres.Tests
         [Test]
         public void Foo()
         {
-            var provider = new PostgreSqlQueryProvider(null);
+            var provider = new PostgreSqlQueryProvider(null, null);
             PostgreSqlOrderedQuerableProvider<Transaction> q = new PostgreSqlOrderedQuerableProvider<Transaction>(provider);
             var query = q.Where(x => x.Expires > DateTime.UtcNow);
             

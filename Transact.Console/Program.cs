@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Practices.Unity;
+using Newtonsoft.Json;
 using Nito.AsyncEx;
 using Transact.Api;
 using Transact.Postgres;
@@ -65,10 +66,28 @@ namespace Transact.Console
             AsyncContext.Run(AsyncMain);
         }
 
+        static async Task RequestQuery(ITransactionStorage storage, CancellationToken canel)
+        {
+            TransactionMatchCompiler compiler = new TransactionMatchCompiler();
+            while (!canel.IsCancellationRequested)
+            {
+                string result = await System.Console.In.ReadLineAsync();
+                var results = compiler.BuildExpression(result);
+
+                var transactions = storage.Query().Where(results);
+
+                foreach (var item in transactions)
+                {
+                    System.Console.WriteLine(JsonConvert.SerializeObject(item, Formatting.Indented));
+                }
+            }
+        }
+
         static  async Task<int> AsyncMain()
         {
             
             var transactionProcessor = new TransactionProcessor(Storage, new RoslynScriptRunner(HandlerFactory));
+            RequestQuery(transactionProcessor.Storage, _cancel);
 
             await transactionProcessor.RunAsync(_cancel);
             return 0;

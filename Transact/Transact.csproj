@@ -41,7 +41,10 @@
   <ItemGroup>
     <Compile Include="IScriptRunner.cs" />
     <Compile Include="ITransactionHandlerFactory.cs" />
+    <Compile Include="ITransactionMatchCompiler.cs" />
+    <Compile Include="JsonValue.cs" />
     <Compile Include="MemoryStorage.cs" />
+    <Compile Include="PayloadExtensions.cs" />
     <Compile Include="RoslynScriptRunner.cs" />
     <Compile Include="Transaction.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -11,7 +11,6 @@ namespace Transact
     {
         public event EventHandler<TransactionCommittedEventArgs> TransactionCommitted;
 
-        private ITransactionMatchCompiler _transactionMatchCompiler;
         private readonly AutoResetEvent _nextExpiringTransactionChangedEvent;
         private DateTime? _nextExpiringTransaction;
 

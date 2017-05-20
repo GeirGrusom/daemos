@@ -13,10 +13,36 @@ namespace Transact.Postgres
     public class PredicateQueryVisitor : ExpressionVisitor
     {
         private readonly StringBuilder builder;
+        public List<object> Parameters { get; }
+
+        private DateTime now;
 
         public PredicateQueryVisitor()
         {
+            now = DateTime.UtcNow;
             builder = new StringBuilder();
+            Parameters = new List<object>();
+        }
+
+        private static readonly Dictionary<string, string> tableNameLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["id"] = "\"Id\"",
+            ["revision"] = "\"Revision\"",
+            ["created"] = "\"Created\"",
+            ["expires"] = "\"Expires\"",
+            ["expired"] = "\"Expired\"",
+            ["payload"] = "\"Payload\"",
+            ["script"] = "\"Script\"",
+            ["parentid"] = "\"ParentId\"",
+            ["parentrevision"] = "\"ParentRevision\"",
+            ["state"] = "\"State\"",
+            ["handler"] = "\"Handler\""
+
+        };
+
+        public string GetColumnName(string columnname)
+        {
+            return tableNameLookup[columnname];
         }
 
         private static Dictionary<ExpressionType, string> binaryOperatorLookup = new Dictionary<ExpressionType, string>
@@ -106,6 +132,7 @@ namespace Transact.Postgres
             [Negate] = "-",
             [Not] = "not",
             [Quote] = "",
+            [ExpressionType.Convert] = ""
         };
 
         protected override Expression VisitUnary(UnaryExpression node)
@@ -123,43 +150,40 @@ namespace Transact.Postgres
 
         protected override Expression VisitConstant(ConstantExpression node)
         {
-            if (node.Type == typeof(string))
+            builder.Append(":p" + (Parameters.Count + 1) + "");
+            if(node.Value == null)
             {
-                string value = node.Value.ToString().Replace("'", @"\'");
-                builder.Append($"'{value}'");
+                Parameters.Add(DBNull.Value);
             }
-            else if (node.Type == typeof(DateTime))
+            else if (node.Value.GetType().IsEnum)
             {
-                DateTime value = (DateTime)node.Value;
-                string output = value.ToUniversalTime().ToString("O");
-                builder.Append($"timestamp '{output}'");
+                Parameters.Add((int)node.Value);
             }
-            else if (node.Type == typeof(TimeSpan))
+            else
             {
-
-                var ts = (TimeSpan)node.Value;
-
-                var values = new List<string>();
-                if (ts.Days != 0)
-                    values.Add($"{ts.Days} days");
-                if (ts.Hours != 0)
-                    values.Add($"{ts.Hours} hours");
-                if (ts.Minutes != 0)
-                    values.Add($"{ts.Minutes} minutes");
-                if (ts.Seconds != 0)
-                    values.Add($"{ts.Seconds} seconds");
-
-                builder.Append($"interval '{string.Join(" ", values)}'");
+                Parameters.Add(node.Value);
             }
             return node;
         }
 
+        protected override Expression VisitNew(NewExpression node)
+        {
+            if (node.Type == typeof(JsonValue))
+            {
+                var memberOf = GetColumnName((string)((ConstantExpression)node.Arguments[1]).Value);
+                var member = (string)((ConstantExpression)node.Arguments[2]).Value;
+                builder.Append(memberOf);
+                builder.Append(" ->> ");
+                builder.Append('\'' + member + '\'');
+            }
+            return node;
+        }
 
         protected override Expression VisitMember(MemberExpression node)
         {
             if (node.Member.DeclaringType == typeof(Transaction))
             {
-                builder.Append($"\"{node.Member.Name}\"");
+                builder.Append(GetColumnName(node.Member.Name));
             }
             else
             {
@@ -177,7 +201,7 @@ namespace Transact.Postgres
         {
             if (node.Member.Name == "Now" || node.Member.Name == "UtcNow")
             {
-                builder.Append("timestamp (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')");
+                builder.Append("timestamp ('" + now.ToString("yyyy-MM-dd'T'HH:mm:ss") + "' AT TIME ZONE 'UTC')");
             }
         }
 
@@ -192,6 +216,12 @@ namespace Transact.Postgres
                             builder.Append("@(");
                             Visit(node.Arguments[0]);
                             builder.Append(")");
+                            return node;
+                        }
+                    case "GetPayloadMember":
+                        {
+                            builder.Append("\"Payload\" -> ");
+                            builder.Append(node.Arguments[1]);
                             return node;
                         }
                 }
@@ -212,10 +242,30 @@ namespace Transact.Postgres
 
             if(requiresParens)
                 builder.Append("(");
-            Visit(node.Left);
+
+            if (node.Left.Type == typeof(JsonValue))
+            {
+                builder.Append("(");
+                Visit(node.Left);
+                builder.Append(")");
+
+                if (node.Right.Type == typeof(int) || node.Right.Type == typeof(float) || node.Right.Type == typeof(double))
+                {
+                    builder.Append("::numeric");
+                }
+                else if(node.Right.Type == typeof(bool))
+                {
+                    builder.Append("::bool");
+                }
+            }
+            else
+            {
+                Visit(node.Left);
+            }
             builder.Append($" {op} ");
             Visit(node.Right);
-            if(requiresParens)
+
+            if (requiresParens)
                 builder.Append(")");
 
             return node;

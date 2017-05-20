@@ -53,6 +53,7 @@
     <Compile Include="ExpressionVisitor.cs" />
     <Compile Include="JsonContainer.cs" />
     <Compile Include="MemberVisitor.cs" />
+    <Compile Include="Migration.cs" />
     <Compile Include="ObjectExtensions.cs" />
     <Compile Include="PostgreSqlOrderedQueryable.cs" />
     <Compile Include="PostgreSqlQueryProvider.cs" />
@@ -68,6 +69,9 @@
       <Project>{0ea2fcfe-d6ac-4def-8112-bcd8106a4139}</Project>
       <Name>Transact</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Sql\v000_init.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

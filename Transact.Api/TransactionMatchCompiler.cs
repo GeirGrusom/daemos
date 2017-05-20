@@ -12,7 +12,7 @@ using Irony.Parsing;
 using Transact;
 namespace Transact.Api
 {
-    public class TransactionMatchCompiler
+    public class TransactionMatchCompiler : ITransactionMatchCompiler
     {
         private readonly Parser _parser;
 
@@ -28,6 +28,11 @@ namespace Transact.Api
         public Expression<Func<Transaction, bool>> BuildExpression(string input)
         {
             var tree = _parser.Parse(input);
+
+            if(tree == null || tree.Root == null)
+            {
+                throw new ArgumentException("Could not parse the specified expression.");
+            }
 
             var exp = Visit(tree.Root);
 
@@ -62,6 +67,8 @@ namespace Transact.Api
                 return VisitIdentifier(node);
             if (node.Term.Name == "arrayList")
                 return VisitArray(node);
+            if (node.Term.Name == "payloadMember")
+                return VisitPayloadMember(node);
             
             throw new NotImplementedException();
         }
@@ -113,6 +120,20 @@ namespace Transact.Api
             return Expression.Constant(hashSet, hashSetType);
         }
 
+        private static readonly MethodInfo GetMemberMethod = typeof(PayloadExtensions).GetMethod("GetPayloadMember", new Type[] { typeof(IDictionary<string, object>), typeof(string) }, null);
+
+        private static Expression VisitPayloadMember(ParseTreeNode node)
+        {
+            string dynamicObject = node.ChildNodes[1].FindTokenAndGetText();
+
+            string memberName = node.ChildNodes[3].FindTokenAndGetText();
+
+            //return Expression.Call(null, GetMemberMethod, Expression.Convert(Expression.Property(_transactionParameter, dynamicObject), typeof(IDictionary<string, object>)), Expression.Constant(memberName));
+            var ctor = typeof(JsonValue).GetConstructor(new[] { typeof(IDictionary<string, object>), typeof(string), typeof(string) });
+            return Expression.New(ctor, Expression.Convert(Expression.Property(_transactionParameter, dynamicObject), typeof(IDictionary<string, object>)), Expression.Constant(dynamicObject), Expression.Constant(memberName));
+            //return Expression.Constant(Expression)
+        }
+
         private static Expression VisitString(ParseTreeNode node)
         {
             return Expression.Constant(node.Token.ValueString);
@@ -120,8 +141,8 @@ namespace Transact.Api
 
         private static Expression VisitGuid(ParseTreeNode node)
         {
-            string value = node.FindTokenAndGetText();
-            return Expression.Constant(Guid.ParseExact(value, "N"));
+            string value = node.ChildNodes[1].FindTokenAndGetText();
+            return Expression.Constant(Guid.ParseExact(value, "D"));
         }
 
         private static Expression VisitNull(ParseTreeNode node)
@@ -156,6 +177,12 @@ namespace Transact.Api
         private static Expression VisitIdentifier(ParseTreeNode node)
         {
             var value = node.FindTokenAndGetText();
+
+            TransactionState state;
+            if(Enum.TryParse(value, ignoreCase: true, result: out state))
+            {
+                return Expression.Constant(state);
+            }
 
             var prop = typeof (Transaction).GetProperty(value,
                 BindingFlags.Instance | BindingFlags.IgnoreCase | BindingFlags.Public);
@@ -211,6 +238,12 @@ namespace Transact.Api
             {
                 left = ParseEnumString(right.Type, (ConstantExpression)left);
             }
+
+            if(left.Type == typeof(object) || right.Type == typeof(object))
+            {
+                return Expression.Equal(Expression.Convert(left, typeof(object)), Expression.Convert(right, typeof(Object)), true, typeof(object).GetMethod("Equals", BindingFlags.Static | BindingFlags.Public));
+            }
+
             return Expression.Equal(left, right);
         }
 
@@ -224,6 +257,7 @@ namespace Transact.Api
             {
                 left = ParseEnumString(right.Type, (ConstantExpression)left);
             }
+
             return Expression.NotEqual(left, right);
         }
 
@@ -257,6 +291,10 @@ namespace Transact.Api
                     return Expression.LessThanOrEqual(left, right);
                 case "in":
                     return VisitIn(left, right);
+                case "and":
+                    return Expression.AndAlso(left, right);
+                case "or":
+                    return Expression.OrElse(left, right);
 
             }
             throw new NotImplementedException();
@@ -288,7 +326,7 @@ namespace Transact.Api
 
         private static Expression VisitNumber(ParseTreeNode node)
         {
-            return Expression.Constant(decimal.Parse(node.FindTokenAndGetText()));
+            return Expression.Constant(int.Parse(node.FindTokenAndGetText()));
         }
 
         private static Expression VisitStatement(ParseTreeNode node)

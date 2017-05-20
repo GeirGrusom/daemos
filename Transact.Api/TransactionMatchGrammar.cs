@@ -15,6 +15,7 @@ namespace Transact.Api
         {
             var number = new Irony.Parsing.NumberLiteral("number", NumberOptions.AllowSign | NumberOptions.AllowStartEndDot);
             var identifier  = new Irony.Parsing.IdentifierTerminal("identifier");
+            
             //var guid = new Irony.Parsing.RegexBasedTerminal("guid", @"\{a-fA-F0-9\}");
             var strDouble = new Irony.Parsing.StringLiteral("string", "\"", StringOptions.AllowsAllEscapes);
             
@@ -26,8 +27,8 @@ namespace Transact.Api
             var dateTime = new Irony.Parsing.RegexBasedTerminal("datetime", $@"'{dateRegex}{timeRegex}?Z{timeZone}?'");
             var boolean = new NonTerminal("bool");
             var nullObj = new NonTerminal("null");
-            
 
+            var payloadMember = new NonTerminal("payloadMember");
 
             var exp = new NonTerminal("expr");
             var term = new NonTerminal("term");
@@ -43,10 +44,10 @@ namespace Transact.Api
             var statementList = new NonTerminal("statementList");
             
             var guid = new NonTerminal("guid");
-            guid.Rule = "{" + new RegexBasedTerminal("[a-fA-F0-9]{32}") + "}";
+            guid.Rule = "{" + new RegexBasedTerminal("[a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}") + "}";
 
             exp.Rule = term | unExpr | binExpr;
-            term.Rule = number | nullObj | boolean | dateTime | strDouble | guid | identifier | parExpr | arrExpr;
+            term.Rule = number | nullObj | boolean | dateTime | strDouble | guid | identifier | parExpr | arrExpr | payloadMember;
             parExpr.Rule = "(" + exp + ")";
             unExpr.Rule = unOp + term;
             unOp.Rule = ToTerm("+") | "-" | "not";
@@ -56,7 +57,9 @@ namespace Transact.Api
             statementList.Rule = MakeStarRule(statementList, ToTerm(";"), statement);
             nullObj.Rule = ToTerm("null");
             boolean.Rule = ToTerm("true") | "false";
-            
+
+            payloadMember.Rule = "$" + identifier + "." + (identifier | strDouble);
+
             arrList.Rule = MakeListRule(arrList, ToTerm(","), term, TermListOptions.AllowTrailingDelimiter | TermListOptions.AllowEmpty | TermListOptions.AddPreferShiftHint);
             arrExpr.Rule = "[" + arrList + "]";
             this.Root = statementList;
@@ -78,7 +81,7 @@ namespace Transact.Api
             }
             RegisterBracePair("(", ")");
             RegisterBracePair("[", "]");
-            MarkPunctuation("(", ")", ";", "{", "}", "[", "]");
+            MarkPunctuation("(", ")", ";", "[", "]");
             MarkTransient(term, exp, statement, unOp, binOp, parExpr, arrExpr);
             
             //RegisterBracePair("(", ")");

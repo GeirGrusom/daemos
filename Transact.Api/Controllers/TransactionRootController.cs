@@ -57,6 +57,10 @@ namespace Transact.Api.Controllers
         [HttpGet]
         public IHttpActionResult Get([FromUri] string query)
         {
+            if(string.IsNullOrEmpty(query))
+            {
+                return BadRequest("No query was specified.");
+            }
 
             TransactionMatchCompiler compiler = new TransactionMatchCompiler();
             var exp = compiler.BuildExpression(query);

@@ -37,9 +37,13 @@ namespace Transact.Postgres
             return node;
         }
 
+        public IEnumerable<object> Parameters => predicateVisitor.Parameters;
+
+        private static string defaultSelect = "\"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\"";
+
         public override string ToString()
         {
-            return $"SELECT * FROM tr.\"Transactions\" WHERE {predicateVisitor.ToString()}";
+            return $"SELECT {defaultSelect} FROM tr.\"TransactionHead\" WHERE {predicateVisitor.ToString()};";
         }
     }
 }

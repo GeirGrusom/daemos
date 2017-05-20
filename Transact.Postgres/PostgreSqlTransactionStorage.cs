@@ -29,6 +29,7 @@ namespace Transact.Postgres
 
         private void GenerateCommands()
         {
+            
             const string SelectColumns = "\"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\"";
             const string SelectChildColumns = "DISTINCT ON (\"Id\") \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\"";
             NpgsqlCommand cmd = connection.CreateCommand();
@@ -78,6 +79,7 @@ namespace Transact.Postgres
             cmd.Prepare();
 
             SelectChildTransactionsCommand = cmd;
+
         }
 
         public PostgreSqlTransactionStorage()
@@ -93,7 +95,7 @@ namespace Transact.Postgres
             transactionLocks = new Dictionary<Guid, TransactionLock>();
             connection = new NpgsqlConnection(builder);
             connection.Open();
-            provider = new PostgreSqlQueryProvider(connection);
+            provider = new PostgreSqlQueryProvider(connection, this);
             GenerateCommands();
         }
 
@@ -399,5 +401,6 @@ commit;
             }
             return false;
         }
+
     }
 }
