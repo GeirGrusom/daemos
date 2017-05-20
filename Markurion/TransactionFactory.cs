@@ -182,7 +182,7 @@ namespace Markurion
 
         event EventHandler<TransactionCommittedEventArgs> TransactionCommitted;
 
-        Task<System.IO.Stream> GetTransactionStateAsync(Guid id, int revision);
+        Task<byte[]> GetTransactionStateAsync(Guid id, int revision);
 
         Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout = Timeout.Infinite);
         Task<IEnumerable<Transaction>> GetChainAsync(Guid id);
@@ -253,6 +253,11 @@ namespace Markurion
             var trans = await Storage.CreateTransactionAsync(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionState.Initialized, parent, null, Storage));
             await trans.Lock();
             return trans;
+        }
+
+        public async Task<Transaction> CreateTransaction(Guid? id, DateTime? expires, object payload, string script, TransactionRevision? parent)
+        {
+            return await Storage.CreateTransactionAsync(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionState.Initialized, parent, null, Storage));
         }
 
     }

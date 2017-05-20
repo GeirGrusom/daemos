@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Markurion.Api.Models;
+using Markurion.WebApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Markurion.Api.Controllers
+namespace Markurion.WebApi.Controllers
 {
     [Route("transactions/{id:guid}")]
     public class TransactionController : Controller

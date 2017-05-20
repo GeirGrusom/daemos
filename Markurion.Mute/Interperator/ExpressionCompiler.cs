@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Reflection.Emit;
+using Antlr4.Runtime;
 using Markurion.Mute.Expressions;
 using Markurion.Scripting;
 
@@ -91,6 +92,7 @@ namespace Markurion.Mute.Interperator
             il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
             il.EmitCall(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(typeof(Transaction)), null);
             il.Emit(OpCodes.Stloc, _this);
+            
 
             EntryPointVisitor entrypoints = new EntryPointVisitor(il);
             entrypoints.Visit(expression);
@@ -176,14 +178,37 @@ namespace Markurion.Mute.Interperator
 
         public override void OnVisit(BinaryAddExpression exp)
         {
-            Visit(exp.Left);
-            Visit(exp.Right);
+
+            /*if (exp.Left.Type == DataType.NonNullDateTime && exp.Right.Type == DataType.NonNullTimeSpan)
+            {
+                il.Emit(OpCodes.Call, typeof(DateTime).GetMethod(nameof(DateTime.Add)));
+                return;
+            }*/
+
+
             if (exp.Method == null)
             {
+                Visit(exp.Left);
+                Visit(exp.Right);
+
                 il.Emit(OpCodes.Add);
             }
             else
             {
+                if (exp.Method.IsStatic || !exp.Left.Type.ClrType.GetTypeInfo().IsValueType)
+                {
+                    Visit(exp.Left);
+                    Visit(exp.Right);
+                }
+                else
+                {
+
+                    var tmp = il.DeclareLocal(exp.Left.Type.ClrType);
+                    Visit(exp.Left);
+                    il.Emit(OpCodes.Stloc, tmp);
+                    il.Emit(OpCodes.Ldloca, tmp);
+                    Visit(exp.Right);
+                }
                 il.Emit(OpCodes.Call, exp.Method);
             }
         }
@@ -476,9 +501,9 @@ namespace Markurion.Mute.Interperator
 
         private static readonly Dictionary<Type, MethodInfo> SerializeMethods;
 
-        private static readonly MethodInfo SerializeNullMethod = typeof(IStateSerializer).GetMethod("SerializeNull", new[] {typeof(string)});
+        private static readonly MethodInfo SerializeNullMethod = typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.SerializeNull), new[] {typeof(string), typeof(Type)});
 
-        private static readonly MethodInfo SaveStageMethod = typeof(IStateSerializer).GetMethod("WriteStage", new[] {typeof(int)});
+        private static readonly MethodInfo SaveStageMethod = typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.WriteStage),new[] {typeof(int)});
 
         public override void OnVisit(TryExpression exp)
         {
@@ -557,20 +582,27 @@ namespace Markurion.Mute.Interperator
 
                 if (item.Key.Type.Nullable) // If type is nullable we need to do a null-check and call SerializeNull if it is null.
                 {
-                    il.Emit(OpCodes.Ldloc, item.Value.Index); 
-                    il.Emit(OpCodes.Ldnull);
-                    il.Emit(OpCodes.Ceq);
                     var isNotNull = il.DefineLabel();
-
-                    il.Emit(OpCodes.Brfalse_S, isNotNull);
-                    il.EmitCall(OpCodes.Callvirt, SerializeNullMethod, null);
+                    if (!item.Key.Type.ClrType.GetTypeInfo().IsValueType)
+                    {
+                        il.Emit(OpCodes.Ldloc, item.Value.Local);
+                        il.Emit(OpCodes.Brtrue, isNotNull);
+                    }
+                    else
+                    {
+                        il.Emit(OpCodes.Ldloc, item.Value.Local);
+                        il.Emit(OpCodes.Ldnull);
+                        il.Emit(OpCodes.Ceq);
+                        il.Emit(OpCodes.Brfalse, isNotNull);
+                    }
+                    il.Emit(OpCodes.Ldtoken, item.Value.Local.LocalType);
+                    il.Emit(OpCodes.Callvirt, SerializeNullMethod);
                     il.Emit(OpCodes.Br, nextLabel);
                     il.MarkLabel(isNotNull);
                 }
 
-                il.Emit(OpCodes.Ldloc, item.Value.Index);
-
-                il.EmitCall(OpCodes.Callvirt, meth, null);
+                il.Emit(OpCodes.Ldloc, item.Value.Local);
+                il.Emit(OpCodes.Callvirt, meth);
                 il.MarkLabel(nextLabel);
             }
 
@@ -621,25 +653,213 @@ namespace Markurion.Mute.Interperator
 
         public override void OnVisit(CallExpression exp)
         {
-            if (exp.Instance != null)
+            if (exp.Method is MethodInfo meth)
             {
-                OnVisit(exp.Instance);
-            }
-            foreach (var arg in exp.Arguments)
-            {
-                OnVisit(arg);
-            }
+                if (exp.Instance != null)
+                {
+                    if (exp.Instance is MemberExpression mex)
+                    {
+                        OnVisit(mex.Instance);
+                    }
+                    else
+                    {
+                        OnVisit(exp.Instance);
+                    }
+                }
 
-            if (exp.Instance == null)
-            {
-                il.EmitCall(OpCodes.Call, exp.Method, null);
+                if (exp.IsNamedArguments)
+                {
+                    LoadNamedArguments(exp.Arguments.Cast<NamedArgument>().ToList(), exp.Method);
+                }
+                else
+                {
+                    LoadArguments(exp.Arguments, exp.Method);
+                }
+
+                if (exp.Instance == null)
+                {
+                    il.Emit(OpCodes.Call, meth);
+                }
+                else
+                {
+                    il.Emit(OpCodes.Call, meth);
+                }
             }
-            else
+            else if (exp.Method is ConstructorInfo ctor)
             {
-                il.EmitCall(OpCodes.Callvirt, exp.Method, null);
+                if (exp.IsNamedArguments)
+                {
+                    LoadNamedArguments(exp.Arguments.Cast<NamedArgument>().ToList(), exp.Method);
+                }
+                else
+                {
+                    LoadArguments(exp.Arguments, exp.Method);
+                }
+                il.Emit(OpCodes.Newobj, ctor);
             }
         }
 
+        private void LoadNamedArguments(List<NamedArgument> namedArguments, MethodBase method)
+        {
+            var parameters = method.GetParameters();
+            bool needAlteredOrder = false;
+            for (int i = 0; i < namedArguments.Count; ++i)
+            {
+                if (namedArguments[i].Argument != parameters[i].Name)
+                {
+                    needAlteredOrder = true;
+                    break;
+                }
+            }
+            if (!needAlteredOrder)
+            {
+                LoadArguments(namedArguments, method);
+                return;
+            }
+
+            //var locals = parameters.Select(x => il.DeclareLocal(x.ParameterType)).ToArray();
+            var locals = new LocalBuilder[parameters.Length];
+
+            for (int i = 0; i < namedArguments.Count; ++i)
+            {
+                int localIndex = FindParameterIndex(namedArguments[i].Argument, parameters);
+
+                if (namedArguments[i].Value is VariableExpression vex)
+                {
+                    locals[localIndex] = GetLocalForVariableExpression(vex);
+                }
+                else
+                {
+                    locals[localIndex] = il.DeclareLocal(parameters[i].ParameterType);
+
+                    OnVisit(namedArguments[i]);
+
+                    il.Emit(OpCodes.Stloc, locals[localIndex]);
+                }
+            }
+
+            for (int i = 0; i < parameters.Length; ++i)
+            {
+                if(ContainsNamedArgument(parameters[i].Name, namedArguments))
+                    continue;
+                LoadConstantObject(parameters[i].DefaultValue, parameters[i].ParameterType);
+                il.Emit(OpCodes.Stloc, locals[i]);
+            }
+
+            for (int i = 0; i < locals.Length; ++i)
+            {
+                if (parameters[i].ParameterType.IsByRef)
+                    il.Emit(OpCodes.Ldloca, locals[i]);
+                else
+                    il.Emit(OpCodes.Ldloc, locals[i]);
+            }
+        }
+
+        private void LoadArguments(IEnumerable<Expression> arguments, MethodBase method)
+        {
+            var parameters = method.GetParameters();
+            int count = 0;
+            foreach (var exp in arguments)
+            {
+                
+                OnVisit(exp);
+                if (parameters[count].ParameterType.IsByRef)
+                {
+                    var local = il.DeclareLocal(parameters[count].ParameterType);
+                    il.Emit(OpCodes.Stloc, local);
+                    il.Emit(OpCodes.Ldloca, local);
+                }
+                ++count;
+            }
+
+            for (int i = count; i < parameters.Length; ++i)
+            {
+                LoadConstantObject(parameters[i].DefaultValue, parameters[i].ParameterType);
+            }
+        }
+
+        private void LoadConstantObject(object value, Type expectedType)
+        {
+            if (value == null)
+            {
+                if (expectedType.GetTypeInfo().IsValueType && expectedType.GetTypeInfo().GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    il.Emit(OpCodes.Initobj, expectedType);
+                }
+                else
+                {
+                    il.Emit(OpCodes.Ldnull);
+                }
+            }
+            else if (value is bool boolv)
+            {
+                if(boolv)
+                    il.Emit(OpCodes.Ldc_I4_1);
+                else
+                    il.Emit(OpCodes.Ldc_I4_0);
+            }
+            else if (value is byte)
+            {
+                il.Emit(OpCodes.Ldc_I4, (byte) value);
+            }
+            else if (value is short)
+            {
+                il.Emit(OpCodes.Ldc_I4, (short)value);
+            }
+            else if (value is int)
+            {
+                il.Emit(OpCodes.Ldc_I4, (int)value);
+            }
+            else if (value is long)
+            {
+                il.Emit(OpCodes.Ldc_I8, (long)value);
+            }
+            else if (value is float)
+            {
+                il.Emit(OpCodes.Ldc_R4, (float)value);
+            }
+            else if (value is double)
+            {
+                il.Emit(OpCodes.Ldc_R8, (double)value);
+            }
+            else if (value is string)
+            {
+                il.Emit(OpCodes.Ldstr, (string) value);
+            }
+            else
+            {
+                throw new NotSupportedException();
+            }
+            if (expectedType.GetTypeInfo().IsValueType && expectedType.GetTypeInfo().GetGenericTypeDefinition() ==
+                typeof(Nullable<>))
+            {
+                var ctor = expectedType.GetConstructor(new[] {expectedType.GetGenericArguments()[0]});
+                il.Emit(OpCodes.Newobj, ctor);
+            }
+        }
+
+        private bool ContainsNamedArgument(string name, List<NamedArgument> arguments)
+        {
+            for (int i = 0; i < arguments.Count; ++i)
+            {
+                if (arguments[i].Argument == name)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        private int FindParameterIndex(string name, ParameterInfo[] parameters)
+        {
+            for (int i = 0; i < parameters.Length; ++i)
+            {
+                if (parameters[i].Name == name)
+                    return i;
+            }
+            throw new InvalidOperationException();
+        }
+
+        
         public override void OnVisit(ConstantExpression exp)
         {
             if (exp.Value == null)
@@ -685,6 +905,10 @@ namespace Markurion.Mute.Interperator
                 il.Emit(OpCodes.Ldc_I8, dt.Ticks);
                 il.Emit(OpCodes.Ldc_I4_S, (int)DateTimeKind.Utc);
                 il.Emit(OpCodes.Newobj, ctor);
+            }
+            else if (exp.Type.Equals(DataType.NonNullTransactionState))
+            {
+                il.Emit(OpCodes.Ldc_I4, (int) (TransactionState) exp.Value);
             }
             else
             {
@@ -773,12 +997,14 @@ namespace Markurion.Mute.Interperator
                 il.Emit(OpCodes.Ldloc, originalTransaction);
                 il.EmitCall(OpCodes.Call, typeof(Transaction).GetProperty(nameof(Transaction.Data)).GetMethod, null);
                 il.Emit(OpCodes.Stloc, data);
+
+                // Increment revision
                 il.Emit(OpCodes.Ldloca, data);
                 il.Emit(OpCodes.Dup);
-                il.EmitCall(OpCodes.Call, typeof(TransactionData).GetProperty(nameof(TransactionData.Revision)).GetMethod, null);
+                il.Emit(OpCodes.Call, typeof(TransactionData).GetProperty(nameof(TransactionData.Revision)).GetMethod);
                 il.Emit(OpCodes.Ldc_I4_1);
                 il.Emit(OpCodes.Add);
-                il.EmitCall(OpCodes.Call, typeof(TransactionData).GetProperty(nameof(TransactionData.Revision)).SetMethod, null);
+                il.Emit(OpCodes.Call, typeof(TransactionData).GetProperty(nameof(TransactionData.Revision)).SetMethod);
 
                 var ctor = typeof(Transaction).GetConstructor(new[] { typeof(TransactionData).MakeByRefType(), typeof(ITransactionStorage) });
 
@@ -815,14 +1041,6 @@ namespace Markurion.Mute.Interperator
                 return _this;
             }
             return _variableIndices[exp].Local;
-        }
-
-        public void Foo()
-        {
-            var transaction = new Transaction(new TransactionData(), new MemoryStorage());
-            TransactionData data = new TransactionData();
-            data.Revision = data.Revision + 1;
-            var newTrans = new Transaction(ref data, transaction.Storage);
         }
 
         public void OnVisit(WithExpression exp, bool incrementRevision)
@@ -862,9 +1080,17 @@ namespace Markurion.Mute.Interperator
 
             foreach (var mem in ((ObjectExpression)exp.Right).Members)
             {
+                var prop = typeof(TransactionData).GetProperty(mem.Name);
                 il.Emit(OpCodes.Ldloca, transactionData);
                 OnVisit(mem);
-                il.Emit(OpCodes.Call, typeof(TransactionData).GetProperty(mem.Name).SetMethod);
+
+                if (prop.PropertyType.GetTypeInfo().IsGenericType &&
+                    prop.PropertyType.GetTypeInfo().GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    il.Emit(OpCodes.Newobj, prop.PropertyType.GetConstructor(new [] {prop.PropertyType.GetGenericArguments()[0]}));
+                }
+
+                il.Emit(OpCodes.Call, prop.SetMethod);
             }
             var ctor = typeof(Transaction).GetConstructor(new[] { typeof(TransactionData).MakeByRefType(), typeof(ITransactionStorage) });
             il.Emit(OpCodes.Ldloca, transactionData);

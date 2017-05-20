@@ -20,9 +20,16 @@ moduleStatement  returns [string mod]
 	: MODULE IDENTIFIER { $mod = $IDENTIFIER.text; PushScope(); }
 	;
 
+primaryExpression returns [Expression expr]
+	: literalExpression { $expr = $literalExpression.expr; }
+	| variableExpression { $expr = $variableExpression.expr; }
+	| castExpression { $expr = $castExpression.expr; }
+	| '(' expression ')' { $expr = $expression.expr; }
+	;
 
 statement returns [Expression expr]
 	: declaration ';' { $expr = $declaration.expr; }
+	| using ';' { $expr = $using.expr; }
 	| expression ';' { $expr = $expression.expr; }
 	| whileExpression { $expr = $whileExpression.expr; }
 	| ifExpression { $expr = $ifExpression.expr; }
@@ -33,6 +40,7 @@ statement returns [Expression expr]
 
 expression returns [Expression expr]
 	: assignmentExpression {$expr = $assignmentExpression.expr; }
+	| '(' innerExpression = expression ')' { $expr = $innerExpression.expr; }
 	;
 
 assignmentExpression returns [Expression expr]
@@ -89,30 +97,34 @@ withExpression returns [Expression expr]
 	| operand = unaryExpression { $expr = $operand.expr; }
 	;
 
-memberExpression returns [Expression expr]
-	: lhs = memberExpression '.' IDENTIFIER { $expr = Member($lhs.expr, $IDENTIFIER.text, $ctx); }
-	| variableExpression '.' IDENTIFIER { $expr = Member($variableExpression.expr, $IDENTIFIER.text, $ctx); }
-	;
-
 unaryExpression returns [Expression expr]
-	: NOT operand = unaryExpression { $expr = Not($operand.expr, $ctx); }
+	: postfixExpression { $expr = $postfixExpression.expr; }
+	| NOT operand = unaryExpression { $expr = Not($operand.expr, $ctx); }
 	| SUB operand = unaryExpression { $expr = Neg($operand.expr, $ctx); }
 	| ADD operand = unaryExpression { $expr = Add($operand.expr, $ctx); }
 	| NOT_NULL operand = unaryExpression { $expr = NotNull($operand.expr, $ctx); }
-	| AWAIT awaitOperand = commitTransaction { $expr = Await($awaitOperand.expr, $ctx); }
-	| '(' innerExpression = expression ')' { $expr = $innerExpression.expr; }
-	| literalExpression { $expr = $literalExpression.expr; }
-	| variableExpression { $expr = $variableExpression.expr; }
-	| castExpression { $expr = $castExpression.expr; }
+	| AWAIT awaitOperand = unaryExpression { $expr = Await($awaitOperand.expr, $ctx); }
 	| commitTransaction { $expr = $commitTransaction.expr; }
-	| memberExpression { $expr = $memberExpression.expr; }
-	| functionCall { $expr = $functionCall.expr; }
+	;
+
+postfixExpression returns [Expression expr]
+	: primaryExpression { $expr = $primaryExpression.expr; }
+	| lhs = postfixExpression '.' IDENTIFIER { $expr = Member($lhs.expr, $IDENTIFIER.text, $ctx); }
+	| lhs = postfixExpression '[' expression ']'
+	| lhs = postfixExpression '(' callList ')' { $expr = Call($lhs.expr, $callList.results, $ctx); }
+	| lhs = postfixExpression '(' namedCallList ')' { $expr = Call($lhs.expr, $namedCallList.results, $ctx); }
+	| id = (IDENTIFIER | TIMESPAN_TYPE) '(' callList ')' { $expr = Call($id.text, $callList.results, $ctx); }
+	| id = (IDENTIFIER | TIMESPAN_TYPE) '(' namedCallList ')' { $expr = Call($id.text, $namedCallList.results, $ctx); }
+	;
+
+using returns [Expression expr]
+	: USING namespace += IDENTIFIER ('.' namespace += IDENTIFIER)* ( '{' (members += IDENTIFIER (',' members += IDENTIFIER)*)| all = '*' '}')?
 	;
 
 commitTransaction returns [Expression expr]
-	: TRANSACTION_STATE CHILD variableExpression { $expr = CommitTransactionChild($TRANSACTION_STATE.text, $variableExpression.expr, $ctx); } // Creates a new child transaction
-	| TRANSACTION_STATE variableExpression { $expr = CommitTransaction($TRANSACTION_STATE.text, $variableExpression.expr, $ctx); }// Commits an exisiting transaction
-	| TRANSACTION_STATE withExpression { $expr = CommitTransaction($TRANSACTION_STATE.text, $withExpression.expr, $ctx); } // Commits an exisiting transaction
+	: COMMIT CHILD variableExpression { $expr = CommitTransactionChild($variableExpression.expr, $ctx); } // Creates a new child transaction
+	| COMMIT variableExpression { $expr = CommitTransaction($variableExpression.expr, $ctx); }// Commits an exisiting transaction
+	| COMMIT withExpression { $expr = CommitTransaction($withExpression.expr, $ctx); } // Commits an exisiting transaction
 	;
 
 importExpression returns [Expression expr]
@@ -151,14 +163,19 @@ castExpression returns [Expression expr]
 	: dataType '!' '(' expression ')' { $expr = Convert($dataType.type, $expression.expr, $ctx); }
 	;
 
-functionCall returns [Expression expr]
-	: IDENTIFIER '(' callList ')' { $expr = Call(null, $IDENTIFIER.text, $callList.results, $ctx); }
-	| IDENTIFIER '(' ')' { $expr = Call(null, $IDENTIFIER.text, Enumerable.Empty<Expression>(), $ctx); }
-	;
 
 callList returns [List<Expression> results]
-	: args += expression (',' args += expression)* { $results = ($args).Select(x => x.expr).ToList(); }
+	: (args += expression (',' args += expression)*)? { $results = ($args)?.Select(x => x.expr).ToList() ?? new List<Expression>(); }
 	;
+
+namedCallList returns [List<NamedArgument> results]
+	: args += namedCallListElement (',' args += namedCallListElement)* { $results = ($args).Select(x => x.expr).ToList(); }
+	;
+
+namedCallListElement returns [NamedArgument expr]
+	: IDENTIFIER ':' expression { $expr = new NamedArgument($IDENTIFIER.text, $expression.expr, $ctx); }
+	;
+
 
 literalExpression returns [Expression expr]
 	: 'true' { $expr = ConstantExpression.TrueExpression; }
@@ -180,13 +197,6 @@ whileExpression returns [Expression expr]
 quotedString returns [string value]: QUOTED_STRING { $value = Unescape($QUOTED_STRING.text.Substring(1, $QUOTED_STRING.text.Length - 2), '"'); } ;
 singleQuotedString returns [string value]: SINGLE_QUOTED_STRING { $value = Unescape($SINGLE_QUOTED_STRING.text.Substring(1, $SINGLE_QUOTED_STRING.text.Length - 2), '\''); };
 
-years returns [Expression value]: expression 'years' { $value = Valid<int>($expression.expr); } ;
-months returns [Expression value]: expression 'months' { $value = Valid<int>($expression.expr); } ;
-weeks returns [Expression value]: expression 'weeks' { $value = Valid<int>($expression.expr); };
-days returns [Expression value]: expression 'days' { $value = Valid<int>($expression.expr); } ;
-hours returns [Expression value]: expression 'hours' { $value = Valid<int>($expression.expr); } ;
-minutes returns [Expression value]: expression 'minutes' { $value = Valid<int>($expression.expr); } ;
-seconds returns [Expression value]: expression 'seconds' { $value = Valid<int>($expression.expr); } ;
 
 tryExpression returns [Expression expr]
 	: TRY statementBody { $expr = Try($statementBody.expr, $ctx); }
@@ -230,7 +240,8 @@ declaration returns [VariableDeclarationExpression expr]
 	;
 
 functionDeclaration: FUNCTION '(' argumentList ')' expression ';'
-| FUNCTION '(' argumentList ')' statementBody ';';
+	| FUNCTION '(' argumentList ')' statementBody ';'
+	;
 
 argumentList: (args += argument (',' args += argument)*)?;
 
@@ -255,8 +266,9 @@ dataType returns [DataType type]
 	| DATETIME_TYPE nullable { $type = new DataType(typeof(DateTime), $nullable.result); }
 	| TIMESPAN_TYPE nullable { $type = new DataType(typeof(TimeSpan), $nullable.result); }
 	| TRANSACTION_TYPE nullable { $type = new DataType(typeof(Markurion.Transaction), $nullable.result); }
-	| IDENTIFIER ('.' IDENTIFIER)* nullable { $type = new DataType(TypeLookupFunction($ctx.GetText()), $nullable.result); }
+	| IDENTIFIER ('.' IDENTIFIER)* nullable { $type = new DataType(TypeLookup($ctx.GetText()), $nullable.result); }
 	;
+
 
 
 /*
@@ -274,6 +286,8 @@ QUOTED_STRING: '"' QUOTED_STRING_BODY '"';
 fragment ESCAPED_SINGLE_QUOTE: '\\\'';
 fragment SINGLE_QUOTED_STRING_BODY: (ESCAPED_SINGLE_QUOTE | ~('\n'|'\r'))*?;
 SINGLE_QUOTED_STRING: '\'' SINGLE_QUOTED_STRING_BODY '\'';
+
+USING: 'using';
 
 IF: 'if';
 ELSEIF: 'else-if';
@@ -330,10 +344,14 @@ DATETIME
 	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY ('+' | '-') TIME_OFFSET_HOUR
 	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY 'Z'
 	| '@' DATE_YEAR '-' DATE_MONTH '-' DATE_DAY ;
-	
 
+	// P1Y2M10DT2H30M
+//TIMESPAN
+//	: '@' 'P' [0-9]+ 'Y' [0-9]+ 'M' [0-9]+ 'D' 'T' [0-9]+ 'H' [-9]+ 'M'
+	
 CHILD: 'child';
-TRANSACTION_STATE: 'commit' | 'initialize' | 'authorize' | 'complete' | 'cancel' | 'fail';
+TRANSACTION_STATE: 'initialize' | 'authorize' | 'complete' | 'cancel' | 'fail';
+COMMIT: 'commit';
 GREATER_THAN_OR_EQ: '>=';
 GREATER_THAN: '>';
 LESS_THAN_OR_EQ: '<=';

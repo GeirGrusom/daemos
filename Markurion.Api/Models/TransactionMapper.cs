@@ -1,8 +1,8 @@
-﻿namespace Markurion.Api.Models
+﻿namespace Markurion.WebApi.Models
 {
-    public static class TransactionMapper
+    internal static class TransactionMapper
     {
-        public static TransactionResult ToTransactionResult(this Transaction input)
+        internal static TransactionResult ToTransactionResult(this Transaction input)
         {
             return new TransactionResult(input);
         }

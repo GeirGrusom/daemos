@@ -37,18 +37,6 @@ create index index_transactions_id on markurion.transactions using btree (id);
 
 create index index_transactions_expires on markurion.transactions using btree (expires) where expires is not null;
 
-create sequence markurion.schema_versions_id;
-
-create table markurion.schema_versions (
-	id int not null default nextval('schema_versions_id'),
-	script varchar(100) not null,
-	executed timestamp without time zone not null,
-	status varchar(10) not null,
-	message text null,
-	constraint pk_schema_versions primary key(id)
-);
-
 grant select, insert on table markurion.transactions to transact;
 grant select, insert on table markurion.transaction_state to transact;
-grant select, insert on table markurion.schema_versions;
 grant select  on table markurion.transactions_head to transact;

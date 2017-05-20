@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Markurion.Api.Models;
+using Markurion.WebApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Markurion.Api.Controllers
+namespace Markurion.WebApi.Controllers
 {
 
     [Route("transactions", Name = "TransactionRoot")]
@@ -27,16 +27,13 @@ namespace Markurion.Api.Controllers
 
             Guid id = model.Id.GetValueOrDefault(Guid.NewGuid());
 
-            DateTime? expires;
-
-
-            if (!DateTimeParser.TryParseDateTime(model.Expires, out expires))
+            if (!DateTimeParser.TryParseDateTime(model.Expires, out DateTime? expires))
             {
                 return BadRequest();
             }
 
-            var trans = await factory.StartTransaction(id, expires, model.Payload, model.Script, null);
-            await trans.Free();
+            
+            var trans = await factory.CreateTransaction(id, expires, model.Payload, model.Script, null);
 
             var transResult = trans.ToTransactionResult();
 

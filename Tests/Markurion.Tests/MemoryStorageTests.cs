@@ -72,19 +72,20 @@ namespace Markurion.Tests
 
 
 
-            var createParameters = new CreateContainerParameters();
-            createParameters.Env = new List<string>
+            var createParameters = new CreateContainerParameters
             {
-                $"POSTGRES_USER={username}",
-                $"POSTGRES_PASSWORD={password}"
+                Env = new List<string>
+                {
+                    $"POSTGRES_USER={username}",
+                    $"POSTGRES_PASSWORD={password}"
+                },
+                Hostname = PostgresHostName,
+                Image = "postgres:9.6.2",
+                HostConfig = new HostConfig
+                {
+                }
             };
-            createParameters.Hostname = PostgresHostName;
-            createParameters.Image = "postgres:9.6.2";
-            createParameters.HostConfig = new HostConfig
-            {
-                
-            };
-                
+
             var createdContainer = await client.Containers.CreateContainerAsync(createParameters);
 
             var startedContainer = await client.Containers.StartContainerAsync(createdContainer.ID, new ContainerStartParameters());
@@ -96,7 +97,7 @@ namespace Markurion.Tests
         {
             var client = CreateDockerClient();
 
-            client.Containers.StopContainerAsync(ContainerId, new ContainerStopParameters() { WaitBeforeKillSeconds = 30 }, CancellationToken.None).Wait();
+            client.Containers.StopContainerAsync(ContainerId, new ContainerStopParameters { WaitBeforeKillSeconds = 30 }, CancellationToken.None).Wait();
             client.Containers.RemoveContainerAsync(ContainerId, new ContainerRemoveParameters());
         }
     }
@@ -207,6 +208,90 @@ namespace Markurion.Tests
 
             // Assert
             Equal(state, committedTransaction.State);
+        }
+
+        [Fact]
+        public async Task TryLockTransaction_LocksTransaction_ReturnsTrue()
+        {
+            // Arrange
+            var storage = CreateStorage();
+            var transaction = TransactionFactory.CreateNew(storage);
+            await storage.CreateTransactionAsync(transaction);
+
+            // Act
+            var tryLockStatus = await storage.TryLockTransactionAsync(transaction.Id);
+            var isLocked = await storage.IsTransactionLockedAsync(transaction.Id);
+            await storage.FreeTransactionAsync(transaction.Id);
+
+            // Assert
+            True(tryLockStatus);
+            True(isLocked);
+        }
+
+        [Fact]
+        public async Task TryLockTransaction_TransactionAldreadyLocked_ReturnsFalse()
+        {
+            // Arrange
+            var storage = CreateStorage();
+            var transaction = TransactionFactory.CreateNew(storage);
+            await storage.CreateTransactionAsync(transaction);
+
+            // Act
+            await storage.LockTransactionAsync(transaction.Id);
+            var tryLockStatus = await storage.TryLockTransactionAsync(transaction.Id, LockFlags.None, 0);
+            await storage.FreeTransactionAsync(transaction.Id);
+
+            // Assert
+            False(tryLockStatus);
+        }
+
+        [Fact]
+        public async Task IsTransactionLocked_ReturnsTrue_IfTransactionIsLocked()
+        {
+            // Arrange
+            var storage = CreateStorage();
+            var transaction = TransactionFactory.CreateNew(storage);
+            await storage.CreateTransactionAsync(transaction);
+
+            // Act
+            await storage.LockTransactionAsync(transaction.Id);
+            var result = await storage.IsTransactionLockedAsync(transaction.Id);
+            await storage.FreeTransactionAsync(transaction.Id);
+
+            // Assert
+            True(result);
+        }
+
+        [Fact]
+        public async Task StoreTransactionState_SameStateReturned()
+        {
+            // Arrange
+            var storage = CreateStorage();
+            var transaction = TransactionFactory.CreateNew(storage);
+            await storage.CreateTransactionAsync(transaction);
+
+            // Act
+            storage.SaveTransactionState(transaction.Id, transaction.Revision, new byte[] {1, 2, 3});
+            var result = await storage.GetTransactionStateAsync(transaction.Id, transaction.Revision);
+
+            // Assert
+            Equal(new byte[] {1, 2, 3}, result);
+        }
+
+        [Fact]
+        public async Task StoreTransactionState_NoStateDefined_ReturnsEmptyState()
+        {
+            // Arrange
+            var storage = CreateStorage();
+            var transaction = TransactionFactory.CreateNew(storage);
+            await storage.CreateTransactionAsync(transaction);
+
+            // Act
+            var result = await storage.GetTransactionStateAsync(transaction.Id, transaction.Revision);
+            
+
+            // Assert
+            Equal(0, result.Length);
         }
 
         [Fact]

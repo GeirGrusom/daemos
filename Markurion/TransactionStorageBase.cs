@@ -54,7 +54,7 @@ namespace Markurion
         public abstract Task<bool> TransactionExistsAsync(Guid id);
         public abstract Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
         public abstract Task OpenAsync();
-        public abstract Task<System.IO.Stream> GetTransactionStateAsync(Guid id, int revision);
+        public abstract Task<byte[]> GetTransactionStateAsync(Guid id, int revision);
         
         public virtual async Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout)
         {

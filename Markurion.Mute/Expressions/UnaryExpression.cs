@@ -15,6 +15,7 @@ namespace Markurion.Mute.Expressions
         Await,
         Convert,
         NotNull,
+        TimeSpan
     }
     public class UnaryExpression : Expression
     {

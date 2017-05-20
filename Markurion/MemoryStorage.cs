@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -123,9 +124,13 @@ namespace Markurion
 
         }
 
-        public override Task<System.IO.Stream> GetTransactionStateAsync(Guid id, int revision)
+        public override Task<byte[]> GetTransactionStateAsync(Guid id, int revision)
         {
-            throw new NotImplementedException();
+            if (_transactionStates.TryGetValue(new TransactionRevision(id, revision), out byte[] result))
+            {
+                return Task.FromResult<byte[]>(result.ToArray());
+            }
+            return Task.FromResult<byte[]>(new byte[0]);
         }
 
         public override Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags, int timeout)

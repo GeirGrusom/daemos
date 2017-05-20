@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Markurion.Query;
 
-namespace Markurion.Api
+namespace Markurion.WebApi
 {
 
     public class Subscription
@@ -84,8 +84,7 @@ namespace Markurion.Api
             }
             catch
             {
-                Subscription value;
-                _subscriptions.TryRemove(subscriptionId, out value);
+                _subscriptions.TryRemove(subscriptionId, out Subscription value);
                 throw;
             }
             finally
@@ -108,8 +107,7 @@ namespace Markurion.Api
 
         public void Unsubscribe(Guid subscriptionId)
         {
-            Subscription removedSubscription;
-            if(!_subscriptions.TryRemove(subscriptionId,out removedSubscription))
+            if (!_subscriptions.TryRemove(subscriptionId, out Subscription removedSubscription))
                 throw new KeyNotFoundException();
         }
 

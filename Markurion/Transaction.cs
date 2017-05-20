@@ -150,7 +150,7 @@ namespace Markurion
             return $"{Id:B}";
         }
 
-        public static bool operator ==(Transaction lhs, Transaction rhs)
+        /*public static bool operator ==(Transaction lhs, Transaction rhs)
         {
             return lhs.Id == rhs.Id && lhs.Revision == rhs.Revision;
         }
@@ -158,7 +158,7 @@ namespace Markurion
         public static bool operator !=(Transaction lhs, Transaction rhs)
         {
             return lhs.Id != rhs.Id || lhs.Revision != rhs.Revision;
-        }
+        }*/
 
         
     }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Markurion.Api.Controllers
+namespace Markurion.WebApi.Controllers
 {
     public class ErrorController : Controller
     {

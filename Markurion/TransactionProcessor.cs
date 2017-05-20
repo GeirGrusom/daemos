@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,18 +35,21 @@ namespace Markurion
                     ++count;
 
                     var dependencyResolver = Container.CreateProxy();
-                    dependencyResolver.Register(transaction);
-                    dependencyResolver.Register<IStateDeserializer>(new StateDeserializer());
+
+                    var proxyTransactionData = transaction.Data;
+                    proxyTransactionData.Expires = null;
+                    var state = await transaction.Storage.GetTransactionStateAsync(transaction.Id, transaction.Revision);
+
+                    dependencyResolver.Register(new Transaction(proxyTransactionData, transaction.Storage));
+                    dependencyResolver.Register<IStateDeserializer>(new StateDeserializer(state));
                     dependencyResolver.Register<IStateSerializer>(new StateSerializer());
+
+                    Console.WriteLine($"Processing transaction {transaction.Id:N}[{transaction.Revision}]...");
                     try
                     {
                         if (!string.IsNullOrEmpty(transaction.Script))
                         {
                             ScriptRunner.Run(transaction.Script, dependencyResolver);
-                            /*await transaction.CreateDelta(transaction.Revision + 1, true, (ref TransactionMutableData x) =>
-                            {
-                                x = nextData;
-                            });*/
                         }
                         else
                         {

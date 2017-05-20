@@ -1,16 +1,16 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Linq;
 using Markurion.Scripting;
 
-namespace Markurion.Api.Scripting
+namespace Markurion.WebApi.Scripting
 {
     public class ScriptingProvider : IScriptRunner, IDisposable
     {
-        private static readonly Regex LanguageTest = new Regex("#(?:(?<Language>lang=[^:&]+?:)|(?<Reference>ref=))", RegexOptions.Compiled);
+        private static readonly Regex LanguageTest = new Regex("#(?:lang=(?<Language>[^:&]+?):)|(?<Reference>ref=)", RegexOptions.Compiled);
 
         private readonly ConcurrentDictionary<string, IScriptRunner> _runners;
 

@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Xml;
 using Antlr4.Runtime;
 using Markurion.Mute.Expressions;
+using Markurion.Scripting;
 
 namespace Markurion.Mute
 {
@@ -44,10 +45,21 @@ namespace Markurion.Mute
 
         public List<CompilationMessage> Messages { get; } = new List<CompilationMessage>();
 
-        public Func<string, Type> TypeLookupFunction { get; set; } = name => Type.GetType(name, true, false);
+        public Type TypeLookup(string name)
+        {
+            if (UsingTypes.TryGetValue(name, out Type resultType))
+            {
+                return resultType;
+            }
+            return Type.GetType(name, throwOnError: true, ignoreCase: false);
+        }
 
         protected readonly Stack<List<VariableExpression>> VariableScope = new Stack<List<VariableExpression>>();
         protected List<VariableExpression> LastPoppedScope;
+
+        public Dictionary<string, Type> UsingTypes { get; set; }
+
+        public NamespaceLookup NamespaceLookup { get; set; }
 
         protected void PushScope()
         {
@@ -133,10 +145,57 @@ namespace Markurion.Mute
 
         protected Expression Add(Expression lhs, Expression rhs, ParserRuleContext context)
         {
+            if (lhs.Type == DataType.NonNullDateTime && rhs.Type == DataType.NonNullTimeSpan)
+            {
+                return new BinaryAddExpression(lhs, rhs, typeof(DateTime).GetMethod(nameof(System.DateTime.Add)), context);
+            }
+            if (lhs.Type != rhs.Type)
+            {
+                AddSyntaxError("Types mismatch", context);
+                return null;
+            }
             return Binary<BinaryAddExpression>(lhs, rhs, "Add", context);
         }
 
-        
+        protected Expression Using(IList<string> namespaceList, IList<string> typeList, ParserRuleContext context)
+        {
+            var result = new UsingExpression(namespaceList, typeList, context);
+
+            if (!NamespaceLookup.TryGetNamespace(result.Namespace, out ImportedNamespace types))
+            {
+                AddSyntaxError($"Could not locate the namespace {result.Namespace}.", context);
+                return null;
+            }
+
+            foreach (var item in typeList)
+            {
+                var type = types.GetType(item);
+                if (type == null)
+                {
+                    AddSyntaxError($"Could not locate the type '{item}' in the namespace '{result.Namespace}'.", context);
+                }
+                UsingTypes.Add("item", type);
+            }
+            return result;
+        }
+
+        protected Expression UsingAll(IList<string> namespaceList, ParserRuleContext context)
+        {
+            var result = new UsingExpression(namespaceList, null, context);
+
+            if (!NamespaceLookup.TryGetNamespace(result.Namespace, out ImportedNamespace types))
+            {
+                AddSyntaxError($"Could not locate the namespace {result.Namespace}.", context);
+                return null;
+            }
+
+            foreach (var item in types)
+            {
+                UsingTypes.Add(item.Key, item.Value);
+            }
+
+            return result;
+        }
 
         private MethodInfo FindOperator(Type type, string operatorName, ParserRuleContext context)
         {
@@ -384,7 +443,7 @@ namespace Markurion.Mute
             {
                 return null;
             }
-            var type = instance.GetType();
+            var type = instance.Type.ClrType;
             var members = type.GetMembers(BindingFlags.Public | BindingFlags.Instance).Where(x => x.Name == name);
 
             var member = members.SingleOrDefault();
@@ -507,33 +566,247 @@ namespace Markurion.Mute
 
         }
 
-        protected CallExpression Call(Expression instance, string methodName, IEnumerable<Expression> arguments, ParserRuleContext context)
+        private T GetMethodForNamedArguments<T>(Type type, List<NamedArgument> arguments, T[] methods)
+            where T : MethodBase
         {
-            
-            if (methodName == null || arguments == null)
+            foreach (var method in methods)
             {
-                return null;
-            }
-            var args = arguments?.ToArray() ?? Array.Empty<Expression>();
-            if (args.Any(x => x == null))
-            {
-                return null;
-            }
-            MethodInfo method = null;
-            if (instance == null)
-            {
-                if (methodName == "print")
+                if (method.DeclaringType == typeof(object))
                 {
-                    method = typeof(Console).GetMethod("WriteLine", args.Select(x => x.Type.ClrType).ToArray());
+                    continue;
                 }
+
+                var parameters = method.GetParameters().ToList();
+
+                if (parameters.Count > arguments.Count)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < arguments.Count; ++i)
+                {
+                    var arg = arguments[i];
+                    int removeIndex = -1;
+                    for (int j = 0; j < parameters.Count; ++j)
+                    {
+                        if (parameters[j].Name == arg.Argument && parameters[j].ParameterType == arg.Type.ClrType)
+                        {
+                            removeIndex = j;
+                            break;
+                        }
+                    }
+                    if (removeIndex == -1)
+                        break;
+                    parameters.RemoveAt(removeIndex);
+                }
+
+                if (parameters.Any(x => !x.HasDefaultValue))
+                    continue;
+
+                return method;
             }
+
+            return null;
+        }
+
+        private ConstructorInfo GetConstructorForNamedArguments(Type type, List<NamedArgument> arguments)
+        {
+            var constructors = type.GetConstructors();
+
+            return GetMethodForNamedArguments(type, arguments, constructors);
+
+        }
+
+        private MethodInfo GetMethodForNamedArguments(Type type, List<NamedArgument> arguments, string name)
+        {
+            var methods = type.GetMethods().Where(x => x.Name == name).ToArray();
+
+            return GetMethodForNamedArguments(type, arguments, methods);
+        }
+
+        private MethodInfo GetMethodForArguments(Type type, List<Expression> arguments, string name)
+        {
+            var methods = type.GetMethods().Where(x => x.Name == name).ToArray();
+
+            return GetMethodForArguments(type, arguments, methods);
+        }
+
+        private ConstructorInfo GetConstructorForArguments(Type type, List<Expression> arguments)
+        {
+            var methods = type.GetConstructors();
+
+            return GetMethodForArguments(type, arguments, methods);
+        }
+
+        private T GetMethodForArguments<T>(Type type, List<Expression> arguments, T[] methods) where T : MethodBase
+        {
+            foreach (var method in methods)
+            {
+                var parameters = method.GetParameters();
+                if (arguments.Count > parameters.Length)
+                    continue;
+                bool failed = false;
+                for(int i = 0; i < arguments.Count; ++i)
+                {
+                    if (arguments[i].Type.ClrType != parameters[i].ParameterType)
+                    {
+                        failed = true;
+                        break;
+                    }
+                }
+
+                if (failed)
+                    continue;
+
+                for (int i = arguments.Count; i < parameters.Length; ++i)
+                {
+                    if (!parameters[i].HasDefaultValue)
+                        failed = true;
+                }
+                if (failed)
+                    continue;
+
+                return method;
+            }
+            return null;
+        }
+
+        protected CallExpression Call(string methodName, List<NamedArgument> arguments, ParserRuleContext context)
+        {
+
+            if (arguments == null)
+            {
+                return null;
+            }
+            if (arguments.Any(x => x == null))
+            {
+                return null;
+            }
+
+            MethodInfo method = null;
+
+            if (methodName == "print")
+            {
+                method = typeof(Console).GetMethod("WriteLine", arguments.Select(x => x.Type.ClrType).ToArray());
+            }
+
+            if (UsingTypes.TryGetValue(methodName, out Type typeToConstruct))
+            {
+                var ctor = GetConstructorForNamedArguments(typeToConstruct, arguments);
+                if (ctor == null)
+                {
+                    AddSyntaxError("Could not find a constructor that fit the type arguments.", context);
+                    return null;
+                }
+                return new CallExpression(ctor, arguments, context);
+            }
+
 
             if (method == null)
             {
-                throw new InvalidOperationException();
+                AddSyntaxError($"Could not locate the method {methodName}.", context);
+                return null;
             }
 
-            return new CallExpression(method, instance, args, context);
+            return new CallExpression(method, null, arguments, context);
+        }
+        protected CallExpression Call(string methodName, List<Expression> arguments, ParserRuleContext context)
+        {
+            
+            if (arguments == null)
+            {
+                return null;
+            }
+            if (arguments.Any(x => x == null))
+            {
+                return null;
+            }
+
+            MethodInfo method = null;
+
+            if (methodName == "print")
+            {
+                method = typeof(Console).GetMethod("WriteLine", arguments.Select(x => x.Type.ClrType).ToArray());
+            }
+                
+            if (UsingTypes.TryGetValue(methodName, out Type typeToConstruct))
+            {
+                var ctor = GetConstructorForArguments(typeToConstruct, arguments);
+                if (ctor == null)
+                {
+                    AddSyntaxError("Could not find a constructor that fit the type arguments.", context);
+                    return null;
+                }
+                return new CallExpression(ctor, arguments, context);
+            }
+
+
+            if (method == null)
+            {
+                AddSyntaxError($"Could not locate the method {methodName}.", context);
+                return null;
+            }
+
+            return new CallExpression(method, null, arguments, context);
+        }
+
+        protected CallExpression Call(Expression instance, List<Expression> arguments, ParserRuleContext context)
+        {
+
+            if (arguments == null|| arguments.Any(x => x == null))
+            {
+                return null;
+            }
+
+            if (!(instance is MemberExpression mem))
+            {
+                AddSyntaxError("Unrecognized call expression", context);
+                return null;
+            }
+            if (!(mem.Member is MethodInfo))
+            {
+                AddSyntaxError($"{mem.Member.Name} is not a method.", context);
+                return null;
+            }
+
+            var method = GetMethodForArguments(mem.Instance.Type.ClrType, arguments, mem.Member.Name);
+
+            if (method == null)
+            {
+                AddSyntaxError($"Could not locate a suitable overload of {mem.Member.Name}.", context);
+            }
+
+
+            return new CallExpression(method, instance, arguments, context);
+        }
+
+        protected CallExpression Call(Expression instance, List<NamedArgument> arguments, ParserRuleContext context)
+        {
+
+            if (arguments == null || arguments.Any(x => x == null))
+            {
+                return null;
+            }
+            if (!(instance is MemberExpression mem))
+            {
+                AddSyntaxError("Unrecognized call expression", context);
+                return null;
+            }
+            if (!(mem.Member is MethodInfo))
+            {
+                AddSyntaxError($"{mem.Member.Name} is not a method.", context);
+                return null;
+            }
+
+            var method = GetMethodForNamedArguments(instance.Type.ClrType, arguments, mem.Member.Name);
+
+            if (method == null)
+            {
+                AddSyntaxError($"Could not locate a suitable overload of {mem.Member.Name}.", context);
+            }
+
+
+            return new CallExpression(method, instance, arguments, context);
         }
 
         protected string Unescape(string input, char tokenBarrier)
@@ -747,10 +1020,10 @@ namespace Markurion.Mute
             "'@'yyyy'-'MM'-'ddK",
             "'@'yyyy'-'MM'-'dd",
         };
+
         protected ConstantExpression DateTime(string input, ParserRuleContext context)
         {
-            DateTime result;
-            if (!System.DateTime.TryParseExact(input, DateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out result))
+            if (!System.DateTime.TryParseExact(input, DateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out DateTime result))
             {
                 AddSyntaxError("The specified datetime is not in a valid format.", context);
                 return null;
@@ -758,14 +1031,14 @@ namespace Markurion.Mute
             return new ConstantExpression(DataType.NonNullDateTime, result, context);
         }
 
-        protected CommitTransactionExpression CommitTransaction(string state, Expression commitValue, ParserRuleContext context)
+        protected CommitTransactionExpression CommitTransaction(Expression commitValue, ParserRuleContext context)
         {
-            return new CommitTransactionExpression(commitValue, state, false, context);
+            return new CommitTransactionExpression(commitValue, false, context);
         }
 
-        protected CommitTransactionExpression CommitTransactionChild(string state, Expression commitValue, ParserRuleContext context)
+        protected CommitTransactionExpression CommitTransactionChild(Expression commitValue, ParserRuleContext context)
         {
-            return new CommitTransactionExpression(commitValue, state, true, context);
+            return new CommitTransactionExpression(commitValue, true, context);
         }
 
 

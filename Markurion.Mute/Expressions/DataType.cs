@@ -27,6 +27,7 @@ namespace Markurion.Mute.Expressions
         public static DataType NonNullDateTime { get; } = new DataType(typeof(DateTime), false);
         public static DataType NonNullDateTimeOffset { get; } = new DataType(typeof(DateTimeOffset), false);
         public static DataType NonNullTimeSpan { get; } = new DataType(typeof(TimeSpan), false);
+        public static DataType NonNullTransactionState { get; } = new DataType(typeof(TransactionState), false);
 
         public static DataType NullBool { get; } = new DataType(typeof(bool), true);
         public static DataType NullString { get; } = new DataType(typeof(string), true);
@@ -38,6 +39,7 @@ namespace Markurion.Mute.Expressions
         public static DataType NullDateTime { get; } = new DataType(typeof(DateTime?), true);
         public static DataType NullDateTimeOffset { get; } = new DataType(typeof(DateTimeOffset?), true);
         public static DataType NullTimeSpan { get; } = new DataType(typeof(TimeSpan?), true);
+        
 
         public static DataType Void { get; } = new DataType(typeof(void), false);
         
@@ -48,6 +50,34 @@ namespace Markurion.Mute.Expressions
         {
             bool isNullable = !type.GetTypeInfo().IsValueType || type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
             return new DataType(type, isNullable);
+        }
+
+        private static bool GetNullable(ParameterInfo parameter)
+        {
+            foreach (var item in parameter.CustomAttributes)
+            {
+                var name = item.AttributeType.Name;
+                if (name == "NotNullAttribute")
+                {
+                    return false;
+                }
+                if (name == "CanBeNullAttribute")
+                {
+                    return true;
+                }
+            }
+            var type = parameter.ParameterType;
+            return !type.GetTypeInfo().IsValueType || type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
+        }
+
+        public static DataType FromMethodInfoReturnType(MethodInfo meth)
+        {
+            return FromParameter(meth.ReturnParameter);
+        }
+
+        public static DataType FromParameter(ParameterInfo parameter)
+        {
+            return new DataType(parameter.ParameterType, GetNullable(parameter));
         }
 
         public DataType(Type clrType, bool nullable)

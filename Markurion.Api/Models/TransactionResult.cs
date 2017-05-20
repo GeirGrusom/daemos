@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace Markurion.Api.Models
+namespace Markurion.WebApi.Models
 {
     public class TransactionResult
     {
@@ -10,11 +10,7 @@ namespace Markurion.Api.Models
 
         public TransactionResult(Transaction transaction)
         {
-            if(transaction == null)
-            {
-                throw new ArgumentNullException(nameof(transaction), "Transaction cannot be null.");
-            }
-            _transaction = transaction;
+            _transaction = transaction ?? throw new ArgumentNullException(nameof(transaction), "Transaction cannot be null.");
         }
 
 

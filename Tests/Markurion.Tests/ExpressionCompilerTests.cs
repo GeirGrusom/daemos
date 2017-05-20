@@ -129,7 +129,7 @@ namespace Markurion.Tests
             // Arrange
             var service = new Service();
             service.Storage.CommitTransactionDelta(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => x.ArgAt<Transaction>(1));
-            var exp = new CommitTransactionExpression(new VariableExpression("this", false, new DataType(typeof(Transaction), false), ParserRuleContext.EmptyContext), "commit", false, ParserRuleContext.EmptyContext);
+            var exp = new CommitTransactionExpression(new VariableExpression("this", false, new DataType(typeof(Transaction), false), ParserRuleContext.EmptyContext), false, ParserRuleContext.EmptyContext);
 
             // Act
             Transaction trans = service.CompileAndRun<Transaction>(exp);
@@ -137,6 +137,26 @@ namespace Markurion.Tests
             // Assert
             service.Storage.Received().CommitTransactionDelta(Arg.Any<Transaction>(), Arg.Any<Transaction>());
             Equal(2, trans.Revision);
+        }
+
+        public class Foobar
+        {
+            public string Foo()
+            {
+                return "Hello World!";
+            }
+        }
+
+        [Fact]
+        public void Compile_FunctionCall()
+        {
+            // Arrange
+            var service = new Service();
+            var foo = new VariableExpression("foo", true, new DataType(typeof(Foobar), false), ParserRuleContext.EmptyContext);
+
+            var res = service.CompileAndRun<string>((cmp, exp) => { cmp.RegisterVariable(foo, true); cmp.OnVisit(exp);}, new CallExpression(typeof(Foobar).GetMethod(nameof(Foobar.Foo)), foo, new Expression[0], ParserRuleContext.EmptyContext));
+
+            Equal("Hello World!", res);
         }
 
 

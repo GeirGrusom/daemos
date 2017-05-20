@@ -4,10 +4,10 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Markurion.Api.Models;
+using Markurion.WebApi.Models;
 using Newtonsoft.Json;
 
-namespace Markurion.Api
+namespace Markurion.WebApi
 {
     public class TransactionWebSocketConnection
     {

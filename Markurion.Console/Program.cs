@@ -5,10 +5,11 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Threading;
 using System.Threading.Tasks;
-using Markurion.Api;
-using Markurion.Api.Scripting;
+using Markurion.WebApi;
+using Markurion.WebApi.Scripting;
 using Markurion.Console.Configuration;
 using Markurion.Modules;
+using Markurion.Mute;
 using Markurion.Postgres;
 
 namespace Markurion.Console
@@ -66,8 +67,10 @@ namespace Markurion.Console
             var location = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             var dir = Directory.CreateDirectory(Path.Combine(location, "Modules"));
             var modules = dir.GetFiles("*.dll", SearchOption.TopDirectoryOnly);
+            var muteScriptRunner = new MuteScriptRunner();
 
-            NativeRunner runner = new NativeRunner();
+            muteScriptRunner.AddImplicitType("echo", typeof(IEchoService));
+            dependencyResolver.Register<IEchoService>(new EchoService());
 
             foreach (var mod in modules)
             {
@@ -81,7 +84,7 @@ namespace Markurion.Console
 
                         var types = asm.ExportedTypes;
 
-                        runner.RegisterModules(types, httpServer.Container.GetService);
+                        
                     }
                     //var asm = Assembly.LoadFile(mod.FullName);
                     //HandlerFactory.AddAssembly(asm);
@@ -102,8 +105,7 @@ namespace Markurion.Console
             _handlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)httpServer.Container.GetService(type));
 
             ScriptingProvider provider = new ScriptingProvider(storage);
-            await provider.Initialize();
-
+            provider.RegisterLanguageProvider("mute", muteScriptRunner);
             TransactionProcessor processor = new TransactionProcessor(storage, provider, dependencyResolver);
          
             var cancelSource = new CancellationTokenSource();

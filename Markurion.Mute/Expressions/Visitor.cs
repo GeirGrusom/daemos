@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Markurion.Mute.Expressions
 {
@@ -9,6 +10,7 @@ namespace Markurion.Mute.Expressions
             OnVisit(expression);
         }
 
+        [DebuggerStepThrough]
         public virtual void OnVisit(BinaryExpression exp)
         {
             if (exp is BinaryAddExpression)
@@ -45,18 +47,19 @@ namespace Markurion.Mute.Expressions
                 throw new NotImplementedException($"The binary operator '{exp.GetType().Name}' is not implemented.");
         }
 
+        [DebuggerStepThrough]
         public virtual void OnVisit(UnaryExpression exp)
         {
-            if (exp is UnarySubtractExpression)
-                OnVisit((UnarySubtractExpression)exp);
-            else if (exp is UnaryAwaitExpression)
-                OnVisit((UnaryAwaitExpression)exp);
-            else if (exp is UnaryNotExpression)
-                OnVisit((UnaryNotExpression)exp);
-            else if (exp is UnaryConvertExpression)
-                OnVisit((UnaryConvertExpression)exp);
-            else if (exp is NotNullExpression)
-                OnVisit((NotNullExpression)exp);
+            if (exp is UnarySubtractExpression unarySubtractExpression)
+                OnVisit(unarySubtractExpression);
+            else if (exp is UnaryAwaitExpression unaryAwaitExpression)
+                OnVisit(unaryAwaitExpression);
+            else if (exp is UnaryNotExpression unaryNotExpression)
+                OnVisit(unaryNotExpression);
+            else if (exp is UnaryConvertExpression unaryConvertExpression)
+                OnVisit(unaryConvertExpression);
+            else if (exp is NotNullExpression notNullExpression)
+                OnVisit(notNullExpression);
             else
                 throw new NotImplementedException($"The unary type '{exp.GetType().Name}' is not implemented.");
         }
@@ -98,6 +101,12 @@ namespace Markurion.Mute.Expressions
             }
         }
 
+        public virtual void OnVisit(MemberExpression exp)
+        {
+            OnVisit(exp.Instance);
+        }
+
+        [DebuggerStepThrough]
         public virtual void OnVisit(Expression exp)
         {
             if (exp == null)
@@ -135,8 +144,17 @@ namespace Markurion.Mute.Expressions
                 OnVisit((CommitTransactionExpression)exp);
             else if (exp is ObjectExpression)
                 OnVisit((ObjectExpression)exp);
+            else if(exp is NamedArgument)
+                OnVisit((NamedArgument)exp);
+            else if(exp is MemberExpression)
+                OnVisit((MemberExpression)exp);
             else
                 throw new NotImplementedException();
+        }
+
+        public virtual void OnVisit(NamedArgument exp)
+        {
+            OnVisit(exp.Value);
         }
 
         public virtual void OnVisit(ObjectExpression exp)

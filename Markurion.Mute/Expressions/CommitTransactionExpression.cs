@@ -10,20 +10,18 @@ namespace Markurion.Mute.Expressions
     public sealed class CommitTransactionExpression : Expression
     {
         public Expression Transaction { get; }
-        public string State { get; }
         public bool IsNewChild { get; }
 
-        public CommitTransactionExpression(Expression transaction, string state,
+        public CommitTransactionExpression(Expression transaction,
             bool isNewChild, ParserRuleContext context) : base(new DataType(typeof(Transaction), false), context)
         {
             Transaction = transaction;
-            State = state;
             IsNewChild = isNewChild;
         }
 
         public override string ToString()
         {
-            return $"{State} {Transaction}";
+            return $"commit {Transaction}";
         }
     }
 }

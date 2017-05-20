@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Text;
 using Antlr4.Runtime;
 
 namespace Markurion.Mute.Expressions
@@ -18,6 +19,20 @@ namespace Markurion.Mute.Expressions
         public ObjectExpression(IEnumerable<ObjectMember> members, ParserRuleContext context) : base(DataType.FromClrType(typeof(ExpandoObject)), context)
         {
             Members = members.ToList();
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append("{ ");
+            foreach (var item in Members)
+            {
+                sb.Append(item.Name);
+                sb.Append(": ");
+                sb.Append(item.Value);
+            }
+            sb.Append(" }");
+            return sb.ToString();
         }
     }
 

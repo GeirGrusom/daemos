@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.9
+VisualStudioVersion = 15.0.26430.6
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C7BD7FEF-7CF6-4CCE-ADD6-721242D95AFB}"
 	ProjectSection(SolutionItems) = preProject
@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Markurion.Postgres", "Marku
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Markurion.Query", "Markurion.Query\Markurion.Query.csproj", "{387F25A9-6496-4BB3-A232-31FD137A3318}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Markurion.Api", "Markurion.Api\Markurion.Api.csproj", "{FDB688DF-8243-49A5-AF6F-72CC57F23351}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Markurion.WebApi", "Markurion.Api\Markurion.WebApi.csproj", "{FDB688DF-8243-49A5-AF6F-72CC57F23351}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Markurion.Console", "Markurion.Console\Markurion.Console.csproj", "{DBCACDAA-9387-4D09-9CC5-5CE292BD58B0}"
 EndProject

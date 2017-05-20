@@ -148,7 +148,8 @@ RETURNING {SelectColumns};";
 
         private NpgsqlConnection CreateConnection()
         {
-            return new NpgsqlConnection(connectionString);
+            var result = new NpgsqlConnection(connectionString);
+            return result;
         }
 
         public override async Task InitializeAsync()
@@ -157,24 +158,8 @@ RETURNING {SelectColumns};";
 
             using (var trans = conn.BeginTransaction())
             {
-
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = @"SELECT EXISTS (
-    SELECT 1
-    FROM information_schema.tables
-    WHERE  table_schema = 'markurion'
-    AND table_name = 'transactions'
-   ); ";
-                    int exists = (int)await cmd.ExecuteScalarAsync();
-
-                    if(exists != 0)
-                    {
-                        await trans.CommitAsync();
-                        return;
-                    }
-                }
-
+                var query = await QueryAsync();
+                
                 string initScript;
                 using (var streamReader = new System.IO.StreamReader(GetType().GetTypeInfo().Assembly.GetManifestResourceStream("Markurion.Postgres.Sql.v000_init.sql")))
                 {
@@ -188,8 +173,8 @@ RETURNING {SelectColumns};";
                 await trans.CommitAsync();
             }
         }
-
-        public override async Task<System.IO.Stream> GetTransactionStateAsync(Guid id, int revision)
+        private static readonly byte[] EmptyState  = new byte[0];
+        public override async Task<byte[]> GetTransactionStateAsync(Guid id, int revision)
         {
             var conn = await GetConnectionAsync();
 
@@ -199,14 +184,21 @@ RETURNING {SelectColumns};";
                 var idParam = cmd.CreateParameter();
                 idParam.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Uuid;
                 idParam.ParameterName = "Id";
+                idParam.NpgsqlValue = id;
                 var revisionParam = cmd.CreateParameter();
                 revisionParam.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Integer;
                 revisionParam.ParameterName = "Revision";
+                revisionParam.NpgsqlValue = revision;
                 cmd.Parameters.Add(idParam);
                 cmd.Parameters.Add(revisionParam);
+
                 cmd.Prepare();
                 var result = (byte[])await cmd.ExecuteScalarAsync(CancellationToken.None);
-                return new System.IO.MemoryStream(result);
+                if (result == null)
+                {
+                    return EmptyState;
+                }
+                return result;
             }            
         }
 
@@ -214,8 +206,6 @@ RETURNING {SelectColumns};";
         public override async Task OpenAsync()
         {
             var conn = await GetConnectionAsync();
-
-            conn.Dispose();
         }
 
         private Transaction Map(DbDataReader reader)
@@ -467,9 +457,18 @@ INSERT INTO markurion.transactions
             }
         }
         
-        public override Task FreeTransactionAsync(Guid id)
+        public override async Task FreeTransactionAsync(Guid id)
         {
-            return Task.CompletedTask;
+            var conn = await GetConnectionAsync();
+
+            using (var cmd = conn.CreateCommand())
+            {
+                GuidHash(id, out int a, out int b);
+                cmd.Parameters.Add("a", Integer).Value = a;
+                cmd.Parameters.Add("b", Integer).Value = b;
+                cmd.CommandText = "select pg_advisory_unlock(@a, @b)";
+                await cmd.ExecuteNonQueryAsync();
+            }
 
         }
 
@@ -477,9 +476,7 @@ INSERT INTO markurion.transactions
         {
             using (var selectChain = await SelectTransactionChainCommandAsync())
             {
-
                 selectChain.Parameters["id"].Value = id;
-                //selectChain.Prepare();
                 using (var reader = (NpgsqlDataReader)await selectChain.ExecuteReaderAsync())
                 {
                     var results = new List<Transaction>();
@@ -524,6 +521,13 @@ INSERT INTO markurion.transactions
             }
         }
 
+        private static void GuidHash(Guid id, out int a, out int b)
+        {
+            var bytes = id.ToByteArray();
+            a = BitConverter.ToInt32(bytes, 0);
+            b = BitConverter.ToInt32(bytes, 4);
+        }
+
         protected override async Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel)
         {
             string sql = $"SELECT {SelectColumns} FROM markurion.transactions_head WHERE expires <= @now";
@@ -561,15 +565,45 @@ INSERT INTO markurion.transactions
 
         }
 
-        public override Task<bool> IsTransactionLockedAsync(Guid id)
+        public override async Task<bool> IsTransactionLockedAsync(Guid id)
         {
-            return Task.FromResult(false);
+            var conn = await GetConnectionAsync();
+
+            using (var cmd = conn.CreateCommand())
+            {
+                GuidHash(id, out int a, out int b);
+                cmd.Parameters.Add("id1", Integer).Value = a;
+                cmd.Parameters.Add("id2", Integer).Value = b;
+
+
+                cmd.CommandText = "select 1 from pg_locks where locktype = 'advisory' and classid = @id1 and objid = @id2";
+                cmd.Prepare();
+
+                return await cmd.ExecuteScalarAsync() != null;
+            }
 
         }
 
-        public override Task LockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
+        public override async Task LockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
         {
-            return Task.CompletedTask;
+            var conn = await GetConnectionAsync();
+
+            using (var cmd = conn.CreateCommand())
+            {
+                GuidHash(id, out int a, out int b);
+                cmd.Parameters.Add("a", Integer).Value = a;
+                cmd.Parameters.Add("b", Integer).Value = b;
+                if (timeout > 0)
+                {
+                    cmd.Parameters.Add("timeout", Integer).Value = timeout;
+                    cmd.CommandText = "set local statement_timeout = @timeout; select pg_advisory_lock(@a, @b)";
+                }
+                else
+                {
+                    cmd.CommandText = "select pg_advisory_lock(@a, @b)";
+                }
+                await cmd.ExecuteNonQueryAsync();
+            }
         }
 
         public override async Task<IQueryable<Transaction>> QueryAsync()
@@ -579,7 +613,8 @@ INSERT INTO markurion.transactions
 
         public override async Task<bool> TransactionExistsAsync(Guid id)
         {
-            using(var conn = await GetConnectionAsync())
+            var conn = await GetConnectionAsync();
+
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = "select exists(select 1 from markurion.transactions_head where id = @id)";
@@ -593,10 +628,22 @@ INSERT INTO markurion.transactions
             }
         }
 
-        public override Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
+        public override async Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
         {
-            return Task.FromResult(true);
+            var conn = await GetConnectionAsync();
 
+            using (var cmd = conn.CreateCommand())
+            {
+                GuidHash(id, out int a, out int b);
+                cmd.Parameters.Add("a", Integer).Value = (long)a;
+                cmd.Parameters.Add("b", Integer).Value = (long)b;
+
+                cmd.CommandText = @"select pg_try_advisory_lock(@a, @b)";
+
+                cmd.Prepare();
+                
+                return (bool)await cmd.ExecuteScalarAsync();
+            }
         }
 
         public override void SaveTransactionState(Guid id, int revision, byte[] state)

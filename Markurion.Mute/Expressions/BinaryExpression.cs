@@ -38,10 +38,6 @@ namespace Markurion.Mute.Expressions
 
         protected BinaryExpression(Expression left, Expression right, BinaryOperator @operator, MethodInfo method, ParserRuleContext context) : base(left.Type, context)
         {
-            if (left.Type != right.Type)
-            {
-                throw new InvalidOperationException("Types mismatch");
-            }
             Method = method;
             Operator = @operator;
             Left = left;

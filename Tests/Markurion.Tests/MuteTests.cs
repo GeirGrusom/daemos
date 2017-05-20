@@ -127,7 +127,9 @@ namespace Markurion.Tests
         public static readonly object[][] ResultData = 
         {
             new object[] {"@2017-01-01Z", new DateTime(2017, 01, 01, 0, 0, 0, DateTimeKind.Utc)},
-            new object[] {"@2017-01-01+02:00", new DateTime(2016, 12, 31, 22, 0, 0, DateTimeKind.Utc)}
+            new object[] {"@2017-01-01+02:00", new DateTime(2016, 12, 31, 22, 0, 0, DateTimeKind.Utc)},
+            new object[] {"timespan(hours: 2, minutes: 4, seconds: 8)", new TimeSpan(2, 4, 8)},
+            new object[] {"@2017-01-01Z + timespan(hours: 2, minutes: 4, seconds: 8)", new DateTime(2017, 01, 01, 2, 4, 8, DateTimeKind.Utc) }
         };
 
         [Theory]
@@ -246,6 +248,69 @@ await commit this;
             var func = (Func<bool>)d.CreateDelegate(typeof(Func<bool>));
 
 
+        }
+
+        public class Foobar
+        {
+            public int GetFoo(int? a = 1)
+            {
+                return a.GetValueOrDefault();
+            }
+
+            //[return: NotNull]
+            public string GetString()
+            {
+                return "Hello World!";
+            }
+        }
+
+        [Fact]
+        public void FunctionCall_OptionalParameter()
+        {
+            var service = new Service();
+            int result = 0;
+            service.StateSerializer.When(x => x.Serialize<int>("result", Arg.Any<int>())).Do(x => result = x.ArgAt<int>(1));
+            service.Compiler.ImplicitImports.Add("foobar", typeof(Foobar));
+            service.DependencyResolver.GetService<Foobar>().Returns(new Foobar());
+
+            service.CompileAndRun("module foo; let foo <- import foobar; let result <- foo.GetFoo(); await commit this;");
+
+            Equal(1, result);
+        }
+
+        [Fact]
+        public void FunctionCall_ReturnsString()
+        {
+            var service = new Service();
+            string result = null;
+            service.StateSerializer.When(x => x.Serialize<string>("result", Arg.Any<string>())).Do(x => result = x.ArgAt<string>(1));
+            service.Compiler.ImplicitImports.Add("foobar", typeof(Foobar));
+            service.DependencyResolver.GetService<Foobar>().Returns(new Foobar());
+
+            service.CompileAndRun("module foo; let foo <- import foobar; let result <- foo.GetString(); await commit this;");
+
+            Equal("Hello World!", result);
+        }
+
+
+        [Fact]
+        public void Constructor_NamedArguments_Ok()
+        {
+            var service = new Service();
+
+            var ts = service.CompileWithResult<TimeSpan>("timespan(hours: 1, minutes: 2, seconds: 3)");
+
+            Equal(new TimeSpan(1, 2, 3), ts);
+        }
+
+        [Fact]
+        public void Constructor_Arguments_Ok()
+        {
+            var service = new Service();
+
+            var ts = service.CompileWithResult<TimeSpan>("timespan(1, 2, 3)");
+
+            Equal(new TimeSpan(1, 2, 3), ts);
         }
 
         [Fact]

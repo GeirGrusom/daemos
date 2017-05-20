@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Markurion.Api
+namespace Markurion.WebApi
 {
 
     internal static class StringExtensions
@@ -30,8 +30,6 @@ namespace Markurion.Api
 
         public static bool TryParseDateTime(string dateTime, out DateTime? result)
         {
-            DateTime res;
-
             if (dateTime == null)
             {
                 result = null;
@@ -50,7 +48,7 @@ namespace Markurion.Api
             }
 
             if (DateTime.TryParseExact(dateTime, DateFormats, CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal, out res))
+                DateTimeStyles.AssumeUniversal, out DateTime res))
             {
                 result = res;
                 return true;

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
-namespace Markurion.Api
+namespace Markurion.WebApi
 {
    
     public class WebSocketEvent

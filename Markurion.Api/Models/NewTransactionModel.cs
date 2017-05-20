@@ -2,7 +2,7 @@
 using System.Dynamic;
 using Newtonsoft.Json;
 
-namespace Markurion.Api.Models
+namespace Markurion.WebApi.Models
 {
     public class NewTransactionModel
     {
