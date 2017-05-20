@@ -1,6 +1,5 @@
 grammar TransactQuery;
 
-
 options {
 	
 }
@@ -29,113 +28,89 @@ compileUnit returns [Expression expr]
 	|;
 
 logicalExpression returns [Expression expr]
-	: additiveExpression { $expr = $additiveExpression.expr; }
-	|	lhs = logicalExpression op = ('or' | 'and' | 'xor') rhs = additiveExpression {
-		switch($op.text) {
-			case "or":
-				$expr = OrElse($lhs.expr, $rhs.expr);
-				break;
-			case "and":
-				$expr = AndAlso($lhs.expr, $rhs.expr);
-				break;
-			case "xor":
-				$expr = ExclusiveOr($lhs.expr, $rhs.expr);
-				break;
-			default:
-				throw new System.NotSupportedException();
-		}
-	}
+	: orExpression { $expr = $orExpression.expr; };
+
+orExpression returns [Expression expr]
+	: lhs = orExpression OR rhs = xorExpression { $expr = OrElse($lhs.expr, $rhs.expr); }
+	| xorExpression { $expr = $xorExpression.expr; };
+
+xorExpression returns [Expression expr]
+	: lhs = xorExpression XOR rhs = andExpression { $expr = ExclusiveOr($lhs.expr, $rhs.expr); }
+	| andExpression { $expr = $andExpression.expr; };
+
+andExpression returns [Expression expr]
+	: lhs = andExpression AND rhs = equalityExpression { $expr = AndAlso($lhs.expr, $rhs.expr); }
+	| equalityExpression { $expr = $equalityExpression.expr; }
 	;
 
-
-additiveExpression returns [Expression expr]
-	: comparisonExpression { $expr = $comparisonExpression.expr; }
-	|lhs = additiveExpression op = ('+' | '-') rhs = comparisonExpression {
-		switch($op.text) {
-			case "+":
-				$expr = AddChecked($lhs.expr, $rhs.expr);
-				break;
-			case "-":
-				$expr = SubtractChecked($lhs.expr, $rhs.expr);
-				break;
-			default:
-				throw new System.NotSupportedException();
+equalityExpression returns [Expression expr]
+	: lhs = equalityExpression EQ rhs = comparisonExpression {
+		if($lhs.expr.Type == typeof(JsonValue) || $rhs.expr.Type == typeof(JsonValue)) {
+			$expr = Equal($lhs.expr, $rhs.expr, false,  typeof(JsonValue).GetMethod("Equals", new [] { $lhs.expr.Type, $rhs.expr.Type }));
 		}
+		else { 
+			$expr = Equal($lhs.expr, $rhs.expr);
+		}
+				
 	}
+	| lhs = equalityExpression NOT_EQ rhs = comparisonExpression {
+					$expr = NotEqual($lhs.expr, $rhs.expr);
+	}
+	| comparisonExpression { $expr = $comparisonExpression.expr; }
 	;
 
 comparisonExpression returns [Expression expr]
-	: multiplicativeExpression { $expr = $multiplicativeExpression.expr; }
-	| lhs = comparisonExpression op = ('=' | '!=' | '<>' | '>' | '<' | '>=' | '<=')  rhs = multiplicativeExpression {
-		switch($op.text) {
-			case "=":
-				if($lhs.expr.Type == typeof(JsonValue) || $rhs.expr.Type == typeof(JsonValue)) {
-					$expr = Equal($lhs.expr, $rhs.expr, false,  typeof(JsonValue).GetMethod("Equals", new [] { $lhs.expr.Type, $rhs.expr.Type }));
-				}
-				else { 
-					$expr = Equal($lhs.expr, $rhs.expr);
-				}
-				break;
-			case ">":
-				$expr = GreaterThan($lhs.expr, $rhs.expr);
-				break;
-			case ">=":
-				$expr = GreaterThanOrEqual($lhs.expr, $rhs.expr);
-				break;
-			case "<":
-				$expr = LessThan($lhs.expr, $rhs.expr);
-				break;
-			case "<=":
-				$expr = LessThanOrEqual($lhs.expr, $rhs.expr);
-				break;
-			case "!=":
-			case "<>":
-				$expr = NotEqual($lhs.expr, $rhs.expr);
-				break;
-			default:
-				throw new System.NotSupportedException();
-		}
+	: lhs = comparisonExpression GREATER  rhs = additiveExpression {
+		$expr = GreaterThan($lhs.expr, $rhs.expr);
 	}
+	| lhs = comparisonExpression GREATER_OR_EQUAL  rhs = additiveExpression {
+		$expr = GreaterThanOrEqual($lhs.expr, $rhs.expr);
+	}
+	| lhs = comparisonExpression LESS  rhs = additiveExpression {
+		$expr = LessThan($lhs.expr, $rhs.expr);
+	}
+	| lhs = comparisonExpression LESS_OR_EQUAL  rhs = additiveExpression {
+		$expr = LessThanOrEqual($lhs.expr, $rhs.expr);
+	}
+	| additiveExpression { $expr = $additiveExpression.expr; }
+	;
+
+additiveExpression returns [Expression expr]
+	: lhs = additiveExpression ADD rhs = multiplicativeExpression {
+		$expr = Add($lhs.expr, $rhs.expr);
+	}
+	|  lhs = additiveExpression SUB rhs = multiplicativeExpression {
+		$expr = Subtract($lhs.expr, $rhs.expr);
+	}
+	| multiplicativeExpression { $expr = $multiplicativeExpression.expr; }
 	;
 
 
+
+
 multiplicativeExpression returns [Expression expr]
-	: unaryExpression { $expr = $unaryExpression.expr; }
-	|lhs = multiplicativeExpression op = ('*' | '/' | '%') rhs = unaryExpression {
-		switch($op.text) {
-			case "*":
-				$expr = Multiply($lhs.expr, $rhs.expr);
-				break;
-			case "/":
-				$expr = Divide($lhs.expr, $rhs.expr);
-				break;
-			case "%":
-				$expr = Modulo($lhs.expr, $rhs.expr);
-				break;
-			default:
-				throw new System.NotSupportedException();
-		}
+	: lhs = multiplicativeExpression MUL rhs = unaryExpression {
+		$expr = Multiply($lhs.expr, $rhs.expr);
 	}
+	| lhs = multiplicativeExpression DIV rhs = unaryExpression {
+		$expr = Divide($lhs.expr, $rhs.expr);
+	}
+	| lhs = multiplicativeExpression MOD rhs = unaryExpression {
+		$expr = Modulo($lhs.expr, $rhs.expr);
+	}
+	| unaryExpression { $expr = $unaryExpression.expr; }
 	;
 	
 
 unaryExpression returns [Expression expr]
-	: op = ('not' | '!' | '-') operand = expression { 
-		switch($op.text) {
-			case "not":
-			case "!":
-				$expr = Not($operand.expr);
-				break;
-			case "-":
-				$expr = Negate($operand.expr);
-				break;
-			default:
-				throw new System.NotSupportedException();
-		}
+	: NOT unaryExpression { 
+		$expr = Not($unaryExpression.expr);
 	}
-	| '(' operand = expression { $expr = $expression.expr; } ')'
+	| SUB unaryExpression {
+		$expr = Negate($unaryExpression.expr);
+	}
+	| '(' expression { $expr = $expression.expr; } ')'
 	| literalExpression { $expr = $literalExpression.expr; }
-	| identifierChain { $expr = $identifierChain.expr; }
 	;
 
 	
@@ -147,30 +122,33 @@ literalExpression returns [Expression expr]
 	| integer { $expr = Constant($integer.value, typeof(int)); }
 	| quotedString { $expr = Constant($quotedString.value, typeof(string)); }
 	| singleQuotedString { $expr = Constant($singleQuotedString.value, typeof(string)); }
-	| boolean { $expr = Constant($boolean.value, typeof(bool)); }
-	| null { $expr = Constant(null); }
 	| date { $expr = Constant($date.value, typeof(System.DateTime)); }
 	| guid { $expr = Constant($guid.value, typeof(System.Guid)); }
+	| identifierChain { $expr = $identifierChain.expr; }
 	;
 
-identifierChain returns [Expression expr] :
-	(identifiers += identifier ('.' identifiers += identifier)*) { 
-		if($ctx._identifiers.Count == 1) {
-			$expr = GetPropertyCI(Transaction, $ctx._identifiers[0].value);
-		} else if($ctx._identifiers.Count == 2) {
-			string dynamicObject = $ctx._identifiers[0].value;
-			string memberName = $ctx._identifiers[1].value;
+identifierChain returns [Expression expr] 
+	: constant { $expr = $constant.expr; }
+	| identifier {
+		$expr = GetPropertyCI(Transaction, $identifier.value);
+	}
+	| owner = identifier '.' member = identifier {
+			string dynamicObject = $owner.value;
+			string memberName = $member.value;
 			var ctor = typeof(Transact.JsonValue).GetConstructor(new[] { typeof(IDictionary<string, object>), typeof(string), typeof(string) });
-			$expr =  New(ctor, Expression.Convert(GetPropertyCI(Transaction, dynamicObject), typeof(IDictionary<string, object>)), Constant(dynamicObject), Constant(memberName));
-		} else {
-			throw new System.NotImplementedException();
-		}
-		
-};
+			$expr =  New(ctor, Convert(GetPropertyCI(Transaction, dynamicObject), typeof(IDictionary<string, object>)), Constant(dynamicObject), Constant(memberName));
+	}
+	;
+
+constant returns [Expression expr]
+	: NULL { $expr = Constant(null); }
+	| TRUE { $expr = Constant(true); }
+	| FALSE { $expr = Constant(false); }
+	;
 
 identifier returns [string value]
-	:'@' quotedString { $value = $quotedString.value; }
-	|'@' singleQuotedString { $value = $singleQuotedString.value; }
+	:'$' quotedString { $value = $quotedString.value; }
+	|'$' singleQuotedString { $value = $singleQuotedString.value; }
 	| ID { $value = $ID.text; }
 	;
 
@@ -188,17 +166,20 @@ float returns [double value]
 
 integer returns [int value]: INT { $value = int.Parse($INT.text, System.Globalization.CultureInfo.InvariantCulture); } ; 
 
-exponent: 'e' ('+' | '-') INT; 
+exponent: 'e' (ADD | SUB) INT; 
 
-boolean returns [bool value] : token = TRUE { $value = true; } | FALSE { $value = false; };
+boolean returns [bool value] : TRUE { $value = true; } | FALSE { $value = false; };
 
 null returns [object value]: NULL { $value = null; };
 
-guid returns [System.Guid value]: GUID_SLASH | GUID { $value = System.Guid.Parse($ctx.GetText()); };
+guid returns [System.Guid value]
+: GUID_SLASH { $value = System.Guid.Parse($ctx.GetText()); }
+| GUID { $value = System.Guid.Parse($ctx.GetText()); }
+;
 
 date returns [System.DateTime value]
-	: DATE { $value = System.DateTime.ParseExact($DATE.text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture); }
-	| DATETIME { $value = System.DateTime.ParseExact($DATETIME.text, new [] { "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.fff" }, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal); }
+	: '@' DATE { $value = System.DateTime.ParseExact($DATE.text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture); }
+	| '@' DATETIME { $value = System.DateTime.ParseExact($DATETIME.text, new [] { "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.fff" }, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal); }
 	;
 									
 
@@ -227,13 +208,13 @@ GUID: '{' HEX_DIGIT_8 HEX_DIGIT_4 HEX_DIGIT_4 HEX_DIGIT_4 HEX_DIGIT_8 HEX_DIGIT_
 INT: [0-9]+;
 fragment ID_HEAD: [a-zA-Z_];
 fragment ID_TAIL: [a-zA-Z_0-9];
-ID: ID_HEAD ID_TAIL*;
 NULL: 'null';
 TRUE: 'true';
 FALSE: 'false';
 AND: 'and';
 OR:'or';
 XOR: 'xor';
+ID: ID_HEAD ID_TAIL*;
 fragment FLOAT_INT: [0-9]+;
 
 fragment YEAR: [0-9][0-9][0-9][0-9];
@@ -246,7 +227,24 @@ fragment SECOND: [0-5][0-9];
 fragment MILLISECOND: [0-9][0-9][0-9];
 
 
-DATE: YEAR '-' MONTH '-' DAY;
-TIME: HOUR ':' MINUTE ':' SECOND ('.' MILLISECOND)? 'Z';
+fragment DATE_FRAGMENT: YEAR '-' MONTH '-' DAY;
+fragment TIME_FRAGMENT: HOUR ':' MINUTE ':' SECOND ('.' MILLISECOND)? 'Z';
 
-DATETIME: DATE 'T' TIME;
+DATETIME: DATE_FRAGMENT 'T' TIME_FRAGMENT;
+DATE: DATE_FRAGMENT;
+
+NOT_EQ: '==' | '<>';
+EQ: '=';
+
+GREATER: '>';
+GREATER_OR_EQUAL: '>=';
+LESS: '<';
+LESS_OR_EQUAL: '<=';
+
+NOT: '!'|'not';
+SUB: '-';
+ADD: '+';
+
+MUL: '*';
+DIV: '/';
+MOD: '%';
