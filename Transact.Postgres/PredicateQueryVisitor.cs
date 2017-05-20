@@ -249,7 +249,7 @@ namespace Transact.Postgres
                 Visit(node.Left);
                 builder.Append(")");
 
-                if (node.Right.Type == typeof(int) || node.Right.Type == typeof(float) || node.Right.Type == typeof(double))
+                if (node.Right.Type == typeof(int) || node.Right.Type == typeof(long) || node.Right.Type == typeof(float) || node.Right.Type == typeof(double))
                 {
                     builder.Append("::numeric");
                 }

@@ -442,7 +442,12 @@ public partial class TransactQueryParser : Parser {
 
 					          		switch((_localctx.op!=null?_localctx.op.Text:null)) {
 					          			case "=":
-					          				_localctx.expr =  Equal(_localctx.lhs.expr, _localctx.rhs.expr);
+					          				if(_localctx.lhs.expr.Type == typeof(JsonValue) || _localctx.rhs.expr.Type == typeof(JsonValue)) {
+					          					_localctx.expr =  Equal(_localctx.lhs.expr, _localctx.rhs.expr, false,  typeof(JsonValue).GetMethod("Equals", new [] { _localctx.lhs.expr.Type, _localctx.rhs.expr.Type }));
+					          				}
+					          				else { 
+					          					_localctx.expr =  Equal(_localctx.lhs.expr, _localctx.rhs.expr);
+					          				}
 					          				break;
 					          			case ">":
 					          				_localctx.expr =  GreaterThan(_localctx.lhs.expr, _localctx.rhs.expr);
@@ -776,7 +781,7 @@ public partial class TransactQueryParser : Parser {
 				EnterOuterAlt(_localctx, 2);
 				{
 				State = 125; _localctx._integer = integer();
-				 _localctx.expr =  Constant(_localctx._integer.value, typeof(long)); 
+				 _localctx.expr =  Constant(_localctx._integer.value, typeof(int)); 
 				}
 				break;
 
@@ -1129,7 +1134,7 @@ public partial class TransactQueryParser : Parser {
 	}
 
 	public partial class IntegerContext : ParserRuleContext {
-		public long value;
+		public int value;
 		public IToken _INT;
 		public ITerminalNode INT() { return GetToken(TransactQueryParser.INT, 0); }
 		public IntegerContext(ParserRuleContext parent, int invokingState)
@@ -1147,7 +1152,7 @@ public partial class TransactQueryParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			State = 200; _localctx._INT = Match(INT);
-			 _localctx.value =  long.Parse((_localctx._INT!=null?_localctx._INT.Text:null), System.Globalization.CultureInfo.InvariantCulture); 
+			 _localctx.value =  int.Parse((_localctx._INT!=null?_localctx._INT.Text:null), System.Globalization.CultureInfo.InvariantCulture); 
 			}
 		}
 		catch (RecognitionException re) {

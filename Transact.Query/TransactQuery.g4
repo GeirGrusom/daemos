@@ -69,7 +69,12 @@ comparisonExpression returns [Expression expr]
 	| lhs = comparisonExpression op = ('=' | '!=' | '<>' | '>' | '<' | '>=' | '<=')  rhs = multiplicativeExpression {
 		switch($op.text) {
 			case "=":
-				$expr = Equal($lhs.expr, $rhs.expr);
+				if($lhs.expr.Type == typeof(JsonValue) || $rhs.expr.Type == typeof(JsonValue)) {
+					$expr = Equal($lhs.expr, $rhs.expr, false,  typeof(JsonValue).GetMethod("Equals", new [] { $lhs.expr.Type, $rhs.expr.Type }));
+				}
+				else { 
+					$expr = Equal($lhs.expr, $rhs.expr);
+				}
 				break;
 			case ">":
 				$expr = GreaterThan($lhs.expr, $rhs.expr);
@@ -139,7 +144,7 @@ expression returns [Expression expr] : logicalExpression { $expr = $logicalExpre
 
 literalExpression returns [Expression expr]
 	: float { $expr = Constant($float.value, typeof(float));}
-	| integer { $expr = Constant($integer.value, typeof(long)); }
+	| integer { $expr = Constant($integer.value, typeof(int)); }
 	| quotedString { $expr = Constant($quotedString.value, typeof(string)); }
 	| singleQuotedString { $expr = Constant($singleQuotedString.value, typeof(string)); }
 	| boolean { $expr = Constant($boolean.value, typeof(bool)); }
@@ -181,7 +186,7 @@ float returns [double value]
 	| '.' INT { $value = double.Parse($ctx.GetText(), System.Globalization.CultureInfo.InvariantCulture); }
 	;
 
-integer returns [long value]: INT { $value = long.Parse($INT.text, System.Globalization.CultureInfo.InvariantCulture); } ; 
+integer returns [int value]: INT { $value = int.Parse($INT.text, System.Globalization.CultureInfo.InvariantCulture); } ; 
 
 exponent: 'e' ('+' | '-') INT; 
 
