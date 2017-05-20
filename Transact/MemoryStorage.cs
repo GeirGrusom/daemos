@@ -62,8 +62,6 @@ namespace Transact
             }
         }
 
-        private readonly AutoResetEvent _nextExpiringTransactionChangedEvent;
-        private DateTime? _nextExpiringTransaction;
         private readonly ConcurrentDictionary<Guid, TransactionSlot> _transactions;
         private readonly SortedList<DateTime, TransactionSlot> _transactionsByExpiriation = new SortedList<DateTime, TransactionSlot>(ReverseDateTimeComparer.Instance);
         private readonly ManualResetEventSlim _expiringEvent;
@@ -71,7 +69,6 @@ namespace Transact
         {
             _transactions = new ConcurrentDictionary<Guid, TransactionSlot>();
             _expiringEvent = new ManualResetEventSlim(false);
-            _nextExpiringTransactionChangedEvent = new AutoResetEvent(true);
         }
 
         public override Task Open()
@@ -200,18 +197,7 @@ namespace Transact
                 if(transaction.Expired == null && transaction.Expires != null)
                     _transactionsByExpiriation.Add(transaction.Expires.Value, slot);
 
-                if (_transactionsByExpiriation.Count != 0)
-                {
-                    _expiringEvent.Set();
-                    _nextExpiringTransaction = _transactionsByExpiriation.Keys[_transactionsByExpiriation.Keys.Count - 1];
-                    _nextExpiringTransactionChangedEvent.Set();
-                }
-                else
-                {
-                    _expiringEvent.Reset();
-                    _nextExpiringTransaction = null;
-                    _nextExpiringTransactionChangedEvent.Set();
-                }
+                
                 OnTransactionCommitted(transaction);
                 return Task.FromResult(transaction);
             }
@@ -239,20 +225,6 @@ namespace Transact
 
                 if(newTransaction.Expired == null && newTransaction.Expires != null)
                     _transactionsByExpiriation.Add(newTransaction.Expires.Value, slot);
-
-                if (_transactionsByExpiriation.Count != 0)
-                {
-                    _expiringEvent.Set();
-                    _nextExpiringTransaction = _transactionsByExpiriation.Keys[_transactionsByExpiriation.Keys.Count - 1];
-                    _nextExpiringTransactionChangedEvent.Set();
-                }
-                else
-                {
-                    _nextExpiringTransaction = null;
-                    _nextExpiringTransactionChangedEvent.Set();
-                    _expiringEvent.Reset();
-                }
-                    
             }
             OnTransactionCommitted(newTransaction);
             return Task.FromResult(newTransaction);
@@ -277,7 +249,14 @@ namespace Transact
             int max = list.Length - 1;
 
             if (max < 0 || list[max] > now)
+            {
+                if(values.Length != 0)
+                {
+                    SetNextExpiringTransactionTime(values.Last().Chain.Last().Expires);
+                }
+                
                 return Enumerable.Empty<Transaction>();
+            }
 
             // Binary search
             int mid = 0;
@@ -300,7 +279,16 @@ namespace Transact
                 }
             }
 
-            return values.Skip(mid).Select(x => x.Chain.Last());
+            var result = values.Skip(mid).Select(x => x.Chain.Last()).ToArray();
+            if (mid == 0)
+            {
+                SetNextExpiringTransactionTime(null);
+            }
+            else
+            {
+                SetNextExpiringTransactionTime(values.Skip(mid - 1).Select(x => x.Chain.Last().Expires).FirstOrDefault());
+            }
+            return result;
 
         }
 

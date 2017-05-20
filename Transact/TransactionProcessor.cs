@@ -22,7 +22,7 @@ namespace Transact
             while (!cancel.IsCancellationRequested)
             {
                 var now = DateTime.UtcNow;
-                var transactions = Storage.GetExpiringTransactions(DateTime.UtcNow, cancel).ToArray();
+                var transactions = Storage.GetExpiringTransactions(now, cancel).ToArray();
                 int count = 0;
                 foreach (var transaction in transactions)
                 {
@@ -30,20 +30,35 @@ namespace Transact
                         continue;
                     
                     ++count;
-                    var expiredTransaction = await transaction.Expire();
+
+
                     try
                     {
                         if (transaction.Expires < now)
                         {
+
                             if (!string.IsNullOrEmpty(transaction.Script))
                             {
-                                await ScriptRunner.Run(transaction.Script, expiredTransaction, transaction);
+                                var nextData = await ScriptRunner.Run(transaction.Script, transaction);
+                                await transaction.CreateDelta((ref TransactionMutableData x) =>
+                                {
+                                    x = nextData;
+                                });
                             }
+                            else
+                            {
+                                await transaction.CreateDelta((ref TransactionMutableData x) =>
+                                {
+                                    x.Script = null;
+                                    x.Expires = null;
+                                });
+                            }                           
+
                         }
                     }
                     catch (Exception ex)
                     {
-                        await expiredTransaction.CreateDelta((ref TransactionMutableData x) =>
+                        await transaction.CreateDelta((ref TransactionMutableData x) =>
                         {
                             x.State = TransactionState.Failed;
                             x.Payload = ex;

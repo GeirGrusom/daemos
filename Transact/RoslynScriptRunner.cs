@@ -10,18 +10,26 @@ namespace Transact
 {
     public class ScriptGlobals
     {
+        public DateTime? Expires { get; set; }
+        public string Script { get; set; }
+        public TransactionState State { get; set; }
         public Transaction Transaction { get; }
-        public Transaction Previous { get; }
         public ITransactionHandler Handler { get; }
+        public dynamic Payload { get; set; }
         public DateTime Now { get; } = DateTime.UtcNow;
         public DateTime Today { get; } = DateTime.Today.ToUniversalTime();
         public DateTime Tomorrow { get; } = DateTime.Today.AddDays(1).ToUniversalTime();
 
-        public ScriptGlobals(Transaction transaction, Transaction previous, ITransactionHandler handler)
+        public ScriptGlobals(Transaction transaction, ITransactionHandler handler)
         {
-            Transaction = transaction;
-            Previous = previous;
+            Now = DateTime.UtcNow;
+            Today = new DateTime(Now.Year, Now.Month, Now.Day);
+            Tomorrow = Today.AddDays(1);
             Handler = handler;
+            Expires = null;
+            Script = null;
+            State = transaction.State;
+            Payload = transaction.Payload ?? new System.Dynamic.ExpandoObject();
         }
     }
 
@@ -62,9 +70,18 @@ namespace Transact
             
         }
 
-        public Task Run(string code, Transaction transaction, Transaction previous)
+        public async Task<TransactionMutableData> Run(string code, Transaction transaction)
         {
-            return CSharpScript.RunAsync(code, options, new ScriptGlobals(transaction, previous, _transactionHandlerFactory.Get(transaction.Handler ?? "dummy")));
+            var global = new ScriptGlobals(transaction, _transactionHandlerFactory.Get(transaction.Handler ?? "dummy"));
+            await CSharpScript.RunAsync(code, options, global);
+            return new TransactionMutableData
+            {
+                Expires = global.Expires,
+                State = global.State,
+                Handler = transaction.Handler,
+                Payload = global.Payload,
+                Script = global.Script
+            };
         }
     }
 }

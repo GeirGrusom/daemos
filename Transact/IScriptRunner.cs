@@ -4,6 +4,6 @@ namespace Transact
 {
     public interface IScriptRunner
     {
-        Task Run(string code, Transaction transaction, Transaction previous);
+        Task<TransactionMutableData> Run(string code, Transaction transaction);
     }
 }

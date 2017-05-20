@@ -269,21 +269,12 @@ namespace Transact
             return trans;
         }
 
-        public async Task<Transaction> StartTransaction(Guid id)
+        public async Task<Transaction> StartTransaction(Guid? id, DateTime? expires, object payload, string script, TransactionRevision? parent)
         {
-
-            var trans = await Storage.CreateTransaction(new Transaction(id, 0, DateTime.UtcNow, null, null, new ExpandoObject(), null, TransactionState.Initialized, null, Storage));
+            var trans = await Storage.CreateTransaction(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionState.Initialized, parent, Storage));
             await trans.Lock();
             return trans;
         }
 
-        public async Task<Transaction> StartTransaction()
-        {
-            var id = Guid.NewGuid();
-            var trans = await Storage.CreateTransaction(new Transaction(id, 0, DateTime.UtcNow, null, null, new ExpandoObject(),
-                null, TransactionState.Initialized, null, Storage));
-            await trans.Lock();
-            return trans;
-        }
     }
 }

@@ -20,7 +20,7 @@ namespace Transact.Console
 
         public static async Task MainApp(string[] args)
         {
-            var storage = new PostgreSqlTransactionStorage();
+            var storage = new MemoryStorage();//new PostgreSqlTransactionStorage();
             await storage.Open();
             var httpServer = new HttpServer(new Uri("http://localhost:8080/", UriKind.Absolute), storage);
 
