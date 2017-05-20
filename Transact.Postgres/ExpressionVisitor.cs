@@ -11,14 +11,16 @@ namespace Transact.Postgres
 
         private readonly PredicateQueryVisitor predicateVisitor;
 
+        private int? skip;
+        private int? take;
+        private bool count;
+
         public PostgresVisitor()
         {
+            count = false;
             builder = new StringBuilder();
             predicateVisitor = new PredicateQueryVisitor();
         }
-
-
-
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
@@ -30,7 +32,27 @@ namespace Transact.Postgres
                     {
                         // Argument 0 is the queryable.
                         predicateVisitor.Visit(node.Arguments[1]);
+                        Visit(node.Arguments[0]);
                         return node;
+                    }
+                    case "Skip":
+                    {
+                        skip = (int)((ConstantExpression)node.Arguments[1]).Value;
+                        Visit(node.Arguments[0]);
+                        return node;
+                    }
+                    case "Take":
+                    {
+                        take = (int)((ConstantExpression)node.Arguments[1]).Value;
+                        Visit(node.Arguments[0]);
+                        return node;
+                    }
+                    case "Count":
+                    {
+                        count = true;
+                        Visit(node.Arguments[0]);
+                        return node;
+
                     }
                 }
             }
@@ -43,7 +65,13 @@ namespace Transact.Postgres
 
         public override string ToString()
         {
-            return $"SELECT {defaultSelect} FROM tr.\"TransactionHead\" WHERE {predicateVisitor.ToString()};";
+            if(count)
+            {
+                return $"SELECT COUNT(*) FROM tr.\"TransactionHead\" WHERE {predicateVisitor.ToString()};";
+            }
+            string limit = take != null ? "LIMIT " + take.Value : "";
+            string offset = skip != null ? " OFFSET " + skip.Value : "";
+            return $"SELECT {defaultSelect} FROM tr.\"TransactionHead\" WHERE {predicateVisitor.ToString()} {limit} {offset};";
         }
     }
 }

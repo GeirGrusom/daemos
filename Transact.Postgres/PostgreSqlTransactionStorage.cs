@@ -58,7 +58,7 @@ namespace Transact.Postgres
             SelectTransactionRevisionCommand = cmd;
 
             cmd = connection.CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.\"TransactionHead\" WHERE \"Id\" = @id LIMIT 1";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.\"TransactionHead\" WHERE \"Id\" = @id";
             cmd.Parameters.Add(new NpgsqlParameter("id", Uuid));
             cmd.Prepare();
 
@@ -202,7 +202,7 @@ commit;
                 }
                 cmd.Parameters["state"].Value = (int)transaction.State;
                 cmd.Parameters["handler"].Value = transaction.Handler != null ? (object)transaction.Handler : DBNull.Value;
-
+                cmd.Prepare();
                 bool failed = false;
                 do
                 {
@@ -234,6 +234,7 @@ commit;
                 using (var select = SelectTransactionCommand.Clone()) {
 
                     select.Parameters["id"].Value = id;
+                    select.Prepare();
                     using (var reader = (NpgsqlDataReader)await select.ExecuteReaderAsync())
                     {
                         return Map(reader).Single();
@@ -246,7 +247,7 @@ commit;
 
                 selectRevision.Parameters["id"].Value = id;
                 selectRevision.Parameters["revision"].Value = revision;
-
+                selectRevision.Prepare();
                 using (var revReader = (NpgsqlDataReader)await selectRevision.ExecuteReaderAsync())
                 {
                     return Map(revReader).Single();
@@ -320,8 +321,9 @@ commit;
             using (var selectChain = SelectTransactionChainCommand.Clone())
             {
 
-                SelectTransactionChainCommand.Parameters["id"].Value = id;
-                using (var reader = (NpgsqlDataReader)await SelectTransactionChainCommand.ExecuteReaderAsync())
+                selectChain.Parameters["id"].Value = id;
+                selectChain.Prepare();
+                using (var reader = (NpgsqlDataReader)await selectChain.ExecuteReaderAsync())
                 {
                     return Map(reader);
                 }
@@ -355,7 +357,7 @@ commit;
             }
         }
 
-        protected override IEnumerable<Transaction> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
+        protected override Transaction[] GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
         {
             string sql = "SELECT * FROM tr.\"TransactionHead\" WHERE \"Expires\" <= @now";
             Transaction[] results;
@@ -364,7 +366,7 @@ commit;
                 cmd.CommandText = sql;
                 var p = cmd.Parameters.Add(new NpgsqlParameter("now", Timestamp));
                 p.Value = now.ToUniversalTime();
-
+                cmd.Prepare();
                 bool failed = false;
 
                 do

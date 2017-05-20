@@ -68,7 +68,7 @@ namespace Transact.Api
 
         private void Callback(Guid guid, Transaction transaction)
         {
-            var model = TransactionMapper.Map(transaction);
+            var model = TransactionMapper.ToTransactionResult(transaction);
 
             var obj = JsonConvert.SerializeObject(new {type = "transaction", transaction = model});
             SendText(Encoding.UTF8.GetBytes(obj));

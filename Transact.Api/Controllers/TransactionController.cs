@@ -42,29 +42,41 @@ namespace Transact.Api
 
     public class TransactionResult
     {
+        private readonly Transaction _transaction;
+
+        public TransactionResult(Transaction transaction)
+        {
+            if(transaction == null)
+            {
+                throw new ArgumentNullException(nameof(transaction), "Transaction cannot be null.");
+            }
+            _transaction = transaction;
+        }
+
+
         [JsonProperty("id")]
-        public Guid Id { get; set; }
+        public Guid Id => _transaction.Id;
 
         [JsonProperty("revision")]
-        public int Revision { get; set; }
+        public int Revision => _transaction.Revision;
 
         [JsonProperty("created")]
-        public DateTime Created { get; set; }
+        public DateTime Created => _transaction.Created;
 
         [JsonProperty("payload")]
-        public object Payload { get; set; }
+        public object Payload => _transaction.Payload;
 
         [JsonProperty("expires")]
-        public DateTime? Expires { get; set; }
+        public DateTime? Expires => _transaction.Expired;
 
         [JsonProperty("expired")]
-        public DateTime? Expired { get; set; }
-        
+        public DateTime? Expired => _transaction.Expired;
+
         [JsonProperty("state"), JsonConverter(typeof(StringEnumConverter))]
-        public TransactionState State { get; set; }
+        public TransactionState State => _transaction.State;
 
         [JsonProperty("handler")]
-        public string Handler { get; set; }
+        public string Handler => _transaction.Handler;
     }
 
     [Route("transactions/{id:guid}")]
@@ -77,10 +89,16 @@ namespace Transact.Api
         }
 
         [HttpGet(Name = "TransactionGet")]
-        public async Task<IActionResult> Get(Guid id)
+        public async Task<IActionResult> Get(Guid id, [FromQuery] bool history = false)
         {
+            if(history)
+            {
+                var results = await _storage.GetChain(id);
+                return Json(results.Select(TransactionMapper.ToTransactionResult));
+            }
             var transaction = await _storage.FetchTransaction(id);
-            return Json(TransactionMapper.Map(transaction));
+            return Json(transaction.ToTransactionResult());
+
         }
     }
 }

@@ -1,5 +1,7 @@
 ﻿using Npgsql;
+using NpgsqlTypes;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -11,6 +13,7 @@ namespace Transact.Postgres
 
         private readonly NpgsqlConnection connection;
         private readonly ITransactionStorage storage;
+        private long results;
 
         public PostgreSqlQueryProvider(NpgsqlConnection conn, ITransactionStorage storage)
         {
@@ -44,8 +47,28 @@ namespace Transact.Postgres
             return null;
         }
 
+        private static readonly Dictionary<Type, NpgsqlDbType> LookupDictionary = new Dictionary<Type, NpgsqlDbType>
+        {
+            [typeof(byte)] = NpgsqlDbType.Smallint,
+            [typeof(short)] = NpgsqlDbType.Smallint,
+            [typeof(int)] = NpgsqlDbType.Integer,
+            [typeof(long)] = NpgsqlDbType.Bigint,
+            [typeof(string)] = NpgsqlDbType.Varchar,
+            [typeof(float)] = NpgsqlDbType.Real,
+            [typeof(double)] = NpgsqlDbType.Double,
+            [typeof(TransactionState)] = NpgsqlDbType.Enum,
+            [typeof(bool)] = NpgsqlDbType.Boolean,
+            [typeof(DateTime)] = NpgsqlDbType.Timestamp,
+        };
+
+        private NpgsqlDbType GetDbType(Type input)
+        {
+            return LookupDictionary[input];
+
+        }
         public TResult Execute<TResult>(Expression expression)
         {
+            Type tr = typeof(TResult);
             PostgresVisitor visitor = new PostgresVisitor();
             visitor.Visit(expression);
             var exp = visitor.ToString();
@@ -56,17 +79,33 @@ namespace Transact.Postgres
                 int id = 0;
                 foreach(var param in visitor.Parameters)
                 {
-                    cmd.Parameters.Add(new NpgsqlParameter("p" + (++id), param));
+                    var p = new NpgsqlParameter("p" + (++id), param);
+                    p.NpgsqlDbType = GetDbType(param.GetType());
+                    cmd.Parameters.Add(p);
                 }
+
+                cmd.Prepare();
 
                 using (var reader = cmd.ExecuteReader())
                 {
+
+                    if(tr.GenericTypeArguments.Length == 0)
+                    {
+                        // This is probably a scalar.
+                        reader.Read();
+                        object value = reader.GetValue(0);
+                        if(value is DBNull)
+                        {
+                            return default(TResult);
+                        }
+                        return (TResult)(dynamic)value;
+                    }
 
                     var rowResult = typeof(TResult).GenericTypeArguments[0];
 
                     if (rowResult == typeof(Transaction))
                     {
-                        var results = new System.Collections.Generic.List<Transaction>();
+                        var results = new List<Transaction>();
                         while (reader.Read())
                         {
                             results.Add(MapTransaction(reader));
@@ -99,22 +138,28 @@ namespace Transact.Postgres
 
         private Transaction MapTransaction(NpgsqlDataReader reader)
         {
-                        
+            const int Id        = 0;
+            const int Revision  = 1;
+            const int Created   = 2;
+            const int Expires   = 3;
+            const int Expired   = 4;
+            const int Payload   = 5;
+            const int Script    = 6;
+            const int State     = 9;  
 
             Guid? parentId = GetValue<Guid>(reader, 7);
             int? parentRevision = GetValue<int>(reader, 8);
 
             var parent = parentId != null ? new TransactionRevision(parentId.Value, parentRevision.Value) : (TransactionRevision?)null;
-            //    0        1             2               3         4             5             6              7           8              9
-            // "\"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\""
-            var id = reader.GetGuid(0);
-            var rev = reader.GetInt32(1);
-            var created = reader.GetDateTime(2);
-            var expires = GetValue<DateTime>(reader, 3);
-            var expired = GetValue<DateTime>(reader, 4);
-            var payload = Newtonsoft.Json.JsonConvert.DeserializeObject(GetObjectValue<string>(reader, 5));
-            var script = GetObjectValue<string>(reader, 6);
-            var state = (TransactionState)reader.GetInt32(9);
+             
+            var id = reader.GetGuid(Id);
+            var rev = reader.GetInt32(Revision);
+            var created = reader.GetDateTime(Created);
+            var expires = GetValue<DateTime>(reader, Expires);
+            var expired = GetValue<DateTime>(reader, Expired);
+            var payload = Newtonsoft.Json.JsonConvert.DeserializeObject(GetObjectValue<string>(reader, Payload));
+            var script = GetObjectValue<string>(reader, Script);
+            var state = (TransactionState)reader.GetInt32(State);
             return new Transaction(id, rev, created, expires, expired, payload, script, state, parent , storage);
         } 
     }

@@ -240,7 +240,8 @@ namespace Transact
             return Task.FromResult(_transactions.ContainsKey(id));
         }
 
-        protected override IEnumerable<Transaction> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
+        private static readonly Transaction[] EmptyTransactionArray = new Transaction[0];
+        protected override Transaction[] GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
         {
             DateTime[] list;
             TransactionSlot[] values;
@@ -260,7 +261,7 @@ namespace Transact
                     SetNextExpiringTransactionTime(values.Last().Chain.Last().Expires);
                 }
                 
-                return Enumerable.Empty<Transaction>();
+                return EmptyTransactionArray;
             }
 
             // Binary search

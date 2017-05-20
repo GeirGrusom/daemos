@@ -61,7 +61,7 @@ namespace Transact.Api.Controllers
             if (transaction == null)
                 return new StatusCodeResult(202);
 
-            return Created(Url.RouteUrl("TransactionGetRevision", new { id = transaction.Id, revision = transaction.Revision }), TransactionMapper.Map(transaction));
+            return Created(Url.RouteUrl("TransactionGetRevision", new { id = transaction.Id, revision = transaction.Revision }), TransactionMapper.ToTransactionResult(transaction));
         }
 
         [HttpPost("complete", Name = "CompleteTransaction")]

@@ -25,8 +25,7 @@ namespace Transact.Api.Controllers
             {
                 var transactions = await _storage.GetChain(id);
 
-                return Json(transactions.Select(TransactionMapper.Map));
-
+                return Json(transactions.Select(TransactionMapper.ToTransactionResult));
             }
             finally
             {
@@ -49,7 +48,7 @@ namespace Transact.Api.Controllers
             {
                 var transaction = await _storage.FetchTransaction(id, revision);
 
-                return Json(TransactionMapper.Map(transaction));
+                return Json(transaction.ToTransactionResult());
 
             }
             finally
@@ -108,7 +107,7 @@ namespace Transact.Api.Controllers
                 await trans.Free();
             }
 
-            return Created(Url.RouteUrl("TransactionGet", new { id = result.Id }), TransactionMapper.Map(result));
+            return Created(Url.RouteUrl("TransactionGet", new { id = result.Id }), result.ToTransactionResult());
         }
     }
 }

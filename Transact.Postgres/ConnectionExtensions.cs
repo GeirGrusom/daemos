@@ -87,6 +87,8 @@ namespace Transact.Postgres
 
                 ApplyParameters(cmd, parameters);
 
+                cmd.Prepare();
+
                 bool failed = false;
 
                 do

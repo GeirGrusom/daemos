@@ -67,13 +67,13 @@ namespace Transact
             return result;
         }
 
-        public IEnumerable<Transaction> GetExpiringTransactions(DateTime now, CancellationToken cancel)
+        public Transaction[] GetExpiringTransactions(DateTime now, CancellationToken cancel)
         {
             WaitForExpiringTransactions(now, cancel);
             return GetExpiringTransactionsInternal(now, cancel);
         }
 
-        protected abstract IEnumerable<Transaction> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel);
+        protected abstract Transaction[] GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel);
 
         protected void SetNextExpiringTransactionTime(DateTime? next)
         {

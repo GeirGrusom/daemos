@@ -205,7 +205,7 @@ namespace Transact
         Task<Transaction> FetchTransaction(Guid id, int revision = -1);
         Task<Transaction> CreateTransaction(Transaction transaction);
         Task<Transaction> CommitTransactionDelta(Transaction original, Transaction next);
-        IEnumerable<Transaction> GetExpiringTransactions(DateTime now, CancellationToken cancel);
+        Transaction[] GetExpiringTransactions(DateTime now, CancellationToken cancel);
         IEnumerable<Transaction> GetChildTransactions(Guid transaction, params TransactionState[] state);
         Task Open();
 
