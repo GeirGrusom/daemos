@@ -77,6 +77,7 @@ namespace Transact.Api
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(x => x.AddPolicy("Default", b => b.AllowAnyOrigin().Build()));
             services.AddSingleton(Storage);
             services.AddSingleton(_subscriptionService);
             services.AddMvc(x => x.Filters.Add(typeof(ExceptionFilter)));
@@ -86,7 +87,7 @@ namespace Transact.Api
         {
             appBuilder.UseWebSockets();
             appBuilder.UseMvc();
-            
+            appBuilder.UseCors("Default");
 
             appBuilder.Use(async (http, next) => {
                 if(http.WebSockets.IsWebSocketRequest)

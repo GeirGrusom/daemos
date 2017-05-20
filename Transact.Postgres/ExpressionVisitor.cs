@@ -61,17 +61,17 @@ namespace Transact.Postgres
 
         public IEnumerable<object> Parameters => predicateVisitor.Parameters;
 
-        private static readonly string defaultSelect = "\"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Error\"";
+        private static readonly string defaultSelect = "id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, error";
 
         public override string ToString()
         {
             if(count)
             {
-                return $"SELECT COUNT(*) FROM tr.\"TransactionHead\" WHERE {predicateVisitor.ToString()};";
+                return $"SELECT COUNT(*) FROM tr.transactions_head WHERE {predicateVisitor.ToString()};";
             }
             string limit = take != null ? "LIMIT " + take.Value : "";
             string offset = skip != null ? " OFFSET " + skip.Value : "";
-            return $"SELECT {defaultSelect} FROM tr.\"TransactionHead\" WHERE {predicateVisitor.ToString()} {limit} {offset};";
+            return $"SELECT {defaultSelect} FROM tr.Transactions_head WHERE {predicateVisitor.ToString()} {limit} {offset};";
         }
     }
 }

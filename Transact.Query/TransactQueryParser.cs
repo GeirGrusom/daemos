@@ -38,11 +38,13 @@ using DFA = Antlr4.Runtime.Dfa.DFA;
 public partial class TransactQueryParser : Parser {
 	public const int
 		T__0=1, T__1=2, T__2=3, T__3=4, T__4=5, T__5=6, T__6=7, T__7=8, T__8=9, 
-		WS=10, QUOTED_STRING=11, SINGLE_QUOTED_STRING=12, GUID_SLASH=13, GUID=14, 
-		INT=15, NULL=16, TRUE=17, FALSE=18, AND=19, OR=20, XOR=21, IN=22, INITIALIZED=23, 
-		AUTHORIZED=24, COMPLETED=25, CANCELLED=26, FAILED=27, DATETIME=28, DATE=29, 
-		NOT_EQ=30, EQ=31, GREATER=32, GREATER_OR_EQUAL=33, LESS=34, LESS_OR_EQUAL=35, 
-		NOT=36, SUB=37, ADD=38, ID=39, MUL=40, DIV=41, MOD=42;
+		T__9=10, T__10=11, WS=12, QUOTED_STRING=13, SINGLE_QUOTED_STRING=14, GUID_SLASH=15, 
+		GUID=16, INT=17, NULL=18, TRUE=19, FALSE=20, AND=21, OR=22, XOR=23, IN=24, 
+		INITIALIZED=25, AUTHORIZED=26, COMPLETED=27, CANCELLED=28, FAILED=29, 
+		P_YEARS=30, P_MONTHS=31, P_DAYS=32, P_HOURS=33, P_MINUTES=34, P_SECONDS=35, 
+		DATETIME=36, DATE=37, NOT_EQ=38, EQ=39, GREATER=40, GREATER_OR_EQUAL=41, 
+		LESS=42, LESS_OR_EQUAL=43, NOT=44, SUB=45, ADD=46, ID=47, MUL=48, DIV=49, 
+		MOD=50;
 	public const int
 		RULE_compileUnit = 0, RULE_logicalExpression = 1, RULE_containmentExpression = 2, 
 		RULE_orExpression = 3, RULE_xorExpression = 4, RULE_andExpression = 5, 
@@ -51,28 +53,31 @@ public partial class TransactQueryParser : Parser {
 		RULE_literalExpression = 12, RULE_identifierChain = 13, RULE_constant = 14, 
 		RULE_identifier = 15, RULE_quotedString = 16, RULE_singleQuotedString = 17, 
 		RULE_float = 18, RULE_integer = 19, RULE_exponent = 20, RULE_boolean = 21, 
-		RULE_null = 22, RULE_guid = 23, RULE_date = 24, RULE_array = 25;
+		RULE_null = 22, RULE_guid = 23, RULE_date = 24, RULE_period = 25, RULE_array = 26;
 	public static readonly string[] ruleNames = {
 		"compileUnit", "logicalExpression", "containmentExpression", "orExpression", 
 		"xorExpression", "andExpression", "equalityExpression", "comparisonExpression", 
 		"additiveExpression", "multiplicativeExpression", "unaryExpression", "expression", 
 		"literalExpression", "identifierChain", "constant", "identifier", "quotedString", 
 		"singleQuotedString", "float", "integer", "exponent", "boolean", "null", 
-		"guid", "date", "array"
+		"guid", "date", "period", "array"
 	};
 
 	private static readonly string[] _LiteralNames = {
-		null, "'('", "')'", "'.'", "'$'", "'e'", "'@'", "'['", "','", "']'", "' '", 
+		null, "'('", "')'", "'.'", "'$'", "'e'", "'@'", "'P'", "'T'", "'['", "','", 
+		"']'", "' '", null, null, null, null, null, null, null, null, null, null, 
 		null, null, null, null, null, null, null, null, null, null, null, null, 
-		null, null, null, null, null, null, null, null, "'='", "'>'", "'>='", 
-		"'<'", "'<='", null, "'-'", "'+'", null, "'*'", "'/'", "'%'"
+		null, null, null, null, "'='", "'>'", "'>='", "'<'", "'<='", null, "'-'", 
+		"'+'", null, "'*'", "'/'", "'%'"
 	};
 	private static readonly string[] _SymbolicNames = {
-		null, null, null, null, null, null, null, null, null, null, "WS", "QUOTED_STRING", 
-		"SINGLE_QUOTED_STRING", "GUID_SLASH", "GUID", "INT", "NULL", "TRUE", "FALSE", 
-		"AND", "OR", "XOR", "IN", "INITIALIZED", "AUTHORIZED", "COMPLETED", "CANCELLED", 
-		"FAILED", "DATETIME", "DATE", "NOT_EQ", "EQ", "GREATER", "GREATER_OR_EQUAL", 
-		"LESS", "LESS_OR_EQUAL", "NOT", "SUB", "ADD", "ID", "MUL", "DIV", "MOD"
+		null, null, null, null, null, null, null, null, null, null, null, null, 
+		"WS", "QUOTED_STRING", "SINGLE_QUOTED_STRING", "GUID_SLASH", "GUID", "INT", 
+		"NULL", "TRUE", "FALSE", "AND", "OR", "XOR", "IN", "INITIALIZED", "AUTHORIZED", 
+		"COMPLETED", "CANCELLED", "FAILED", "P_YEARS", "P_MONTHS", "P_DAYS", "P_HOURS", 
+		"P_MINUTES", "P_SECONDS", "DATETIME", "DATE", "NOT_EQ", "EQ", "GREATER", 
+		"GREATER_OR_EQUAL", "LESS", "LESS_OR_EQUAL", "NOT", "SUB", "ADD", "ID", 
+		"MUL", "DIV", "MOD"
 	};
 	public static readonly IVocabulary DefaultVocabulary = new Vocabulary(_LiteralNames, _SymbolicNames);
 
@@ -126,30 +131,60 @@ public partial class TransactQueryParser : Parser {
 	        return Property(owner, owner.Type.GetProperty(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.GetProperty | System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public));
 	    }
 
-        private static readonly MethodInfo[] EnumerableMethods = typeof(Enumerable).GetMethods();
-        private static readonly MethodInfo Contains2 = EnumerableMethods.Single(x => x.Name == "Contains" && x.GetParameters().Length == 2);
-        
-
 		private static Expression In(Expression lhs, Expression rhs)
 		{
+			var method = rhs.Type.GetMethod("Contains", new [] { lhs.Type });
 
-            MethodInfo method;
+			return Call(rhs, method, lhs);
+		}
 
-            var rhsType = rhs.Type;
-            System.Type elementType;
-            if(rhs.Type.IsArray)
-            {
-                elementType = rhs.Type.GetElementType();
-            }
-            else
-            {
-                elementType = rhs.Type.GetGenericArguments()[0];
-            }
+		private string Unescape(string input, char tokenBarrier)
+		{
+			var builder = new System.Text.StringBuilder(input.Length);
 
-            
-            method = Contains2.MakeGenericMethod(rhs.Type.GetElementType());
+			bool lastWasSlash = false;
+			int lastCodePoint = 0;
 
-            return Call(method, rhs, lhs);
+			for (int i = 0; i < input.Length; ++i)
+			{
+				char c = input[i];
+				if (c == '\\')
+				{
+					lastWasSlash = !lastWasSlash;
+				}
+				else if (lastWasSlash)
+				{
+					int copyLen = i - lastCodePoint - 1;
+					builder.Append(input.Substring(lastCodePoint, copyLen));
+				
+					if (c == 'n')
+					{
+						builder.Append('\n');
+					}
+					else if (c == 'r')
+					{
+						builder.Append('\r');
+					}
+					else if (c == tokenBarrier)
+					{
+						builder.Append(tokenBarrier);
+					}
+					else if (c == 't')
+					{
+						builder.Append('\t');
+					}
+					lastCodePoint = i + 1;
+					lastWasSlash = false;
+				}
+			
+			}
+
+			if (lastCodePoint < input.Length)
+			{
+				builder.Append(input.Substring(lastCodePoint));
+			}
+			
+			return builder.ToString();
 		}
 
 	public TransactQueryParser(ITokenStream input)
@@ -176,22 +211,22 @@ public partial class TransactQueryParser : Parser {
 		CompileUnitContext _localctx = new CompileUnitContext(_ctx, State);
 		EnterRule(_localctx, 0, RULE_compileUnit);
 		try {
-			State = 58;
+			State = 60;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,0,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 52; _localctx._expression = expression();
+				State = 54; _localctx._expression = expression();
 				 _localctx.expr =  _localctx._expression.expr; 
-				State = 54; Match(Eof);
+				State = 56; Match(Eof);
 				}
 				break;
 
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 56; Match(Eof);
+				State = 58; Match(Eof);
 				}
 				break;
 
@@ -233,7 +268,7 @@ public partial class TransactQueryParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 60; _localctx._containmentExpression = containmentExpression(0);
+			State = 62; _localctx._containmentExpression = containmentExpression(0);
 			 _localctx.expr =  _localctx._containmentExpression.expr; 
 			}
 		}
@@ -284,11 +319,11 @@ public partial class TransactQueryParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			{
-			State = 64; _localctx._orExpression = orExpression(0);
+			State = 66; _localctx._orExpression = orExpression(0);
 			 _localctx.expr =  _localctx._orExpression.expr; 
 			}
 			_ctx.stop = _input.Lt(-1);
-			State = 74;
+			State = 76;
 			_errHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(_input,1,_ctx);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.InvalidAltNumber ) {
@@ -300,15 +335,15 @@ public partial class TransactQueryParser : Parser {
 					_localctx = new ContainmentExpressionContext(_parentctx, _parentState);
 					_localctx.lhs = _prevctx;
 					PushNewRecursionContext(_localctx, _startState, RULE_containmentExpression);
-					State = 67;
+					State = 69;
 					if (!(Precpred(_ctx, 2))) throw new FailedPredicateException(this, "Precpred(_ctx, 2)");
-					State = 68; Match(IN);
-					State = 69; _localctx.rhs = _localctx._orExpression = orExpression(0);
+					State = 70; Match(IN);
+					State = 71; _localctx.rhs = _localctx._orExpression = orExpression(0);
 					 _localctx.expr =  In(_localctx.lhs.expr, _localctx.rhs.expr); 
 					}
 					} 
 				}
-				State = 76;
+				State = 78;
 				_errHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(_input,1,_ctx);
 			}
@@ -361,11 +396,11 @@ public partial class TransactQueryParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			{
-			State = 78; _localctx._xorExpression = xorExpression(0);
+			State = 80; _localctx._xorExpression = xorExpression(0);
 			 _localctx.expr =  _localctx._xorExpression.expr; 
 			}
 			_ctx.stop = _input.Lt(-1);
-			State = 88;
+			State = 90;
 			_errHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(_input,2,_ctx);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.InvalidAltNumber ) {
@@ -377,15 +412,15 @@ public partial class TransactQueryParser : Parser {
 					_localctx = new OrExpressionContext(_parentctx, _parentState);
 					_localctx.lhs = _prevctx;
 					PushNewRecursionContext(_localctx, _startState, RULE_orExpression);
-					State = 81;
+					State = 83;
 					if (!(Precpred(_ctx, 2))) throw new FailedPredicateException(this, "Precpred(_ctx, 2)");
-					State = 82; Match(OR);
-					State = 83; _localctx.rhs = _localctx._xorExpression = xorExpression(0);
+					State = 84; Match(OR);
+					State = 85; _localctx.rhs = _localctx._xorExpression = xorExpression(0);
 					 _localctx.expr =  OrElse(_localctx.lhs.expr, _localctx.rhs.expr); 
 					}
 					} 
 				}
-				State = 90;
+				State = 92;
 				_errHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(_input,2,_ctx);
 			}
@@ -438,11 +473,11 @@ public partial class TransactQueryParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			{
-			State = 92; _localctx._andExpression = andExpression(0);
+			State = 94; _localctx._andExpression = andExpression(0);
 			 _localctx.expr =  _localctx._andExpression.expr; 
 			}
 			_ctx.stop = _input.Lt(-1);
-			State = 102;
+			State = 104;
 			_errHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(_input,3,_ctx);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.InvalidAltNumber ) {
@@ -454,15 +489,15 @@ public partial class TransactQueryParser : Parser {
 					_localctx = new XorExpressionContext(_parentctx, _parentState);
 					_localctx.lhs = _prevctx;
 					PushNewRecursionContext(_localctx, _startState, RULE_xorExpression);
-					State = 95;
+					State = 97;
 					if (!(Precpred(_ctx, 2))) throw new FailedPredicateException(this, "Precpred(_ctx, 2)");
-					State = 96; Match(XOR);
-					State = 97; _localctx.rhs = _localctx._andExpression = andExpression(0);
+					State = 98; Match(XOR);
+					State = 99; _localctx.rhs = _localctx._andExpression = andExpression(0);
 					 _localctx.expr =  ExclusiveOr(_localctx.lhs.expr, _localctx.rhs.expr); 
 					}
 					} 
 				}
-				State = 104;
+				State = 106;
 				_errHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(_input,3,_ctx);
 			}
@@ -515,11 +550,11 @@ public partial class TransactQueryParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			{
-			State = 106; _localctx._equalityExpression = equalityExpression(0);
+			State = 108; _localctx._equalityExpression = equalityExpression(0);
 			 _localctx.expr =  _localctx._equalityExpression.expr; 
 			}
 			_ctx.stop = _input.Lt(-1);
-			State = 116;
+			State = 118;
 			_errHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(_input,4,_ctx);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.InvalidAltNumber ) {
@@ -531,15 +566,15 @@ public partial class TransactQueryParser : Parser {
 					_localctx = new AndExpressionContext(_parentctx, _parentState);
 					_localctx.lhs = _prevctx;
 					PushNewRecursionContext(_localctx, _startState, RULE_andExpression);
-					State = 109;
+					State = 111;
 					if (!(Precpred(_ctx, 2))) throw new FailedPredicateException(this, "Precpred(_ctx, 2)");
-					State = 110; Match(AND);
-					State = 111; _localctx.rhs = _localctx._equalityExpression = equalityExpression(0);
+					State = 112; Match(AND);
+					State = 113; _localctx.rhs = _localctx._equalityExpression = equalityExpression(0);
 					 _localctx.expr =  AndAlso(_localctx.lhs.expr, _localctx.rhs.expr); 
 					}
 					} 
 				}
-				State = 118;
+				State = 120;
 				_errHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(_input,4,_ctx);
 			}
@@ -593,11 +628,11 @@ public partial class TransactQueryParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			{
-			State = 120; _localctx._comparisonExpression = comparisonExpression(0);
+			State = 122; _localctx._comparisonExpression = comparisonExpression(0);
 			 _localctx.expr =  _localctx._comparisonExpression.expr; 
 			}
 			_ctx.stop = _input.Lt(-1);
-			State = 135;
+			State = 137;
 			_errHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(_input,6,_ctx);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.InvalidAltNumber ) {
@@ -605,7 +640,7 @@ public partial class TransactQueryParser : Parser {
 					if ( _parseListeners!=null ) TriggerExitRuleEvent();
 					_prevctx = _localctx;
 					{
-					State = 133;
+					State = 135;
 					_errHandler.Sync(this);
 					switch ( Interpreter.AdaptivePredict(_input,5,_ctx) ) {
 					case 1:
@@ -613,10 +648,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new EqualityExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_equalityExpression);
-						State = 123;
+						State = 125;
 						if (!(Precpred(_ctx, 3))) throw new FailedPredicateException(this, "Precpred(_ctx, 3)");
-						State = 124; Match(EQ);
-						State = 125; _localctx.rhs = _localctx._comparisonExpression = comparisonExpression(0);
+						State = 126; Match(EQ);
+						State = 127; _localctx.rhs = _localctx._comparisonExpression = comparisonExpression(0);
 
 						          		if(_localctx.lhs.expr.Type == typeof(JsonValue) || _localctx.rhs.expr.Type == typeof(JsonValue)) {
 						          			_localctx.expr =  Equal(_localctx.lhs.expr, _localctx.rhs.expr, false,  typeof(JsonValue).GetMethod("Equals", new [] { _localctx.lhs.expr.Type, _localctx.rhs.expr.Type }));
@@ -624,8 +659,6 @@ public partial class TransactQueryParser : Parser {
 						          		else { 
 						          			_localctx.expr =  Equal(_localctx.lhs.expr, _localctx.rhs.expr);
 						          		}
-						          				
-						          	
 						}
 						break;
 
@@ -634,10 +667,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new EqualityExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_equalityExpression);
-						State = 128;
+						State = 130;
 						if (!(Precpred(_ctx, 2))) throw new FailedPredicateException(this, "Precpred(_ctx, 2)");
-						State = 129; Match(NOT_EQ);
-						State = 130; _localctx.rhs = _localctx._comparisonExpression = comparisonExpression(0);
+						State = 131; Match(NOT_EQ);
+						State = 132; _localctx.rhs = _localctx._comparisonExpression = comparisonExpression(0);
 
 						          					_localctx.expr =  NotEqual(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -646,7 +679,7 @@ public partial class TransactQueryParser : Parser {
 					}
 					} 
 				}
-				State = 137;
+				State = 139;
 				_errHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(_input,6,_ctx);
 			}
@@ -702,11 +735,11 @@ public partial class TransactQueryParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			{
-			State = 139; _localctx._additiveExpression = additiveExpression(0);
+			State = 141; _localctx._additiveExpression = additiveExpression(0);
 			 _localctx.expr =  _localctx._additiveExpression.expr; 
 			}
 			_ctx.stop = _input.Lt(-1);
-			State = 164;
+			State = 166;
 			_errHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(_input,8,_ctx);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.InvalidAltNumber ) {
@@ -714,7 +747,7 @@ public partial class TransactQueryParser : Parser {
 					if ( _parseListeners!=null ) TriggerExitRuleEvent();
 					_prevctx = _localctx;
 					{
-					State = 162;
+					State = 164;
 					_errHandler.Sync(this);
 					switch ( Interpreter.AdaptivePredict(_input,7,_ctx) ) {
 					case 1:
@@ -722,10 +755,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new ComparisonExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_comparisonExpression);
-						State = 142;
+						State = 144;
 						if (!(Precpred(_ctx, 5))) throw new FailedPredicateException(this, "Precpred(_ctx, 5)");
-						State = 143; Match(GREATER);
-						State = 144; _localctx.rhs = _localctx._additiveExpression = additiveExpression(0);
+						State = 145; Match(GREATER);
+						State = 146; _localctx.rhs = _localctx._additiveExpression = additiveExpression(0);
 
 						          		_localctx.expr =  GreaterThan(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -737,10 +770,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new ComparisonExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_comparisonExpression);
-						State = 147;
+						State = 149;
 						if (!(Precpred(_ctx, 4))) throw new FailedPredicateException(this, "Precpred(_ctx, 4)");
-						State = 148; Match(GREATER_OR_EQUAL);
-						State = 149; _localctx.rhs = _localctx._additiveExpression = additiveExpression(0);
+						State = 150; Match(GREATER_OR_EQUAL);
+						State = 151; _localctx.rhs = _localctx._additiveExpression = additiveExpression(0);
 
 						          		_localctx.expr =  GreaterThanOrEqual(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -752,10 +785,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new ComparisonExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_comparisonExpression);
-						State = 152;
+						State = 154;
 						if (!(Precpred(_ctx, 3))) throw new FailedPredicateException(this, "Precpred(_ctx, 3)");
-						State = 153; Match(LESS);
-						State = 154; _localctx.rhs = _localctx._additiveExpression = additiveExpression(0);
+						State = 155; Match(LESS);
+						State = 156; _localctx.rhs = _localctx._additiveExpression = additiveExpression(0);
 
 						          		_localctx.expr =  LessThan(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -767,10 +800,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new ComparisonExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_comparisonExpression);
-						State = 157;
+						State = 159;
 						if (!(Precpred(_ctx, 2))) throw new FailedPredicateException(this, "Precpred(_ctx, 2)");
-						State = 158; Match(LESS_OR_EQUAL);
-						State = 159; _localctx.rhs = _localctx._additiveExpression = additiveExpression(0);
+						State = 160; Match(LESS_OR_EQUAL);
+						State = 161; _localctx.rhs = _localctx._additiveExpression = additiveExpression(0);
 
 						          		_localctx.expr =  LessThanOrEqual(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -779,7 +812,7 @@ public partial class TransactQueryParser : Parser {
 					}
 					} 
 				}
-				State = 166;
+				State = 168;
 				_errHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(_input,8,_ctx);
 			}
@@ -833,11 +866,11 @@ public partial class TransactQueryParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			{
-			State = 168; _localctx._multiplicativeExpression = multiplicativeExpression(0);
+			State = 170; _localctx._multiplicativeExpression = multiplicativeExpression(0);
 			 _localctx.expr =  _localctx._multiplicativeExpression.expr; 
 			}
 			_ctx.stop = _input.Lt(-1);
-			State = 183;
+			State = 185;
 			_errHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(_input,10,_ctx);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.InvalidAltNumber ) {
@@ -845,7 +878,7 @@ public partial class TransactQueryParser : Parser {
 					if ( _parseListeners!=null ) TriggerExitRuleEvent();
 					_prevctx = _localctx;
 					{
-					State = 181;
+					State = 183;
 					_errHandler.Sync(this);
 					switch ( Interpreter.AdaptivePredict(_input,9,_ctx) ) {
 					case 1:
@@ -853,10 +886,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new AdditiveExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_additiveExpression);
-						State = 171;
+						State = 173;
 						if (!(Precpred(_ctx, 3))) throw new FailedPredicateException(this, "Precpred(_ctx, 3)");
-						State = 172; Match(ADD);
-						State = 173; _localctx.rhs = _localctx._multiplicativeExpression = multiplicativeExpression(0);
+						State = 174; Match(ADD);
+						State = 175; _localctx.rhs = _localctx._multiplicativeExpression = multiplicativeExpression(0);
 
 						          		_localctx.expr =  Add(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -868,10 +901,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new AdditiveExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_additiveExpression);
-						State = 176;
+						State = 178;
 						if (!(Precpred(_ctx, 2))) throw new FailedPredicateException(this, "Precpred(_ctx, 2)");
-						State = 177; Match(SUB);
-						State = 178; _localctx.rhs = _localctx._multiplicativeExpression = multiplicativeExpression(0);
+						State = 179; Match(SUB);
+						State = 180; _localctx.rhs = _localctx._multiplicativeExpression = multiplicativeExpression(0);
 
 						          		_localctx.expr =  Subtract(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -880,7 +913,7 @@ public partial class TransactQueryParser : Parser {
 					}
 					} 
 				}
-				State = 185;
+				State = 187;
 				_errHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(_input,10,_ctx);
 			}
@@ -935,11 +968,11 @@ public partial class TransactQueryParser : Parser {
 			EnterOuterAlt(_localctx, 1);
 			{
 			{
-			State = 187; _localctx._unaryExpression = unaryExpression();
+			State = 189; _localctx._unaryExpression = unaryExpression();
 			 _localctx.expr =  _localctx._unaryExpression.expr; 
 			}
 			_ctx.stop = _input.Lt(-1);
-			State = 207;
+			State = 209;
 			_errHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(_input,12,_ctx);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.InvalidAltNumber ) {
@@ -947,7 +980,7 @@ public partial class TransactQueryParser : Parser {
 					if ( _parseListeners!=null ) TriggerExitRuleEvent();
 					_prevctx = _localctx;
 					{
-					State = 205;
+					State = 207;
 					_errHandler.Sync(this);
 					switch ( Interpreter.AdaptivePredict(_input,11,_ctx) ) {
 					case 1:
@@ -955,10 +988,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new MultiplicativeExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_multiplicativeExpression);
-						State = 190;
+						State = 192;
 						if (!(Precpred(_ctx, 4))) throw new FailedPredicateException(this, "Precpred(_ctx, 4)");
-						State = 191; Match(MUL);
-						State = 192; _localctx.rhs = _localctx._unaryExpression = unaryExpression();
+						State = 193; Match(MUL);
+						State = 194; _localctx.rhs = _localctx._unaryExpression = unaryExpression();
 
 						          		_localctx.expr =  Multiply(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -970,10 +1003,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new MultiplicativeExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_multiplicativeExpression);
-						State = 195;
+						State = 197;
 						if (!(Precpred(_ctx, 3))) throw new FailedPredicateException(this, "Precpred(_ctx, 3)");
-						State = 196; Match(DIV);
-						State = 197; _localctx.rhs = _localctx._unaryExpression = unaryExpression();
+						State = 198; Match(DIV);
+						State = 199; _localctx.rhs = _localctx._unaryExpression = unaryExpression();
 
 						          		_localctx.expr =  Divide(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -985,10 +1018,10 @@ public partial class TransactQueryParser : Parser {
 						_localctx = new MultiplicativeExpressionContext(_parentctx, _parentState);
 						_localctx.lhs = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_multiplicativeExpression);
-						State = 200;
+						State = 202;
 						if (!(Precpred(_ctx, 2))) throw new FailedPredicateException(this, "Precpred(_ctx, 2)");
-						State = 201; Match(MOD);
-						State = 202; _localctx.rhs = _localctx._unaryExpression = unaryExpression();
+						State = 203; Match(MOD);
+						State = 204; _localctx.rhs = _localctx._unaryExpression = unaryExpression();
 
 						          		_localctx.expr =  Modulo(_localctx.lhs.expr, _localctx.rhs.expr);
 						          	
@@ -997,7 +1030,7 @@ public partial class TransactQueryParser : Parser {
 					}
 					} 
 				}
-				State = 209;
+				State = 211;
 				_errHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(_input,12,_ctx);
 			}
@@ -1042,14 +1075,14 @@ public partial class TransactQueryParser : Parser {
 		UnaryExpressionContext _localctx = new UnaryExpressionContext(_ctx, State);
 		EnterRule(_localctx, 20, RULE_unaryExpression);
 		try {
-			State = 226;
+			State = 228;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,13,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 210; Match(NOT);
-				State = 211; _localctx._unaryExpression = unaryExpression();
+				State = 212; Match(NOT);
+				State = 213; _localctx._unaryExpression = unaryExpression();
 				 
 						_localctx.expr =  Not(_localctx.expr);
 					
@@ -1059,8 +1092,8 @@ public partial class TransactQueryParser : Parser {
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 214; Match(SUB);
-				State = 215; _localctx._unaryExpression = unaryExpression();
+				State = 216; Match(SUB);
+				State = 217; _localctx._unaryExpression = unaryExpression();
 
 						_localctx.expr =  Negate(_localctx.expr);
 					
@@ -1070,17 +1103,17 @@ public partial class TransactQueryParser : Parser {
 			case 3:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 218; Match(T__0);
-				State = 219; _localctx._expression = expression();
+				State = 220; Match(T__0);
+				State = 221; _localctx._expression = expression();
 				 _localctx.expr =  _localctx._expression.expr; 
-				State = 221; Match(T__1);
+				State = 223; Match(T__1);
 				}
 				break;
 
 			case 4:
 				EnterOuterAlt(_localctx, 4);
 				{
-				State = 223; _localctx._literalExpression = literalExpression();
+				State = 225; _localctx._literalExpression = literalExpression();
 				 _localctx.expr =  _localctx._literalExpression.expr; 
 				}
 				break;
@@ -1117,7 +1150,7 @@ public partial class TransactQueryParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 228; _localctx._logicalExpression = logicalExpression();
+			State = 230; _localctx._logicalExpression = logicalExpression();
 			 _localctx.expr =  _localctx._logicalExpression.expr; 
 			}
 		}
@@ -1139,6 +1172,7 @@ public partial class TransactQueryParser : Parser {
 		public QuotedStringContext _quotedString;
 		public SingleQuotedStringContext _singleQuotedString;
 		public DateContext _date;
+		public PeriodContext _period;
 		public GuidContext _guid;
 		public IdentifierChainContext _identifierChain;
 		public ArrayContext _array;
@@ -1156,6 +1190,9 @@ public partial class TransactQueryParser : Parser {
 		}
 		public DateContext date() {
 			return GetRuleContext<DateContext>(0);
+		}
+		public PeriodContext period() {
+			return GetRuleContext<PeriodContext>(0);
 		}
 		public GuidContext guid() {
 			return GetRuleContext<GuidContext>(0);
@@ -1178,13 +1215,13 @@ public partial class TransactQueryParser : Parser {
 		LiteralExpressionContext _localctx = new LiteralExpressionContext(_ctx, State);
 		EnterRule(_localctx, 24, RULE_literalExpression);
 		try {
-			State = 255;
+			State = 260;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,14,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 231; _localctx._float = @float();
+				State = 233; _localctx._float = @float();
 				 _localctx.expr =  Constant(_localctx._float.value, typeof(float));
 				}
 				break;
@@ -1192,7 +1229,7 @@ public partial class TransactQueryParser : Parser {
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 234; _localctx._integer = integer();
+				State = 236; _localctx._integer = integer();
 				 _localctx.expr =  Constant(_localctx._integer.value, typeof(int)); 
 				}
 				break;
@@ -1200,7 +1237,7 @@ public partial class TransactQueryParser : Parser {
 			case 3:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 237; _localctx._quotedString = quotedString();
+				State = 239; _localctx._quotedString = quotedString();
 				 _localctx.expr =  Constant(_localctx._quotedString.value, typeof(string)); 
 				}
 				break;
@@ -1208,7 +1245,7 @@ public partial class TransactQueryParser : Parser {
 			case 4:
 				EnterOuterAlt(_localctx, 4);
 				{
-				State = 240; _localctx._singleQuotedString = singleQuotedString();
+				State = 242; _localctx._singleQuotedString = singleQuotedString();
 				 _localctx.expr =  Constant(_localctx._singleQuotedString.value, typeof(string)); 
 				}
 				break;
@@ -1216,7 +1253,7 @@ public partial class TransactQueryParser : Parser {
 			case 5:
 				EnterOuterAlt(_localctx, 5);
 				{
-				State = 243; _localctx._date = date();
+				State = 245; _localctx._date = date();
 				 _localctx.expr =  Constant(_localctx._date.value, typeof(System.DateTime)); 
 				}
 				break;
@@ -1224,23 +1261,31 @@ public partial class TransactQueryParser : Parser {
 			case 6:
 				EnterOuterAlt(_localctx, 6);
 				{
-				State = 246; _localctx._guid = guid();
-				 _localctx.expr =  Constant(_localctx._guid.value, typeof(System.Guid)); 
+				State = 248; _localctx._period = period();
+				 _localctx.expr =  Constant(_localctx._period.value, typeof(System.TimeSpan)); 
 				}
 				break;
 
 			case 7:
 				EnterOuterAlt(_localctx, 7);
 				{
-				State = 249; _localctx._identifierChain = identifierChain();
-				 _localctx.expr =  _localctx._identifierChain.expr; 
+				State = 251; _localctx._guid = guid();
+				 _localctx.expr =  Constant(_localctx._guid.value, typeof(System.Guid)); 
 				}
 				break;
 
 			case 8:
 				EnterOuterAlt(_localctx, 8);
 				{
-				State = 252; _localctx._array = array();
+				State = 254; _localctx._identifierChain = identifierChain();
+				 _localctx.expr =  _localctx._identifierChain.expr; 
+				}
+				break;
+
+			case 9:
+				EnterOuterAlt(_localctx, 9);
+				{
+				State = 257; _localctx._array = array();
 				 _localctx.expr =  _localctx._array.expr; 
 				}
 				break;
@@ -1284,13 +1329,13 @@ public partial class TransactQueryParser : Parser {
 		IdentifierChainContext _localctx = new IdentifierChainContext(_ctx, State);
 		EnterRule(_localctx, 26, RULE_identifierChain);
 		try {
-			State = 268;
+			State = 273;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,15,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 257; _localctx._constant = constant();
+				State = 262; _localctx._constant = constant();
 				 _localctx.expr =  _localctx._constant.expr; 
 				}
 				break;
@@ -1298,7 +1343,7 @@ public partial class TransactQueryParser : Parser {
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 260; _localctx._identifier = identifier();
+				State = 265; _localctx._identifier = identifier();
 
 						_localctx.expr =  GetPropertyCI(Transaction, _localctx._identifier.value);
 					
@@ -1308,9 +1353,9 @@ public partial class TransactQueryParser : Parser {
 			case 3:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 263; _localctx.owner = identifier();
-				State = 264; Match(T__2);
-				State = 265; _localctx.member = identifier();
+				State = 268; _localctx.owner = identifier();
+				State = 269; Match(T__2);
+				State = 270; _localctx.member = identifier();
 
 							string dynamicObject = _localctx.owner.value;
 							string memberName = _localctx.member.value;
@@ -1354,13 +1399,13 @@ public partial class TransactQueryParser : Parser {
 		ConstantContext _localctx = new ConstantContext(_ctx, State);
 		EnterRule(_localctx, 28, RULE_constant);
 		try {
-			State = 286;
+			State = 291;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,16,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 270; Match(NULL);
+				State = 275; Match(NULL);
 				 _localctx.expr =  Constant(null); 
 				}
 				break;
@@ -1368,7 +1413,7 @@ public partial class TransactQueryParser : Parser {
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 272; Match(TRUE);
+				State = 277; Match(TRUE);
 				 _localctx.expr =  Constant(true); 
 				}
 				break;
@@ -1376,7 +1421,7 @@ public partial class TransactQueryParser : Parser {
 			case 3:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 274; Match(FALSE);
+				State = 279; Match(FALSE);
 				 _localctx.expr =  Constant(false); 
 				}
 				break;
@@ -1384,7 +1429,7 @@ public partial class TransactQueryParser : Parser {
 			case 4:
 				EnterOuterAlt(_localctx, 4);
 				{
-				State = 276; Match(INITIALIZED);
+				State = 281; Match(INITIALIZED);
 				 _localctx.expr =  Constant(TransactionState.Initialized); 
 				}
 				break;
@@ -1392,7 +1437,7 @@ public partial class TransactQueryParser : Parser {
 			case 5:
 				EnterOuterAlt(_localctx, 5);
 				{
-				State = 278; Match(AUTHORIZED);
+				State = 283; Match(AUTHORIZED);
 				 _localctx.expr =  Constant(TransactionState.Authorized); 
 				}
 				break;
@@ -1400,7 +1445,7 @@ public partial class TransactQueryParser : Parser {
 			case 6:
 				EnterOuterAlt(_localctx, 6);
 				{
-				State = 280; Match(COMPLETED);
+				State = 285; Match(COMPLETED);
 				_localctx.expr =  Constant(TransactionState.Completed); 
 				}
 				break;
@@ -1408,7 +1453,7 @@ public partial class TransactQueryParser : Parser {
 			case 7:
 				EnterOuterAlt(_localctx, 7);
 				{
-				State = 282; Match(CANCELLED);
+				State = 287; Match(CANCELLED);
 				 _localctx.expr =  Constant(TransactionState.Cancelled); 
 				}
 				break;
@@ -1416,7 +1461,7 @@ public partial class TransactQueryParser : Parser {
 			case 8:
 				EnterOuterAlt(_localctx, 8);
 				{
-				State = 284; Match(FAILED);
+				State = 289; Match(FAILED);
 				 _localctx.expr =  Constant(TransactionState.Failed); 
 				}
 				break;
@@ -1457,14 +1502,14 @@ public partial class TransactQueryParser : Parser {
 		IdentifierContext _localctx = new IdentifierContext(_ctx, State);
 		EnterRule(_localctx, 30, RULE_identifier);
 		try {
-			State = 298;
+			State = 303;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,17,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 288; Match(T__3);
-				State = 289; _localctx._quotedString = quotedString();
+				State = 293; Match(T__3);
+				State = 294; _localctx._quotedString = quotedString();
 				 _localctx.value =  _localctx._quotedString.value; 
 				}
 				break;
@@ -1472,8 +1517,8 @@ public partial class TransactQueryParser : Parser {
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 292; Match(T__3);
-				State = 293; _localctx._singleQuotedString = singleQuotedString();
+				State = 297; Match(T__3);
+				State = 298; _localctx._singleQuotedString = singleQuotedString();
 				 _localctx.value =  _localctx._singleQuotedString.value; 
 				}
 				break;
@@ -1481,7 +1526,7 @@ public partial class TransactQueryParser : Parser {
 			case 3:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 296; _localctx._ID = Match(ID);
+				State = 301; _localctx._ID = Match(ID);
 				 _localctx.value =  (_localctx._ID!=null?_localctx._ID.Text:null); 
 				}
 				break;
@@ -1516,8 +1561,8 @@ public partial class TransactQueryParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 300; _localctx._QUOTED_STRING = Match(QUOTED_STRING);
-			 _localctx.value =  (_localctx._QUOTED_STRING!=null?_localctx._QUOTED_STRING.Text:null).Substring(1, (_localctx._QUOTED_STRING!=null?_localctx._QUOTED_STRING.Text:null).Length - 2); 
+			State = 305; _localctx._QUOTED_STRING = Match(QUOTED_STRING);
+			 _localctx.value =  Unescape((_localctx._QUOTED_STRING!=null?_localctx._QUOTED_STRING.Text:null).Substring(1, (_localctx._QUOTED_STRING!=null?_localctx._QUOTED_STRING.Text:null).Length - 2), '"'); 
 			}
 		}
 		catch (RecognitionException re) {
@@ -1549,8 +1594,8 @@ public partial class TransactQueryParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 303; _localctx._SINGLE_QUOTED_STRING = Match(SINGLE_QUOTED_STRING);
-			 _localctx.value =  (_localctx._SINGLE_QUOTED_STRING!=null?_localctx._SINGLE_QUOTED_STRING.Text:null).Substring(1, (_localctx._SINGLE_QUOTED_STRING!=null?_localctx._SINGLE_QUOTED_STRING.Text:null).Length - 2); 
+			State = 308; _localctx._SINGLE_QUOTED_STRING = Match(SINGLE_QUOTED_STRING);
+			 _localctx.value =  Unescape((_localctx._SINGLE_QUOTED_STRING!=null?_localctx._SINGLE_QUOTED_STRING.Text:null).Substring(1, (_localctx._SINGLE_QUOTED_STRING!=null?_localctx._SINGLE_QUOTED_STRING.Text:null).Length - 2), '\''); 
 			}
 		}
 		catch (RecognitionException re) {
@@ -1585,23 +1630,13 @@ public partial class TransactQueryParser : Parser {
 		FloatContext _localctx = new FloatContext(_ctx, State);
 		EnterRule(_localctx, 36, RULE_float);
 		try {
-			State = 328;
+			State = 333;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,18,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 306; Match(INT);
-				State = 307; Match(T__2);
-				State = 308; Match(INT);
-				State = 309; exponent();
-				 _localctx.value =  double.Parse(_localctx.GetText(), System.Globalization.CultureInfo.InvariantCulture); 
-				}
-				break;
-
-			case 2:
-				EnterOuterAlt(_localctx, 2);
-				{
+				State = 311; Match(INT);
 				State = 312; Match(T__2);
 				State = 313; Match(INT);
 				State = 314; exponent();
@@ -1609,11 +1644,21 @@ public partial class TransactQueryParser : Parser {
 				}
 				break;
 
+			case 2:
+				EnterOuterAlt(_localctx, 2);
+				{
+				State = 317; Match(T__2);
+				State = 318; Match(INT);
+				State = 319; exponent();
+				 _localctx.value =  double.Parse(_localctx.GetText(), System.Globalization.CultureInfo.InvariantCulture); 
+				}
+				break;
+
 			case 3:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 317; Match(INT);
-				State = 318; exponent();
+				State = 322; Match(INT);
+				State = 323; exponent();
 				 _localctx.value =  double.Parse(_localctx.GetText(), System.Globalization.CultureInfo.InvariantCulture); 
 				}
 				break;
@@ -1621,9 +1666,9 @@ public partial class TransactQueryParser : Parser {
 			case 4:
 				EnterOuterAlt(_localctx, 4);
 				{
-				State = 321; Match(INT);
-				State = 322; Match(T__2);
-				State = 323; Match(INT);
+				State = 326; Match(INT);
+				State = 327; Match(T__2);
+				State = 328; Match(INT);
 				 _localctx.value =  double.Parse(_localctx.GetText(), System.Globalization.CultureInfo.InvariantCulture); 
 				}
 				break;
@@ -1631,8 +1676,8 @@ public partial class TransactQueryParser : Parser {
 			case 5:
 				EnterOuterAlt(_localctx, 5);
 				{
-				State = 325; Match(T__2);
-				State = 326; Match(INT);
+				State = 330; Match(T__2);
+				State = 331; Match(INT);
 				 _localctx.value =  double.Parse(_localctx.GetText(), System.Globalization.CultureInfo.InvariantCulture); 
 				}
 				break;
@@ -1667,7 +1712,7 @@ public partial class TransactQueryParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 330; _localctx._INT = Match(INT);
+			State = 335; _localctx._INT = Match(INT);
 			 _localctx.value =  int.Parse((_localctx._INT!=null?_localctx._INT.Text:null), System.Globalization.CultureInfo.InvariantCulture); 
 			}
 		}
@@ -1701,15 +1746,15 @@ public partial class TransactQueryParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 333; Match(T__4);
-			State = 334;
+			State = 338; Match(T__4);
+			State = 339;
 			_la = _input.La(1);
 			if ( !(_la==SUB || _la==ADD) ) {
 			_errHandler.RecoverInline(this);
 			} else {
 				Consume();
 			}
-			State = 335; Match(INT);
+			State = 340; Match(INT);
 			}
 		}
 		catch (RecognitionException re) {
@@ -1739,13 +1784,13 @@ public partial class TransactQueryParser : Parser {
 		BooleanContext _localctx = new BooleanContext(_ctx, State);
 		EnterRule(_localctx, 42, RULE_boolean);
 		try {
-			State = 341;
+			State = 346;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,19,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 337; Match(TRUE);
+				State = 342; Match(TRUE);
 				 _localctx.value =  true; 
 				}
 				break;
@@ -1753,7 +1798,7 @@ public partial class TransactQueryParser : Parser {
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 339; Match(FALSE);
+				State = 344; Match(FALSE);
 				 _localctx.value =  false; 
 				}
 				break;
@@ -1787,7 +1832,7 @@ public partial class TransactQueryParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 343; Match(NULL);
+			State = 348; Match(NULL);
 			 _localctx.value =  null; 
 			}
 		}
@@ -1818,13 +1863,13 @@ public partial class TransactQueryParser : Parser {
 		GuidContext _localctx = new GuidContext(_ctx, State);
 		EnterRule(_localctx, 46, RULE_guid);
 		try {
-			State = 350;
+			State = 355;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,20,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 346; Match(GUID_SLASH);
+				State = 351; Match(GUID_SLASH);
 				 _localctx.value =  System.Guid.Parse(_localctx.GetText()); 
 				}
 				break;
@@ -1832,7 +1877,7 @@ public partial class TransactQueryParser : Parser {
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 348; Match(GUID);
+				State = 353; Match(GUID);
 				 _localctx.value =  System.Guid.Parse(_localctx.GetText()); 
 				}
 				break;
@@ -1867,14 +1912,14 @@ public partial class TransactQueryParser : Parser {
 		DateContext _localctx = new DateContext(_ctx, State);
 		EnterRule(_localctx, 48, RULE_date);
 		try {
-			State = 358;
+			State = 363;
 			_errHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(_input,21,_ctx) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 352; Match(T__5);
-				State = 353; _localctx._DATE = Match(DATE);
+				State = 357; Match(T__5);
+				State = 358; _localctx._DATE = Match(DATE);
 				 _localctx.value =  System.DateTime.ParseExact((_localctx._DATE!=null?_localctx._DATE.Text:null), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture); 
 				}
 				break;
@@ -1882,11 +1927,131 @@ public partial class TransactQueryParser : Parser {
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 355; Match(T__5);
-				State = 356; _localctx._DATETIME = Match(DATETIME);
+				State = 360; Match(T__5);
+				State = 361; _localctx._DATETIME = Match(DATETIME);
 				 _localctx.value =  System.DateTime.ParseExact((_localctx._DATETIME!=null?_localctx._DATETIME.Text:null), new [] { "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.fff" }, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal); 
 				}
 				break;
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.ReportError(this, re);
+			_errHandler.Recover(this, re);
+		}
+		finally {
+			ExitRule();
+		}
+		return _localctx;
+	}
+
+	public partial class PeriodContext : ParserRuleContext {
+		public System.TimeSpan value;
+		public IToken _P_YEARS;
+		public IToken _P_MONTHS;
+		public IToken _P_DAYS;
+		public IToken _P_HOURS;
+		public IToken _P_MINUTES;
+		public IToken _P_SECONDS;
+		public ITerminalNode P_YEARS() { return GetToken(TransactQueryParser.P_YEARS, 0); }
+		public ITerminalNode P_MONTHS() { return GetToken(TransactQueryParser.P_MONTHS, 0); }
+		public ITerminalNode P_DAYS() { return GetToken(TransactQueryParser.P_DAYS, 0); }
+		public ITerminalNode P_HOURS() { return GetToken(TransactQueryParser.P_HOURS, 0); }
+		public ITerminalNode P_MINUTES() { return GetToken(TransactQueryParser.P_MINUTES, 0); }
+		public ITerminalNode P_SECONDS() { return GetToken(TransactQueryParser.P_SECONDS, 0); }
+		public PeriodContext(ParserRuleContext parent, int invokingState)
+			: base(parent, invokingState)
+		{
+		}
+		public override int RuleIndex { get { return RULE_period; } }
+	}
+
+	[RuleVersion(0)]
+	public PeriodContext period() {
+		PeriodContext _localctx = new PeriodContext(_ctx, State);
+		EnterRule(_localctx, 50, RULE_period);
+		try {
+			EnterOuterAlt(_localctx, 1);
+			{
+			State = 365; Match(T__6);
+			State = 367;
+			_errHandler.Sync(this);
+			switch ( Interpreter.AdaptivePredict(_input,22,_ctx) ) {
+			case 1:
+				{
+				State = 366; _localctx._P_YEARS = Match(P_YEARS);
+				}
+				break;
+			}
+			State = 370;
+			_errHandler.Sync(this);
+			switch ( Interpreter.AdaptivePredict(_input,23,_ctx) ) {
+			case 1:
+				{
+				State = 369; _localctx._P_MONTHS = Match(P_MONTHS);
+				}
+				break;
+			}
+			State = 373;
+			_errHandler.Sync(this);
+			switch ( Interpreter.AdaptivePredict(_input,24,_ctx) ) {
+			case 1:
+				{
+				State = 372; _localctx._P_DAYS = Match(P_DAYS);
+				}
+				break;
+			}
+			{
+			State = 375; Match(T__7);
+			State = 377;
+			_errHandler.Sync(this);
+			switch ( Interpreter.AdaptivePredict(_input,25,_ctx) ) {
+			case 1:
+				{
+				State = 376; _localctx._P_HOURS = Match(P_HOURS);
+				}
+				break;
+			}
+			State = 380;
+			_errHandler.Sync(this);
+			switch ( Interpreter.AdaptivePredict(_input,26,_ctx) ) {
+			case 1:
+				{
+				State = 379; _localctx._P_MINUTES = Match(P_MINUTES);
+				}
+				break;
+			}
+			State = 383;
+			_errHandler.Sync(this);
+			switch ( Interpreter.AdaptivePredict(_input,27,_ctx) ) {
+			case 1:
+				{
+				State = 382; _localctx._P_SECONDS = Match(P_SECONDS);
+				}
+				break;
+			}
+			}
+
+					System.TimeSpan timeSpan = new System.TimeSpan();
+					if(_localctx._P_YEARS != null) {
+						timeSpan = new System.TimeSpan(int.Parse((_localctx._P_YEARS!=null?_localctx._P_YEARS.Text:null).Substring(1)) * 365, 0, 0, 0);
+					}
+					if(_localctx._P_MONTHS != null) {
+						timeSpan = timeSpan.Add(new System.TimeSpan(int.Parse((_localctx._P_MONTHS!=null?_localctx._P_MONTHS.Text:null).Substring(1)) * 30, 0, 0, 0));
+					}
+					if(_localctx._P_DAYS != null) {
+						timeSpan = timeSpan.Add(new System.TimeSpan(int.Parse((_localctx._P_DAYS!=null?_localctx._P_DAYS.Text:null).Substring(1)), 0, 0, 0));
+					}
+					if(_localctx._P_HOURS != null) {
+						timeSpan = timeSpan.Add(new System.TimeSpan(int.Parse((_localctx._P_HOURS!=null?_localctx._P_HOURS.Text:null).Substring(1)), 0, 0));
+					}
+					if(_localctx._P_MINUTES != null) {
+						timeSpan = timeSpan.Add(new System.TimeSpan(0, int.Parse((_localctx._P_MINUTES!=null?_localctx._P_MINUTES.Text:null).Substring(1)), 0));
+					}
+					if(_localctx._P_SECONDS != null) {
+						timeSpan = timeSpan.Add(new System.TimeSpan(0, 0, int.Parse((_localctx._P_SECONDS!=null?_localctx._P_SECONDS.Text:null).Substring(1))));
+					}
+				 
 			}
 		}
 		catch (RecognitionException re) {
@@ -1920,40 +2085,40 @@ public partial class TransactQueryParser : Parser {
 	[RuleVersion(0)]
 	public ArrayContext array() {
 		ArrayContext _localctx = new ArrayContext(_ctx, State);
-		EnterRule(_localctx, 50, RULE_array);
+		EnterRule(_localctx, 52, RULE_array);
 		try {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 360; Match(T__6);
-			State = 369;
+			State = 387; Match(T__8);
+			State = 396;
 			_errHandler.Sync(this);
-			switch ( Interpreter.AdaptivePredict(_input,23,_ctx) ) {
+			switch ( Interpreter.AdaptivePredict(_input,29,_ctx) ) {
 			case 1:
 				{
-				State = 361; _localctx._expression = expression();
+				State = 388; _localctx._expression = expression();
 				_localctx._members.Add(_localctx._expression);
-				State = 366;
+				State = 393;
 				_errHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(_input,22,_ctx);
+				_alt = Interpreter.AdaptivePredict(_input,28,_ctx);
 				while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.InvalidAltNumber ) {
 					if ( _alt==1 ) {
 						{
 						{
-						State = 362; Match(T__7);
-						State = 363; _localctx._expression = expression();
+						State = 389; Match(T__9);
+						State = 390; _localctx._expression = expression();
 						_localctx._members.Add(_localctx._expression);
 						}
 						} 
 					}
-					State = 368;
+					State = 395;
 					_errHandler.Sync(this);
-					_alt = Interpreter.AdaptivePredict(_input,22,_ctx);
+					_alt = Interpreter.AdaptivePredict(_input,28,_ctx);
 				}
 				}
 				break;
 			}
-			State = 371; Match(T__8);
+			State = 398; Match(T__10);
 
 				var type = (_localctx._members)[0].expr.Type;
 				_localctx.expr =  NewArrayInit(type, (_localctx._members).Select(x => x.expr));
@@ -2055,152 +2220,166 @@ public partial class TransactQueryParser : Parser {
 	}
 
 	public static readonly string _serializedATN =
-		"\x3\xAF6F\x8320\x479D\xB75C\x4880\x1605\x191C\xAB37\x3,\x179\x4\x2\t\x2"+
-		"\x4\x3\t\x3\x4\x4\t\x4\x4\x5\t\x5\x4\x6\t\x6\x4\a\t\a\x4\b\t\b\x4\t\t"+
-		"\t\x4\n\t\n\x4\v\t\v\x4\f\t\f\x4\r\t\r\x4\xE\t\xE\x4\xF\t\xF\x4\x10\t"+
-		"\x10\x4\x11\t\x11\x4\x12\t\x12\x4\x13\t\x13\x4\x14\t\x14\x4\x15\t\x15"+
+		"\x3\xAF6F\x8320\x479D\xB75C\x4880\x1605\x191C\xAB37\x3\x34\x194\x4\x2"+
+		"\t\x2\x4\x3\t\x3\x4\x4\t\x4\x4\x5\t\x5\x4\x6\t\x6\x4\a\t\a\x4\b\t\b\x4"+
+		"\t\t\t\x4\n\t\n\x4\v\t\v\x4\f\t\f\x4\r\t\r\x4\xE\t\xE\x4\xF\t\xF\x4\x10"+
+		"\t\x10\x4\x11\t\x11\x4\x12\t\x12\x4\x13\t\x13\x4\x14\t\x14\x4\x15\t\x15"+
 		"\x4\x16\t\x16\x4\x17\t\x17\x4\x18\t\x18\x4\x19\t\x19\x4\x1A\t\x1A\x4\x1B"+
-		"\t\x1B\x3\x2\x3\x2\x3\x2\x3\x2\x3\x2\x3\x2\x5\x2=\n\x2\x3\x3\x3\x3\x3"+
-		"\x3\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4\a\x4K\n\x4\f"+
-		"\x4\xE\x4N\v\x4\x3\x5\x3\x5\x3\x5\x3\x5\x3\x5\x3\x5\x3\x5\x3\x5\x3\x5"+
-		"\a\x5Y\n\x5\f\x5\xE\x5\\\v\x5\x3\x6\x3\x6\x3\x6\x3\x6\x3\x6\x3\x6\x3\x6"+
-		"\x3\x6\x3\x6\a\x6g\n\x6\f\x6\xE\x6j\v\x6\x3\a\x3\a\x3\a\x3\a\x3\a\x3\a"+
-		"\x3\a\x3\a\x3\a\a\au\n\a\f\a\xE\ax\v\a\x3\b\x3\b\x3\b\x3\b\x3\b\x3\b\x3"+
-		"\b\x3\b\x3\b\x3\b\x3\b\x3\b\x3\b\x3\b\a\b\x88\n\b\f\b\xE\b\x8B\v\b\x3"+
-		"\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3"+
-		"\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\a\t\xA5\n\t\f\t\xE\t\xA8"+
-		"\v\t\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n"+
-		"\x3\n\a\n\xB8\n\n\f\n\xE\n\xBB\v\n\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v"+
-		"\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\a\v\xD0\n"+
-		"\v\f\v\xE\v\xD3\v\v\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f"+
-		"\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x5\f\xE5\n\f\x3\r\x3\r\x3\r\x3\xE\x3\xE"+
-		"\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3"+
-		"\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x5\xE"+
-		"\x102\n\xE\x3\xF\x3\xF\x3\xF\x3\xF\x3\xF\x3\xF\x3\xF\x3\xF\x3\xF\x3\xF"+
-		"\x3\xF\x5\xF\x10F\n\xF\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10"+
-		"\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x5\x10"+
-		"\x121\n\x10\x3\x11\x3\x11\x3\x11\x3\x11\x3\x11\x3\x11\x3\x11\x3\x11\x3"+
-		"\x11\x3\x11\x5\x11\x12D\n\x11\x3\x12\x3\x12\x3\x12\x3\x13\x3\x13\x3\x13"+
-		"\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14"+
-		"\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14"+
-		"\x3\x14\x3\x14\x5\x14\x14B\n\x14\x3\x15\x3\x15\x3\x15\x3\x16\x3\x16\x3"+
-		"\x16\x3\x16\x3\x17\x3\x17\x3\x17\x3\x17\x5\x17\x158\n\x17\x3\x18\x3\x18"+
-		"\x3\x18\x3\x19\x3\x19\x3\x19\x3\x19\x5\x19\x161\n\x19\x3\x1A\x3\x1A\x3"+
-		"\x1A\x3\x1A\x3\x1A\x3\x1A\x5\x1A\x169\n\x1A\x3\x1B\x3\x1B\x3\x1B\x3\x1B"+
-		"\a\x1B\x16F\n\x1B\f\x1B\xE\x1B\x172\v\x1B\x5\x1B\x174\n\x1B\x3\x1B\x3"+
-		"\x1B\x3\x1B\x3\x1B\x2\x2\n\x6\b\n\f\xE\x10\x12\x14\x1C\x2\x2\x4\x2\x6"+
-		"\x2\b\x2\n\x2\f\x2\xE\x2\x10\x2\x12\x2\x14\x2\x16\x2\x18\x2\x1A\x2\x1C"+
-		"\x2\x1E\x2 \x2\"\x2$\x2&\x2(\x2*\x2,\x2.\x2\x30\x2\x32\x2\x34\x2\x2\x3"+
-		"\x3\x2\'(\x18D\x2<\x3\x2\x2\x2\x4>\x3\x2\x2\x2\x6\x41\x3\x2\x2\x2\bO\x3"+
-		"\x2\x2\x2\n]\x3\x2\x2\x2\fk\x3\x2\x2\x2\xEy\x3\x2\x2\x2\x10\x8C\x3\x2"+
-		"\x2\x2\x12\xA9\x3\x2\x2\x2\x14\xBC\x3\x2\x2\x2\x16\xE4\x3\x2\x2\x2\x18"+
-		"\xE6\x3\x2\x2\x2\x1A\x101\x3\x2\x2\x2\x1C\x10E\x3\x2\x2\x2\x1E\x120\x3"+
-		"\x2\x2\x2 \x12C\x3\x2\x2\x2\"\x12E\x3\x2\x2\x2$\x131\x3\x2\x2\x2&\x14A"+
-		"\x3\x2\x2\x2(\x14C\x3\x2\x2\x2*\x14F\x3\x2\x2\x2,\x157\x3\x2\x2\x2.\x159"+
-		"\x3\x2\x2\x2\x30\x160\x3\x2\x2\x2\x32\x168\x3\x2\x2\x2\x34\x16A\x3\x2"+
-		"\x2\x2\x36\x37\x5\x18\r\x2\x37\x38\b\x2\x1\x2\x38\x39\a\x2\x2\x3\x39="+
-		"\x3\x2\x2\x2:=\a\x2\x2\x3;=\x3\x2\x2\x2<\x36\x3\x2\x2\x2<:\x3\x2\x2\x2"+
-		"<;\x3\x2\x2\x2=\x3\x3\x2\x2\x2>?\x5\x6\x4\x2?@\b\x3\x1\x2@\x5\x3\x2\x2"+
-		"\x2\x41\x42\b\x4\x1\x2\x42\x43\x5\b\x5\x2\x43\x44\b\x4\x1\x2\x44L\x3\x2"+
-		"\x2\x2\x45\x46\f\x4\x2\x2\x46G\a\x18\x2\x2GH\x5\b\x5\x2HI\b\x4\x1\x2I"+
-		"K\x3\x2\x2\x2J\x45\x3\x2\x2\x2KN\x3\x2\x2\x2LJ\x3\x2\x2\x2LM\x3\x2\x2"+
-		"\x2M\a\x3\x2\x2\x2NL\x3\x2\x2\x2OP\b\x5\x1\x2PQ\x5\n\x6\x2QR\b\x5\x1\x2"+
-		"RZ\x3\x2\x2\x2ST\f\x4\x2\x2TU\a\x16\x2\x2UV\x5\n\x6\x2VW\b\x5\x1\x2WY"+
-		"\x3\x2\x2\x2XS\x3\x2\x2\x2Y\\\x3\x2\x2\x2ZX\x3\x2\x2\x2Z[\x3\x2\x2\x2"+
-		"[\t\x3\x2\x2\x2\\Z\x3\x2\x2\x2]^\b\x6\x1\x2^_\x5\f\a\x2_`\b\x6\x1\x2`"+
-		"h\x3\x2\x2\x2\x61\x62\f\x4\x2\x2\x62\x63\a\x17\x2\x2\x63\x64\x5\f\a\x2"+
-		"\x64\x65\b\x6\x1\x2\x65g\x3\x2\x2\x2\x66\x61\x3\x2\x2\x2gj\x3\x2\x2\x2"+
-		"h\x66\x3\x2\x2\x2hi\x3\x2\x2\x2i\v\x3\x2\x2\x2jh\x3\x2\x2\x2kl\b\a\x1"+
-		"\x2lm\x5\xE\b\x2mn\b\a\x1\x2nv\x3\x2\x2\x2op\f\x4\x2\x2pq\a\x15\x2\x2"+
-		"qr\x5\xE\b\x2rs\b\a\x1\x2su\x3\x2\x2\x2to\x3\x2\x2\x2ux\x3\x2\x2\x2vt"+
-		"\x3\x2\x2\x2vw\x3\x2\x2\x2w\r\x3\x2\x2\x2xv\x3\x2\x2\x2yz\b\b\x1\x2z{"+
-		"\x5\x10\t\x2{|\b\b\x1\x2|\x89\x3\x2\x2\x2}~\f\x5\x2\x2~\x7F\a!\x2\x2\x7F"+
-		"\x80\x5\x10\t\x2\x80\x81\b\b\x1\x2\x81\x88\x3\x2\x2\x2\x82\x83\f\x4\x2"+
-		"\x2\x83\x84\a \x2\x2\x84\x85\x5\x10\t\x2\x85\x86\b\b\x1\x2\x86\x88\x3"+
-		"\x2\x2\x2\x87}\x3\x2\x2\x2\x87\x82\x3\x2\x2\x2\x88\x8B\x3\x2\x2\x2\x89"+
-		"\x87\x3\x2\x2\x2\x89\x8A\x3\x2\x2\x2\x8A\xF\x3\x2\x2\x2\x8B\x89\x3\x2"+
-		"\x2\x2\x8C\x8D\b\t\x1\x2\x8D\x8E\x5\x12\n\x2\x8E\x8F\b\t\x1\x2\x8F\xA6"+
-		"\x3\x2\x2\x2\x90\x91\f\a\x2\x2\x91\x92\a\"\x2\x2\x92\x93\x5\x12\n\x2\x93"+
-		"\x94\b\t\x1\x2\x94\xA5\x3\x2\x2\x2\x95\x96\f\x6\x2\x2\x96\x97\a#\x2\x2"+
-		"\x97\x98\x5\x12\n\x2\x98\x99\b\t\x1\x2\x99\xA5\x3\x2\x2\x2\x9A\x9B\f\x5"+
-		"\x2\x2\x9B\x9C\a$\x2\x2\x9C\x9D\x5\x12\n\x2\x9D\x9E\b\t\x1\x2\x9E\xA5"+
-		"\x3\x2\x2\x2\x9F\xA0\f\x4\x2\x2\xA0\xA1\a%\x2\x2\xA1\xA2\x5\x12\n\x2\xA2"+
-		"\xA3\b\t\x1\x2\xA3\xA5\x3\x2\x2\x2\xA4\x90\x3\x2\x2\x2\xA4\x95\x3\x2\x2"+
-		"\x2\xA4\x9A\x3\x2\x2\x2\xA4\x9F\x3\x2\x2\x2\xA5\xA8\x3\x2\x2\x2\xA6\xA4"+
-		"\x3\x2\x2\x2\xA6\xA7\x3\x2\x2\x2\xA7\x11\x3\x2\x2\x2\xA8\xA6\x3\x2\x2"+
-		"\x2\xA9\xAA\b\n\x1\x2\xAA\xAB\x5\x14\v\x2\xAB\xAC\b\n\x1\x2\xAC\xB9\x3"+
-		"\x2\x2\x2\xAD\xAE\f\x5\x2\x2\xAE\xAF\a(\x2\x2\xAF\xB0\x5\x14\v\x2\xB0"+
-		"\xB1\b\n\x1\x2\xB1\xB8\x3\x2\x2\x2\xB2\xB3\f\x4\x2\x2\xB3\xB4\a\'\x2\x2"+
-		"\xB4\xB5\x5\x14\v\x2\xB5\xB6\b\n\x1\x2\xB6\xB8\x3\x2\x2\x2\xB7\xAD\x3"+
-		"\x2\x2\x2\xB7\xB2\x3\x2\x2\x2\xB8\xBB\x3\x2\x2\x2\xB9\xB7\x3\x2\x2\x2"+
-		"\xB9\xBA\x3\x2\x2\x2\xBA\x13\x3\x2\x2\x2\xBB\xB9\x3\x2\x2\x2\xBC\xBD\b"+
-		"\v\x1\x2\xBD\xBE\x5\x16\f\x2\xBE\xBF\b\v\x1\x2\xBF\xD1\x3\x2\x2\x2\xC0"+
-		"\xC1\f\x6\x2\x2\xC1\xC2\a*\x2\x2\xC2\xC3\x5\x16\f\x2\xC3\xC4\b\v\x1\x2"+
-		"\xC4\xD0\x3\x2\x2\x2\xC5\xC6\f\x5\x2\x2\xC6\xC7\a+\x2\x2\xC7\xC8\x5\x16"+
-		"\f\x2\xC8\xC9\b\v\x1\x2\xC9\xD0\x3\x2\x2\x2\xCA\xCB\f\x4\x2\x2\xCB\xCC"+
-		"\a,\x2\x2\xCC\xCD\x5\x16\f\x2\xCD\xCE\b\v\x1\x2\xCE\xD0\x3\x2\x2\x2\xCF"+
-		"\xC0\x3\x2\x2\x2\xCF\xC5\x3\x2\x2\x2\xCF\xCA\x3\x2\x2\x2\xD0\xD3\x3\x2"+
-		"\x2\x2\xD1\xCF\x3\x2\x2\x2\xD1\xD2\x3\x2\x2\x2\xD2\x15\x3\x2\x2\x2\xD3"+
-		"\xD1\x3\x2\x2\x2\xD4\xD5\a&\x2\x2\xD5\xD6\x5\x16\f\x2\xD6\xD7\b\f\x1\x2"+
-		"\xD7\xE5\x3\x2\x2\x2\xD8\xD9\a\'\x2\x2\xD9\xDA\x5\x16\f\x2\xDA\xDB\b\f"+
-		"\x1\x2\xDB\xE5\x3\x2\x2\x2\xDC\xDD\a\x3\x2\x2\xDD\xDE\x5\x18\r\x2\xDE"+
-		"\xDF\b\f\x1\x2\xDF\xE0\a\x4\x2\x2\xE0\xE5\x3\x2\x2\x2\xE1\xE2\x5\x1A\xE"+
-		"\x2\xE2\xE3\b\f\x1\x2\xE3\xE5\x3\x2\x2\x2\xE4\xD4\x3\x2\x2\x2\xE4\xD8"+
-		"\x3\x2\x2\x2\xE4\xDC\x3\x2\x2\x2\xE4\xE1\x3\x2\x2\x2\xE5\x17\x3\x2\x2"+
-		"\x2\xE6\xE7\x5\x4\x3\x2\xE7\xE8\b\r\x1\x2\xE8\x19\x3\x2\x2\x2\xE9\xEA"+
-		"\x5&\x14\x2\xEA\xEB\b\xE\x1\x2\xEB\x102\x3\x2\x2\x2\xEC\xED\x5(\x15\x2"+
-		"\xED\xEE\b\xE\x1\x2\xEE\x102\x3\x2\x2\x2\xEF\xF0\x5\"\x12\x2\xF0\xF1\b"+
-		"\xE\x1\x2\xF1\x102\x3\x2\x2\x2\xF2\xF3\x5$\x13\x2\xF3\xF4\b\xE\x1\x2\xF4"+
-		"\x102\x3\x2\x2\x2\xF5\xF6\x5\x32\x1A\x2\xF6\xF7\b\xE\x1\x2\xF7\x102\x3"+
-		"\x2\x2\x2\xF8\xF9\x5\x30\x19\x2\xF9\xFA\b\xE\x1\x2\xFA\x102\x3\x2\x2\x2"+
-		"\xFB\xFC\x5\x1C\xF\x2\xFC\xFD\b\xE\x1\x2\xFD\x102\x3\x2\x2\x2\xFE\xFF"+
-		"\x5\x34\x1B\x2\xFF\x100\b\xE\x1\x2\x100\x102\x3\x2\x2\x2\x101\xE9\x3\x2"+
-		"\x2\x2\x101\xEC\x3\x2\x2\x2\x101\xEF\x3\x2\x2\x2\x101\xF2\x3\x2\x2\x2"+
-		"\x101\xF5\x3\x2\x2\x2\x101\xF8\x3\x2\x2\x2\x101\xFB\x3\x2\x2\x2\x101\xFE"+
-		"\x3\x2\x2\x2\x102\x1B\x3\x2\x2\x2\x103\x104\x5\x1E\x10\x2\x104\x105\b"+
-		"\xF\x1\x2\x105\x10F\x3\x2\x2\x2\x106\x107\x5 \x11\x2\x107\x108\b\xF\x1"+
-		"\x2\x108\x10F\x3\x2\x2\x2\x109\x10A\x5 \x11\x2\x10A\x10B\a\x5\x2\x2\x10B"+
-		"\x10C\x5 \x11\x2\x10C\x10D\b\xF\x1\x2\x10D\x10F\x3\x2\x2\x2\x10E\x103"+
-		"\x3\x2\x2\x2\x10E\x106\x3\x2\x2\x2\x10E\x109\x3\x2\x2\x2\x10F\x1D\x3\x2"+
-		"\x2\x2\x110\x111\a\x12\x2\x2\x111\x121\b\x10\x1\x2\x112\x113\a\x13\x2"+
-		"\x2\x113\x121\b\x10\x1\x2\x114\x115\a\x14\x2\x2\x115\x121\b\x10\x1\x2"+
-		"\x116\x117\a\x19\x2\x2\x117\x121\b\x10\x1\x2\x118\x119\a\x1A\x2\x2\x119"+
-		"\x121\b\x10\x1\x2\x11A\x11B\a\x1B\x2\x2\x11B\x121\b\x10\x1\x2\x11C\x11D"+
-		"\a\x1C\x2\x2\x11D\x121\b\x10\x1\x2\x11E\x11F\a\x1D\x2\x2\x11F\x121\b\x10"+
-		"\x1\x2\x120\x110\x3\x2\x2\x2\x120\x112\x3\x2\x2\x2\x120\x114\x3\x2\x2"+
-		"\x2\x120\x116\x3\x2\x2\x2\x120\x118\x3\x2\x2\x2\x120\x11A\x3\x2\x2\x2"+
-		"\x120\x11C\x3\x2\x2\x2\x120\x11E\x3\x2\x2\x2\x121\x1F\x3\x2\x2\x2\x122"+
-		"\x123\a\x6\x2\x2\x123\x124\x5\"\x12\x2\x124\x125\b\x11\x1\x2\x125\x12D"+
-		"\x3\x2\x2\x2\x126\x127\a\x6\x2\x2\x127\x128\x5$\x13\x2\x128\x129\b\x11"+
-		"\x1\x2\x129\x12D\x3\x2\x2\x2\x12A\x12B\a)\x2\x2\x12B\x12D\b\x11\x1\x2"+
-		"\x12C\x122\x3\x2\x2\x2\x12C\x126\x3\x2\x2\x2\x12C\x12A\x3\x2\x2\x2\x12D"+
-		"!\x3\x2\x2\x2\x12E\x12F\a\r\x2\x2\x12F\x130\b\x12\x1\x2\x130#\x3\x2\x2"+
-		"\x2\x131\x132\a\xE\x2\x2\x132\x133\b\x13\x1\x2\x133%\x3\x2\x2\x2\x134"+
-		"\x135\a\x11\x2\x2\x135\x136\a\x5\x2\x2\x136\x137\a\x11\x2\x2\x137\x138"+
-		"\x5*\x16\x2\x138\x139\b\x14\x1\x2\x139\x14B\x3\x2\x2\x2\x13A\x13B\a\x5"+
-		"\x2\x2\x13B\x13C\a\x11\x2\x2\x13C\x13D\x5*\x16\x2\x13D\x13E\b\x14\x1\x2"+
-		"\x13E\x14B\x3\x2\x2\x2\x13F\x140\a\x11\x2\x2\x140\x141\x5*\x16\x2\x141"+
-		"\x142\b\x14\x1\x2\x142\x14B\x3\x2\x2\x2\x143\x144\a\x11\x2\x2\x144\x145"+
-		"\a\x5\x2\x2\x145\x146\a\x11\x2\x2\x146\x14B\b\x14\x1\x2\x147\x148\a\x5"+
-		"\x2\x2\x148\x149\a\x11\x2\x2\x149\x14B\b\x14\x1\x2\x14A\x134\x3\x2\x2"+
-		"\x2\x14A\x13A\x3\x2\x2\x2\x14A\x13F\x3\x2\x2\x2\x14A\x143\x3\x2\x2\x2"+
-		"\x14A\x147\x3\x2\x2\x2\x14B\'\x3\x2\x2\x2\x14C\x14D\a\x11\x2\x2\x14D\x14E"+
-		"\b\x15\x1\x2\x14E)\x3\x2\x2\x2\x14F\x150\a\a\x2\x2\x150\x151\t\x2\x2\x2"+
-		"\x151\x152\a\x11\x2\x2\x152+\x3\x2\x2\x2\x153\x154\a\x13\x2\x2\x154\x158"+
-		"\b\x17\x1\x2\x155\x156\a\x14\x2\x2\x156\x158\b\x17\x1\x2\x157\x153\x3"+
-		"\x2\x2\x2\x157\x155\x3\x2\x2\x2\x158-\x3\x2\x2\x2\x159\x15A\a\x12\x2\x2"+
-		"\x15A\x15B\b\x18\x1\x2\x15B/\x3\x2\x2\x2\x15C\x15D\a\xF\x2\x2\x15D\x161"+
-		"\b\x19\x1\x2\x15E\x15F\a\x10\x2\x2\x15F\x161\b\x19\x1\x2\x160\x15C\x3"+
-		"\x2\x2\x2\x160\x15E\x3\x2\x2\x2\x161\x31\x3\x2\x2\x2\x162\x163\a\b\x2"+
-		"\x2\x163\x164\a\x1F\x2\x2\x164\x169\b\x1A\x1\x2\x165\x166\a\b\x2\x2\x166"+
-		"\x167\a\x1E\x2\x2\x167\x169\b\x1A\x1\x2\x168\x162\x3\x2\x2\x2\x168\x165"+
-		"\x3\x2\x2\x2\x169\x33\x3\x2\x2\x2\x16A\x173\a\t\x2\x2\x16B\x170\x5\x18"+
-		"\r\x2\x16C\x16D\a\n\x2\x2\x16D\x16F\x5\x18\r\x2\x16E\x16C\x3\x2\x2\x2"+
-		"\x16F\x172\x3\x2\x2\x2\x170\x16E\x3\x2\x2\x2\x170\x171\x3\x2\x2\x2\x171"+
-		"\x174\x3\x2\x2\x2\x172\x170\x3\x2\x2\x2\x173\x16B\x3\x2\x2\x2\x173\x174"+
-		"\x3\x2\x2\x2\x174\x175\x3\x2\x2\x2\x175\x176\a\v\x2\x2\x176\x177\b\x1B"+
-		"\x1\x2\x177\x35\x3\x2\x2\x2\x1A<LZhv\x87\x89\xA4\xA6\xB7\xB9\xCF\xD1\xE4"+
-		"\x101\x10E\x120\x12C\x14A\x157\x160\x168\x170\x173";
+		"\t\x1B\x4\x1C\t\x1C\x3\x2\x3\x2\x3\x2\x3\x2\x3\x2\x3\x2\x5\x2?\n\x2\x3"+
+		"\x3\x3\x3\x3\x3\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4\x3\x4"+
+		"\a\x4M\n\x4\f\x4\xE\x4P\v\x4\x3\x5\x3\x5\x3\x5\x3\x5\x3\x5\x3\x5\x3\x5"+
+		"\x3\x5\x3\x5\a\x5[\n\x5\f\x5\xE\x5^\v\x5\x3\x6\x3\x6\x3\x6\x3\x6\x3\x6"+
+		"\x3\x6\x3\x6\x3\x6\x3\x6\a\x6i\n\x6\f\x6\xE\x6l\v\x6\x3\a\x3\a\x3\a\x3"+
+		"\a\x3\a\x3\a\x3\a\x3\a\x3\a\a\aw\n\a\f\a\xE\az\v\a\x3\b\x3\b\x3\b\x3\b"+
+		"\x3\b\x3\b\x3\b\x3\b\x3\b\x3\b\x3\b\x3\b\x3\b\x3\b\a\b\x8A\n\b\f\b\xE"+
+		"\b\x8D\v\b\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t"+
+		"\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\x3\t\a\t\xA7\n"+
+		"\t\f\t\xE\t\xAA\v\t\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n\x3\n"+
+		"\x3\n\x3\n\x3\n\x3\n\a\n\xBA\n\n\f\n\xE\n\xBD\v\n\x3\v\x3\v\x3\v\x3\v"+
+		"\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v\x3\v"+
+		"\x3\v\a\v\xD2\n\v\f\v\xE\v\xD5\v\v\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f"+
+		"\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x3\f\x5\f\xE7\n\f\x3\r\x3\r\x3"+
+		"\r\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3"+
+		"\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE\x3\xE"+
+		"\x3\xE\x3\xE\x3\xE\x3\xE\x5\xE\x107\n\xE\x3\xF\x3\xF\x3\xF\x3\xF\x3\xF"+
+		"\x3\xF\x3\xF\x3\xF\x3\xF\x3\xF\x3\xF\x5\xF\x114\n\xF\x3\x10\x3\x10\x3"+
+		"\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3\x10\x3"+
+		"\x10\x3\x10\x3\x10\x3\x10\x5\x10\x126\n\x10\x3\x11\x3\x11\x3\x11\x3\x11"+
+		"\x3\x11\x3\x11\x3\x11\x3\x11\x3\x11\x3\x11\x5\x11\x132\n\x11\x3\x12\x3"+
+		"\x12\x3\x12\x3\x13\x3\x13\x3\x13\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3"+
+		"\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3"+
+		"\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x3\x14\x5\x14\x150\n\x14\x3\x15"+
+		"\x3\x15\x3\x15\x3\x16\x3\x16\x3\x16\x3\x16\x3\x17\x3\x17\x3\x17\x3\x17"+
+		"\x5\x17\x15D\n\x17\x3\x18\x3\x18\x3\x18\x3\x19\x3\x19\x3\x19\x3\x19\x5"+
+		"\x19\x166\n\x19\x3\x1A\x3\x1A\x3\x1A\x3\x1A\x3\x1A\x3\x1A\x5\x1A\x16E"+
+		"\n\x1A\x3\x1B\x3\x1B\x5\x1B\x172\n\x1B\x3\x1B\x5\x1B\x175\n\x1B\x3\x1B"+
+		"\x5\x1B\x178\n\x1B\x3\x1B\x3\x1B\x5\x1B\x17C\n\x1B\x3\x1B\x5\x1B\x17F"+
+		"\n\x1B\x3\x1B\x5\x1B\x182\n\x1B\x3\x1B\x3\x1B\x3\x1C\x3\x1C\x3\x1C\x3"+
+		"\x1C\a\x1C\x18A\n\x1C\f\x1C\xE\x1C\x18D\v\x1C\x5\x1C\x18F\n\x1C\x3\x1C"+
+		"\x3\x1C\x3\x1C\x3\x1C\x2\x2\n\x6\b\n\f\xE\x10\x12\x14\x1D\x2\x2\x4\x2"+
+		"\x6\x2\b\x2\n\x2\f\x2\xE\x2\x10\x2\x12\x2\x14\x2\x16\x2\x18\x2\x1A\x2"+
+		"\x1C\x2\x1E\x2 \x2\"\x2$\x2&\x2(\x2*\x2,\x2.\x2\x30\x2\x32\x2\x34\x2\x36"+
+		"\x2\x2\x3\x3\x2/\x30\x1AE\x2>\x3\x2\x2\x2\x4@\x3\x2\x2\x2\x6\x43\x3\x2"+
+		"\x2\x2\bQ\x3\x2\x2\x2\n_\x3\x2\x2\x2\fm\x3\x2\x2\x2\xE{\x3\x2\x2\x2\x10"+
+		"\x8E\x3\x2\x2\x2\x12\xAB\x3\x2\x2\x2\x14\xBE\x3\x2\x2\x2\x16\xE6\x3\x2"+
+		"\x2\x2\x18\xE8\x3\x2\x2\x2\x1A\x106\x3\x2\x2\x2\x1C\x113\x3\x2\x2\x2\x1E"+
+		"\x125\x3\x2\x2\x2 \x131\x3\x2\x2\x2\"\x133\x3\x2\x2\x2$\x136\x3\x2\x2"+
+		"\x2&\x14F\x3\x2\x2\x2(\x151\x3\x2\x2\x2*\x154\x3\x2\x2\x2,\x15C\x3\x2"+
+		"\x2\x2.\x15E\x3\x2\x2\x2\x30\x165\x3\x2\x2\x2\x32\x16D\x3\x2\x2\x2\x34"+
+		"\x16F\x3\x2\x2\x2\x36\x185\x3\x2\x2\x2\x38\x39\x5\x18\r\x2\x39:\b\x2\x1"+
+		"\x2:;\a\x2\x2\x3;?\x3\x2\x2\x2<?\a\x2\x2\x3=?\x3\x2\x2\x2>\x38\x3\x2\x2"+
+		"\x2><\x3\x2\x2\x2>=\x3\x2\x2\x2?\x3\x3\x2\x2\x2@\x41\x5\x6\x4\x2\x41\x42"+
+		"\b\x3\x1\x2\x42\x5\x3\x2\x2\x2\x43\x44\b\x4\x1\x2\x44\x45\x5\b\x5\x2\x45"+
+		"\x46\b\x4\x1\x2\x46N\x3\x2\x2\x2GH\f\x4\x2\x2HI\a\x1A\x2\x2IJ\x5\b\x5"+
+		"\x2JK\b\x4\x1\x2KM\x3\x2\x2\x2LG\x3\x2\x2\x2MP\x3\x2\x2\x2NL\x3\x2\x2"+
+		"\x2NO\x3\x2\x2\x2O\a\x3\x2\x2\x2PN\x3\x2\x2\x2QR\b\x5\x1\x2RS\x5\n\x6"+
+		"\x2ST\b\x5\x1\x2T\\\x3\x2\x2\x2UV\f\x4\x2\x2VW\a\x18\x2\x2WX\x5\n\x6\x2"+
+		"XY\b\x5\x1\x2Y[\x3\x2\x2\x2ZU\x3\x2\x2\x2[^\x3\x2\x2\x2\\Z\x3\x2\x2\x2"+
+		"\\]\x3\x2\x2\x2]\t\x3\x2\x2\x2^\\\x3\x2\x2\x2_`\b\x6\x1\x2`\x61\x5\f\a"+
+		"\x2\x61\x62\b\x6\x1\x2\x62j\x3\x2\x2\x2\x63\x64\f\x4\x2\x2\x64\x65\a\x19"+
+		"\x2\x2\x65\x66\x5\f\a\x2\x66g\b\x6\x1\x2gi\x3\x2\x2\x2h\x63\x3\x2\x2\x2"+
+		"il\x3\x2\x2\x2jh\x3\x2\x2\x2jk\x3\x2\x2\x2k\v\x3\x2\x2\x2lj\x3\x2\x2\x2"+
+		"mn\b\a\x1\x2no\x5\xE\b\x2op\b\a\x1\x2px\x3\x2\x2\x2qr\f\x4\x2\x2rs\a\x17"+
+		"\x2\x2st\x5\xE\b\x2tu\b\a\x1\x2uw\x3\x2\x2\x2vq\x3\x2\x2\x2wz\x3\x2\x2"+
+		"\x2xv\x3\x2\x2\x2xy\x3\x2\x2\x2y\r\x3\x2\x2\x2zx\x3\x2\x2\x2{|\b\b\x1"+
+		"\x2|}\x5\x10\t\x2}~\b\b\x1\x2~\x8B\x3\x2\x2\x2\x7F\x80\f\x5\x2\x2\x80"+
+		"\x81\a)\x2\x2\x81\x82\x5\x10\t\x2\x82\x83\b\b\x1\x2\x83\x8A\x3\x2\x2\x2"+
+		"\x84\x85\f\x4\x2\x2\x85\x86\a(\x2\x2\x86\x87\x5\x10\t\x2\x87\x88\b\b\x1"+
+		"\x2\x88\x8A\x3\x2\x2\x2\x89\x7F\x3\x2\x2\x2\x89\x84\x3\x2\x2\x2\x8A\x8D"+
+		"\x3\x2\x2\x2\x8B\x89\x3\x2\x2\x2\x8B\x8C\x3\x2\x2\x2\x8C\xF\x3\x2\x2\x2"+
+		"\x8D\x8B\x3\x2\x2\x2\x8E\x8F\b\t\x1\x2\x8F\x90\x5\x12\n\x2\x90\x91\b\t"+
+		"\x1\x2\x91\xA8\x3\x2\x2\x2\x92\x93\f\a\x2\x2\x93\x94\a*\x2\x2\x94\x95"+
+		"\x5\x12\n\x2\x95\x96\b\t\x1\x2\x96\xA7\x3\x2\x2\x2\x97\x98\f\x6\x2\x2"+
+		"\x98\x99\a+\x2\x2\x99\x9A\x5\x12\n\x2\x9A\x9B\b\t\x1\x2\x9B\xA7\x3\x2"+
+		"\x2\x2\x9C\x9D\f\x5\x2\x2\x9D\x9E\a,\x2\x2\x9E\x9F\x5\x12\n\x2\x9F\xA0"+
+		"\b\t\x1\x2\xA0\xA7\x3\x2\x2\x2\xA1\xA2\f\x4\x2\x2\xA2\xA3\a-\x2\x2\xA3"+
+		"\xA4\x5\x12\n\x2\xA4\xA5\b\t\x1\x2\xA5\xA7\x3\x2\x2\x2\xA6\x92\x3\x2\x2"+
+		"\x2\xA6\x97\x3\x2\x2\x2\xA6\x9C\x3\x2\x2\x2\xA6\xA1\x3\x2\x2\x2\xA7\xAA"+
+		"\x3\x2\x2\x2\xA8\xA6\x3\x2\x2\x2\xA8\xA9\x3\x2\x2\x2\xA9\x11\x3\x2\x2"+
+		"\x2\xAA\xA8\x3\x2\x2\x2\xAB\xAC\b\n\x1\x2\xAC\xAD\x5\x14\v\x2\xAD\xAE"+
+		"\b\n\x1\x2\xAE\xBB\x3\x2\x2\x2\xAF\xB0\f\x5\x2\x2\xB0\xB1\a\x30\x2\x2"+
+		"\xB1\xB2\x5\x14\v\x2\xB2\xB3\b\n\x1\x2\xB3\xBA\x3\x2\x2\x2\xB4\xB5\f\x4"+
+		"\x2\x2\xB5\xB6\a/\x2\x2\xB6\xB7\x5\x14\v\x2\xB7\xB8\b\n\x1\x2\xB8\xBA"+
+		"\x3\x2\x2\x2\xB9\xAF\x3\x2\x2\x2\xB9\xB4\x3\x2\x2\x2\xBA\xBD\x3\x2\x2"+
+		"\x2\xBB\xB9\x3\x2\x2\x2\xBB\xBC\x3\x2\x2\x2\xBC\x13\x3\x2\x2\x2\xBD\xBB"+
+		"\x3\x2\x2\x2\xBE\xBF\b\v\x1\x2\xBF\xC0\x5\x16\f\x2\xC0\xC1\b\v\x1\x2\xC1"+
+		"\xD3\x3\x2\x2\x2\xC2\xC3\f\x6\x2\x2\xC3\xC4\a\x32\x2\x2\xC4\xC5\x5\x16"+
+		"\f\x2\xC5\xC6\b\v\x1\x2\xC6\xD2\x3\x2\x2\x2\xC7\xC8\f\x5\x2\x2\xC8\xC9"+
+		"\a\x33\x2\x2\xC9\xCA\x5\x16\f\x2\xCA\xCB\b\v\x1\x2\xCB\xD2\x3\x2\x2\x2"+
+		"\xCC\xCD\f\x4\x2\x2\xCD\xCE\a\x34\x2\x2\xCE\xCF\x5\x16\f\x2\xCF\xD0\b"+
+		"\v\x1\x2\xD0\xD2\x3\x2\x2\x2\xD1\xC2\x3\x2\x2\x2\xD1\xC7\x3\x2\x2\x2\xD1"+
+		"\xCC\x3\x2\x2\x2\xD2\xD5\x3\x2\x2\x2\xD3\xD1\x3\x2\x2\x2\xD3\xD4\x3\x2"+
+		"\x2\x2\xD4\x15\x3\x2\x2\x2\xD5\xD3\x3\x2\x2\x2\xD6\xD7\a.\x2\x2\xD7\xD8"+
+		"\x5\x16\f\x2\xD8\xD9\b\f\x1\x2\xD9\xE7\x3\x2\x2\x2\xDA\xDB\a/\x2\x2\xDB"+
+		"\xDC\x5\x16\f\x2\xDC\xDD\b\f\x1\x2\xDD\xE7\x3\x2\x2\x2\xDE\xDF\a\x3\x2"+
+		"\x2\xDF\xE0\x5\x18\r\x2\xE0\xE1\b\f\x1\x2\xE1\xE2\a\x4\x2\x2\xE2\xE7\x3"+
+		"\x2\x2\x2\xE3\xE4\x5\x1A\xE\x2\xE4\xE5\b\f\x1\x2\xE5\xE7\x3\x2\x2\x2\xE6"+
+		"\xD6\x3\x2\x2\x2\xE6\xDA\x3\x2\x2\x2\xE6\xDE\x3\x2\x2\x2\xE6\xE3\x3\x2"+
+		"\x2\x2\xE7\x17\x3\x2\x2\x2\xE8\xE9\x5\x4\x3\x2\xE9\xEA\b\r\x1\x2\xEA\x19"+
+		"\x3\x2\x2\x2\xEB\xEC\x5&\x14\x2\xEC\xED\b\xE\x1\x2\xED\x107\x3\x2\x2\x2"+
+		"\xEE\xEF\x5(\x15\x2\xEF\xF0\b\xE\x1\x2\xF0\x107\x3\x2\x2\x2\xF1\xF2\x5"+
+		"\"\x12\x2\xF2\xF3\b\xE\x1\x2\xF3\x107\x3\x2\x2\x2\xF4\xF5\x5$\x13\x2\xF5"+
+		"\xF6\b\xE\x1\x2\xF6\x107\x3\x2\x2\x2\xF7\xF8\x5\x32\x1A\x2\xF8\xF9\b\xE"+
+		"\x1\x2\xF9\x107\x3\x2\x2\x2\xFA\xFB\x5\x34\x1B\x2\xFB\xFC\b\xE\x1\x2\xFC"+
+		"\x107\x3\x2\x2\x2\xFD\xFE\x5\x30\x19\x2\xFE\xFF\b\xE\x1\x2\xFF\x107\x3"+
+		"\x2\x2\x2\x100\x101\x5\x1C\xF\x2\x101\x102\b\xE\x1\x2\x102\x107\x3\x2"+
+		"\x2\x2\x103\x104\x5\x36\x1C\x2\x104\x105\b\xE\x1\x2\x105\x107\x3\x2\x2"+
+		"\x2\x106\xEB\x3\x2\x2\x2\x106\xEE\x3\x2\x2\x2\x106\xF1\x3\x2\x2\x2\x106"+
+		"\xF4\x3\x2\x2\x2\x106\xF7\x3\x2\x2\x2\x106\xFA\x3\x2\x2\x2\x106\xFD\x3"+
+		"\x2\x2\x2\x106\x100\x3\x2\x2\x2\x106\x103\x3\x2\x2\x2\x107\x1B\x3\x2\x2"+
+		"\x2\x108\x109\x5\x1E\x10\x2\x109\x10A\b\xF\x1\x2\x10A\x114\x3\x2\x2\x2"+
+		"\x10B\x10C\x5 \x11\x2\x10C\x10D\b\xF\x1\x2\x10D\x114\x3\x2\x2\x2\x10E"+
+		"\x10F\x5 \x11\x2\x10F\x110\a\x5\x2\x2\x110\x111\x5 \x11\x2\x111\x112\b"+
+		"\xF\x1\x2\x112\x114\x3\x2\x2\x2\x113\x108\x3\x2\x2\x2\x113\x10B\x3\x2"+
+		"\x2\x2\x113\x10E\x3\x2\x2\x2\x114\x1D\x3\x2\x2\x2\x115\x116\a\x14\x2\x2"+
+		"\x116\x126\b\x10\x1\x2\x117\x118\a\x15\x2\x2\x118\x126\b\x10\x1\x2\x119"+
+		"\x11A\a\x16\x2\x2\x11A\x126\b\x10\x1\x2\x11B\x11C\a\x1B\x2\x2\x11C\x126"+
+		"\b\x10\x1\x2\x11D\x11E\a\x1C\x2\x2\x11E\x126\b\x10\x1\x2\x11F\x120\a\x1D"+
+		"\x2\x2\x120\x126\b\x10\x1\x2\x121\x122\a\x1E\x2\x2\x122\x126\b\x10\x1"+
+		"\x2\x123\x124\a\x1F\x2\x2\x124\x126\b\x10\x1\x2\x125\x115\x3\x2\x2\x2"+
+		"\x125\x117\x3\x2\x2\x2\x125\x119\x3\x2\x2\x2\x125\x11B\x3\x2\x2\x2\x125"+
+		"\x11D\x3\x2\x2\x2\x125\x11F\x3\x2\x2\x2\x125\x121\x3\x2\x2\x2\x125\x123"+
+		"\x3\x2\x2\x2\x126\x1F\x3\x2\x2\x2\x127\x128\a\x6\x2\x2\x128\x129\x5\""+
+		"\x12\x2\x129\x12A\b\x11\x1\x2\x12A\x132\x3\x2\x2\x2\x12B\x12C\a\x6\x2"+
+		"\x2\x12C\x12D\x5$\x13\x2\x12D\x12E\b\x11\x1\x2\x12E\x132\x3\x2\x2\x2\x12F"+
+		"\x130\a\x31\x2\x2\x130\x132\b\x11\x1\x2\x131\x127\x3\x2\x2\x2\x131\x12B"+
+		"\x3\x2\x2\x2\x131\x12F\x3\x2\x2\x2\x132!\x3\x2\x2\x2\x133\x134\a\xF\x2"+
+		"\x2\x134\x135\b\x12\x1\x2\x135#\x3\x2\x2\x2\x136\x137\a\x10\x2\x2\x137"+
+		"\x138\b\x13\x1\x2\x138%\x3\x2\x2\x2\x139\x13A\a\x13\x2\x2\x13A\x13B\a"+
+		"\x5\x2\x2\x13B\x13C\a\x13\x2\x2\x13C\x13D\x5*\x16\x2\x13D\x13E\b\x14\x1"+
+		"\x2\x13E\x150\x3\x2\x2\x2\x13F\x140\a\x5\x2\x2\x140\x141\a\x13\x2\x2\x141"+
+		"\x142\x5*\x16\x2\x142\x143\b\x14\x1\x2\x143\x150\x3\x2\x2\x2\x144\x145"+
+		"\a\x13\x2\x2\x145\x146\x5*\x16\x2\x146\x147\b\x14\x1\x2\x147\x150\x3\x2"+
+		"\x2\x2\x148\x149\a\x13\x2\x2\x149\x14A\a\x5\x2\x2\x14A\x14B\a\x13\x2\x2"+
+		"\x14B\x150\b\x14\x1\x2\x14C\x14D\a\x5\x2\x2\x14D\x14E\a\x13\x2\x2\x14E"+
+		"\x150\b\x14\x1\x2\x14F\x139\x3\x2\x2\x2\x14F\x13F\x3\x2\x2\x2\x14F\x144"+
+		"\x3\x2\x2\x2\x14F\x148\x3\x2\x2\x2\x14F\x14C\x3\x2\x2\x2\x150\'\x3\x2"+
+		"\x2\x2\x151\x152\a\x13\x2\x2\x152\x153\b\x15\x1\x2\x153)\x3\x2\x2\x2\x154"+
+		"\x155\a\a\x2\x2\x155\x156\t\x2\x2\x2\x156\x157\a\x13\x2\x2\x157+\x3\x2"+
+		"\x2\x2\x158\x159\a\x15\x2\x2\x159\x15D\b\x17\x1\x2\x15A\x15B\a\x16\x2"+
+		"\x2\x15B\x15D\b\x17\x1\x2\x15C\x158\x3\x2\x2\x2\x15C\x15A\x3\x2\x2\x2"+
+		"\x15D-\x3\x2\x2\x2\x15E\x15F\a\x14\x2\x2\x15F\x160\b\x18\x1\x2\x160/\x3"+
+		"\x2\x2\x2\x161\x162\a\x11\x2\x2\x162\x166\b\x19\x1\x2\x163\x164\a\x12"+
+		"\x2\x2\x164\x166\b\x19\x1\x2\x165\x161\x3\x2\x2\x2\x165\x163\x3\x2\x2"+
+		"\x2\x166\x31\x3\x2\x2\x2\x167\x168\a\b\x2\x2\x168\x169\a\'\x2\x2\x169"+
+		"\x16E\b\x1A\x1\x2\x16A\x16B\a\b\x2\x2\x16B\x16C\a&\x2\x2\x16C\x16E\b\x1A"+
+		"\x1\x2\x16D\x167\x3\x2\x2\x2\x16D\x16A\x3\x2\x2\x2\x16E\x33\x3\x2\x2\x2"+
+		"\x16F\x171\a\t\x2\x2\x170\x172\a \x2\x2\x171\x170\x3\x2\x2\x2\x171\x172"+
+		"\x3\x2\x2\x2\x172\x174\x3\x2\x2\x2\x173\x175\a!\x2\x2\x174\x173\x3\x2"+
+		"\x2\x2\x174\x175\x3\x2\x2\x2\x175\x177\x3\x2\x2\x2\x176\x178\a\"\x2\x2"+
+		"\x177\x176\x3\x2\x2\x2\x177\x178\x3\x2\x2\x2\x178\x179\x3\x2\x2\x2\x179"+
+		"\x17B\a\n\x2\x2\x17A\x17C\a#\x2\x2\x17B\x17A\x3\x2\x2\x2\x17B\x17C\x3"+
+		"\x2\x2\x2\x17C\x17E\x3\x2\x2\x2\x17D\x17F\a$\x2\x2\x17E\x17D\x3\x2\x2"+
+		"\x2\x17E\x17F\x3\x2\x2\x2\x17F\x181\x3\x2\x2\x2\x180\x182\a%\x2\x2\x181"+
+		"\x180\x3\x2\x2\x2\x181\x182\x3\x2\x2\x2\x182\x183\x3\x2\x2\x2\x183\x184"+
+		"\b\x1B\x1\x2\x184\x35\x3\x2\x2\x2\x185\x18E\a\v\x2\x2\x186\x18B\x5\x18"+
+		"\r\x2\x187\x188\a\f\x2\x2\x188\x18A\x5\x18\r\x2\x189\x187\x3\x2\x2\x2"+
+		"\x18A\x18D\x3\x2\x2\x2\x18B\x189\x3\x2\x2\x2\x18B\x18C\x3\x2\x2\x2\x18C"+
+		"\x18F\x3\x2\x2\x2\x18D\x18B\x3\x2\x2\x2\x18E\x186\x3\x2\x2\x2\x18E\x18F"+
+		"\x3\x2\x2\x2\x18F\x190\x3\x2\x2\x2\x190\x191\a\r\x2\x2\x191\x192\b\x1C"+
+		"\x1\x2\x192\x37\x3\x2\x2\x2 >N\\jx\x89\x8B\xA6\xA8\xB9\xBB\xD1\xD3\xE6"+
+		"\x106\x113\x125\x131\x14F\x15C\x165\x16D\x171\x174\x177\x17B\x17E\x181"+
+		"\x18B\x18E";
 	public static readonly ATN _ATN =
 		new ATNDeserializer().Deserialize(_serializedATN.ToCharArray());
 }

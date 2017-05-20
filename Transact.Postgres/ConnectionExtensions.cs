@@ -59,7 +59,7 @@ namespace Transact.Postgres
             var param = typeof(NpgsqlCommand).GetProperty("Parameters", typeof(NpgsqlParameterCollection), new Type[0]);
             var props = Property(cmd, param);
             
-            var add = typeof(NpgsqlParameterCollection).GetMethod("Add", new Type[] { typeof(NpgsqlParameter) });
+            var add = typeof(NpgsqlParameterCollection).GetMethod("Add", new [] { typeof(NpgsqlParameter) });
             var toString = typeof(object).GetMethod("ToString");
             foreach(var prop in type.GetProperties())
             {
@@ -89,33 +89,13 @@ namespace Transact.Postgres
 
                 cmd.Prepare();
 
-                NpgsqlDataReader reader = null;
 
-                try
-                {
-                    do
-                    {
-
-                        try
-                        {
-                            reader = cmd.ExecuteReader();
-                            break;
-                        }
-                        catch (InvalidOperationException)
-                        {
-
-                        }
-
-                    } while (true);
-
+                using (var reader = cmd.ExecuteReader())
+                { 
                     while (reader.Read())
                     {
                         yield return mapper(reader);
                     }
-                }
-                finally
-                {
-                    reader.Dispose();
                 }
             }
         }

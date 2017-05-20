@@ -40,14 +40,14 @@ namespace Transact
                             if (!string.IsNullOrEmpty(transaction.Script))
                             {
                                 var nextData = await ScriptRunner.Run(transaction.Script, transaction);
-                                await transaction.CreateDelta((ref TransactionMutableData x) =>
+                                await transaction.CreateDelta(transaction.Revision + 1, true, (ref TransactionMutableData x) =>
                                 {
                                     x = nextData;
                                 });
                             }
                             else
                             {
-                                await transaction.CreateDelta((ref TransactionMutableData x) =>
+                                await transaction.CreateDelta(transaction.Revision + 1, true,(ref TransactionMutableData x) =>
                                 {
                                     x.Script = null;
                                     x.Expires = null;
@@ -58,14 +58,39 @@ namespace Transact
                     }
                     catch (Exception ex)
                     {
-                        await transaction.CreateDelta((ref TransactionMutableData x) =>
+                        try
                         {
-                            x.State = TransactionState.Failed;
-                            x.Payload = transaction.Payload;
-                            x.Error = ex;
-                            x.Expires = null;
-                            x.Script = null;
-                        });
+                            await
+                                transaction.CreateDelta(transaction.Revision + 1, true,
+                                    (ref TransactionMutableData x) =>
+                                    {
+                                        x.State = TransactionState.Failed;
+                                        x.Payload = transaction.Payload;
+                                        x.Error = ex;
+                                        x.Expires = null;
+                                        x.Script = transaction.Script;
+                                    });
+                        }
+                        catch (Exception unlikelyException)
+                        {
+                            // Probably optimistic concurrency failed.
+                            // We lost our chance to create a delta,
+                            // so let's make a new transaction that links to where we failed.
+                            var trans = new Transaction(
+                                Guid.NewGuid(), 
+                                0, 
+                                DateTime.UtcNow, 
+                                null, 
+                                null, 
+                                new { failure = "optimistic" }, 
+                                null,
+                                TransactionState.Failed,
+                                new TransactionRevision(transaction.Id, transaction.Revision), 
+                                unlikelyException, 
+                                Storage);
+
+                            await Storage.CreateTransaction(trans);
+                        }
                     }
                     finally
                     {
@@ -79,3 +104,4 @@ namespace Transact
         }
     }
 }
+

@@ -41,7 +41,7 @@ namespace Transact.Api.Controllers
             Task<Transaction> waitTask;
             try
             {
-                var delta = await trans.CreateDelta((ref TransactionMutableData data) =>
+                var delta = await trans.CreateDelta(revision, false, (ref TransactionMutableData data) =>
                 {
                     data.Expires = DateTime.UtcNow;
                     data.Script = $"Handler.{verb}(Transaction);";

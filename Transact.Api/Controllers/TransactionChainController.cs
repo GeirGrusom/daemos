@@ -65,7 +65,7 @@ namespace Transact.Api.Controllers
             Transaction trans;
             if (revision != null)
             {
-                trans = await factory.ContinueTransaction(id, (int)revision);
+                trans = await factory.ContinueTransaction(id, (int)revision, -1);
             }
             else
             {
@@ -94,12 +94,27 @@ namespace Transact.Api.Controllers
                 else
                     expires = trans.Expires;
 
-                result = await trans.CreateDelta((ref TransactionMutableData data) =>
+                TransactionState state;
+
+                if (model.ContainsKey("state"))
+                {
+                    if (!Enum.TryParse((string) model["state"], false, out state))
+                    {
+                        return BadRequest("Could not parse transaction state.");
+                    }
+                }
+                else
+                {
+                    state = trans.State;
+                }
+
+                result = await trans.CreateDelta(trans.Revision + 1, false, (ref TransactionMutableData data) =>
                 {
                     data.Expires = expires;
                     data.Payload = model.ContainsKey("payload") ? model["payload"] : trans.Payload;
                     data.Script = model.ContainsKey("script") ? model["script"] as string : trans.Script;
                     data.Handler = model.ContainsKey("handler") ? model["handler"] as string : null;
+                    data.State = state;
                 });
             }
             finally

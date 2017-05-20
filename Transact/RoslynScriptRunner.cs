@@ -43,14 +43,12 @@ namespace Transact
         }
 
         private static readonly ScriptOptions options = ScriptOptions.Default
-            //.WithReferences(typeof(object).GetTypeInfo().Assembly)
-            .WithReferences(MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location))
-            .WithReferences("System.Runtime, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")
-            .WithImports("System");
+            .AddReferences(typeof(Transaction).GetTypeInfo().Assembly)
+            .AddReferences(typeof(object).GetTypeInfo().Assembly)
+            .AddImports("System");
+            //.AddImports("System");
 
-        
-
-        private unsafe ScriptOptions AddSystemRef(ScriptOptions options)
+        private ScriptOptions AddSystemRef(ScriptOptions options)
         {
             
             /*var assembly = typeof(object).GetTypeInfo().Assembly;
@@ -70,6 +68,7 @@ namespace Transact
             
         }
 
+
         public async Task<TransactionMutableData> Run(string code, Transaction transaction)
         {
             var global = new ScriptGlobals(transaction, _transactionHandlerFactory.Get(transaction.Handler ?? "dummy"));
@@ -82,6 +81,11 @@ namespace Transact
                 Payload = global.Payload,
                 Script = global.Script
             };
+        }
+
+        public Task<Func<Transaction, Task<TransactionMutableData>>> Compile(string code)
+        {
+            return Task.FromResult(new Func<Transaction, Task<TransactionMutableData>>(tr => Run(code, tr)));
         }
     }
 }

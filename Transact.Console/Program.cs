@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Transact.Api;
 using Transact.Postgres;
+using Transact.Scripting;
 
 namespace Transact.Console
 {
@@ -40,25 +41,21 @@ namespace Transact.Console
                 }
             }
 
-
             Thread listeningThread = new Thread(httpServer.Start)
             {
                 Name = "Web Server"
             };
 
             listeningThread.Start();
-            
 
             HandlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)httpServer.Container.GetService(type));
 
-            TransactionProcessor processor = new TransactionProcessor(storage, new RoslynScriptRunner(HandlerFactory));
+            ScriptingProvider provider = new ScriptingProvider(storage);
+            provider.AddLanguageRunner("C#", new RoslynScriptRunner(HandlerFactory));
+            await provider.Initialize();
 
-            
-
-
-            //HandlerFactory.AddAssembly(Assembly.GetAssembly(typeof(Transaction)));
-
-
+            TransactionProcessor processor = new TransactionProcessor(storage, provider);
+         
             var cancelSource = new CancellationTokenSource();
             _cancel = cancelSource.Token;
             System.Console.CancelKeyPress += (sender, ev) =>

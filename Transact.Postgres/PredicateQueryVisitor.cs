@@ -31,17 +31,17 @@ namespace Transact.Postgres
 
         private static readonly Dictionary<string, string> tableNameLookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["id"] = "\"Id\"",
-            ["revision"] = "\"Revision\"",
-            ["created"] = "\"Created\"",
-            ["expires"] = "\"Expires\"",
-            ["expired"] = "\"Expired\"",
-            ["payload"] = "\"Payload\"",
-            ["script"] = "\"Script\"",
-            ["parentid"] = "\"ParentId\"",
-            ["parentrevision"] = "\"ParentRevision\"",
-            ["state"] = "\"State\"",
-            ["handler"] = "\"Handler\""
+            ["id"] = "id",
+            ["revision"] = "revision",
+            ["created"] = "created",
+            ["expires"] = "expires",
+            ["expired"] = "expired",
+            ["payload"] = "payload",
+            ["script"] = "script",
+            ["parentid"] = "parentId",
+            ["parentrevision"] = "parentRevision",
+            ["state"] = "state",
+            ["handler"] = "handler"
 
         };
 

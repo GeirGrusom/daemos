@@ -1,143 +1,39 @@
--- Database: transaction
+	create table tr.transactions (
+		id uuid not null,
+		revision int not null,
+		created timestamp without time zone not null,
+		expires timestamp without time zone null,
+		expired timestamp without time zone null,
+		payload jsonb null,
+		script text null,
+		parentId uuid null,
+		parentRevision int null,
+		state integer not null,
+		handler varchar(50),
+		head boolean not null default(true),
+		error jsonb null,
+		constraint pk_transactions primary key (id, revision),
+		constraint fk_transactions_parent foreign key (parentId, parentRevision) references tr.transactions
+	);
 
--- DROP DATABASE transaction;
+	create view tr.transactions_head as 
+		select id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, head, error 
+		from tr.transactions tr1
+		where tr1.head = true;
 
-CREATE DATABASE transaction
-  WITH OWNER = transact
-       ENCODING = 'UTF8'
-       TABLESPACE = pg_default
-       LC_COLLATE = ''
-       LC_CTYPE = ''
-       CONNECTION LIMIT = -1;
+create unique index index_transactions_head on tr.transactions using btree (id, head) where head = true;
 
--- Schema: tr
+create index index_transactions_fk on tr.transactions using btree (parentId, parentRevision) where parentId is not null;
 
--- DROP SCHEMA tr;
+create index index_transactions_id on tr.transactions using btree (id);
 
-CREATE SCHEMA tr
-  AUTHORIZATION transact;
+create index index_transactions_expires on tr.transactions using btree (expires) where expires is not null;
 
+create view tr.transactions_head as 
+	select id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, head, error 
+	from tr.transactions tr1
+	where tr1.head = true;
 
--- Table: tr."Transactions"
+grant select, update, insert on table tr.transactions to transact;
+grant select  on table tr.transactions_head to transact;
 
--- DROP TABLE tr."Transactions";
-
-CREATE TABLE tr."Transactions"
-(
-  "Id" uuid NOT NULL,
-  "Revision" integer NOT NULL,
-  "Created" timestamp without time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  "Expires" timestamp without time zone,
-  "Expired" timestamp without time zone,
-  "Payload" jsonb,
-  "Script" text,
-  "ParentId" uuid,
-  "ParentRevision" integer,
-  "State" integer NOT NULL DEFAULT 0,
-  "Handler" character varying(50),
-  "Head" boolean NOT NULL DEFAULT true,
-  CONSTRAINT "Transaction_pkey" PRIMARY KEY ("Id", "Revision")
-)
-WITH (
-  OIDS=FALSE
-);
-ALTER TABLE tr."Transactions"
-  OWNER TO postgres;
-GRANT ALL ON TABLE tr."Transactions" TO postgres;
-GRANT ALL ON TABLE tr."Transactions" TO public;
-
--- Index: tr.idx_transactions_created
-
--- DROP INDEX tr.idx_transactions_created;
-
-CREATE INDEX idx_transactions_created
-  ON tr."Transactions"
-  USING btree
-  ("Created");
-
--- Index: tr.idx_transactions_expired
-
--- DROP INDEX tr.idx_transactions_expired;
-
-CREATE INDEX idx_transactions_expired
-  ON tr."Transactions"
-  USING btree
-  ("Expired");
-
--- Index: tr.idx_transactions_expires
-
--- DROP INDEX tr.idx_transactions_expires;
-
-CREATE INDEX idx_transactions_expires
-  ON tr."Transactions"
-  USING btree
-  ("Expires");
-
--- Index: tr.idx_transactions_expires_expired
-
--- DROP INDEX tr.idx_transactions_expires_expired;
-
-CREATE INDEX idx_transactions_expires_expired
-  ON tr."Transactions"
-  USING btree
-  ("Expired", "Expires");
-
--- Index: tr.idx_transactions_id_head
-
--- DROP INDEX tr.idx_transactions_id_head;
-
-CREATE INDEX idx_transactions_id_head
-  ON tr."Transactions"
-  USING btree
-  ("Id", "Head");
-
--- Index: tr.idx_transactions_parent
-
--- DROP INDEX tr.idx_transactions_parent;
-
-CREATE INDEX idx_transactions_parent
-  ON tr."Transactions"
-  USING btree
-  ("ParentId");
-
--- Index: tr.idx_transactions_parent_revision
-
--- DROP INDEX tr.idx_transactions_parent_revision;
-
-CREATE INDEX idx_transactions_parent_revision
-  ON tr."Transactions"
-  USING btree
-  ("ParentId", "ParentRevision");
-
--- Index: tr.idx_transactions_revision
-
--- DROP INDEX tr.idx_transactions_revision;
-
-CREATE INDEX idx_transactions_revision
-  ON tr."Transactions"
-  USING btree
-  ("Revision");
-
--- View: tr."TransactionHead"
-
--- DROP VIEW tr."TransactionHead";
-
-CREATE OR REPLACE VIEW tr."TransactionHead" AS 
- SELECT tr1."Id",
-    tr1."Revision",
-    tr1."Created",
-    tr1."Expires",
-    tr1."Expired",
-    tr1."Payload",
-    tr1."Script",
-    tr1."ParentId",
-    tr1."ParentRevision",
-    tr1."State",
-    tr1."Handler"
-   FROM tr."Transactions" tr1
-  WHERE tr1."Head" = true;
-
-ALTER TABLE tr."TransactionHead"
-  OWNER TO postgres;
-GRANT ALL ON TABLE tr."TransactionHead" TO postgres;
-GRANT SELECT ON TABLE tr."TransactionHead" TO transact;

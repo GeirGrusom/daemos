@@ -19,24 +19,24 @@ namespace Transact.Postgres
     {
 
 
-        private const string SelectColumns = "\"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\", \"Error\"";
+        private const string SelectColumns = "id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error";
 
         private async Task<NpgsqlCommand> InsertTransactionCommandAsync()
         {
-            
             NpgsqlCommand cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = "INSERT INTO tr.\"Transactions\" (\"Id\", \"Revision\", \"Expires\", \"Expired\", \"Payload\",\"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\", \"Error\") VALUES (@id, @revision, @expires, @expired, @payload, @script, @parentId, @parentRev, @state, @handler, @error) RETURNING \"Id\", \"Revision\", \"Created\", \"Expires\", \"Expired\", \"Payload\", \"Script\", \"ParentId\", \"ParentRevision\", \"State\", \"Handler\", \"Error\"";
+            cmd.CommandText = $"INSERT INTO tr.transactions (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) VALUES (@id, @revision, @created, @expires, @expired, @payload, @script, @parentId, @parentRev, @state, @handler, @error) RETURNING {SelectColumns}";
             cmd.CommandType = System.Data.CommandType.Text;
 
-            cmd.Parameters.Add(new NpgsqlParameter("id", Uuid));
-            cmd.Parameters.Add(new NpgsqlParameter("revision", Integer));
+            cmd.Parameters.Add(new NpgsqlParameter("id", Uuid) { IsNullable = false });
+            cmd.Parameters.Add(new NpgsqlParameter("revision", Integer) { IsNullable = false });
+            cmd.Parameters.Add(new NpgsqlParameter("created", Timestamp) { IsNullable = false });
             cmd.Parameters.Add(new NpgsqlParameter("expires", Timestamp) { IsNullable = true });
             cmd.Parameters.Add(new NpgsqlParameter("expired", Timestamp) { IsNullable = true });
             cmd.Parameters.Add(new NpgsqlParameter("payload", Jsonb) { IsNullable = true });
             cmd.Parameters.Add(new NpgsqlParameter("script", Text) { IsNullable = true });
             cmd.Parameters.Add(new NpgsqlParameter("parentId", Uuid) { IsNullable = true });
             cmd.Parameters.Add(new NpgsqlParameter("parentRev", Integer) { IsNullable = true });
-            cmd.Parameters.Add(new NpgsqlParameter("state", Integer));
+            cmd.Parameters.Add(new NpgsqlParameter("state", Integer) { IsNullable = false });
             cmd.Parameters.Add(new NpgsqlParameter("handler", Varchar) { IsNullable = true });
             cmd.Parameters.Add(new NpgsqlParameter("error", Jsonb) { IsNullable = true });
 
@@ -47,7 +47,7 @@ namespace Transact.Postgres
         private async Task<NpgsqlCommand> SelectTransactionRevisionCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.\"Transactions\" WHERE \"Id\" = @id AND \"Revision\" = @revision";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.transactions WHERE id = @id AND revision = @revision";
             cmd.Parameters.Add(new NpgsqlParameter("id", Uuid));
             cmd.Parameters.Add(new NpgsqlParameter("revision", Integer));
             cmd.Prepare();
@@ -57,7 +57,7 @@ namespace Transact.Postgres
         private async Task<NpgsqlCommand> SelectTransactionCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.\"TransactionHead\" WHERE \"Id\" = @id";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.transactions_head WHERE id = @id";
             cmd.Parameters.Add(new NpgsqlParameter("id", Uuid));
             cmd.Prepare();
             return cmd;
@@ -66,7 +66,7 @@ namespace Transact.Postgres
         private async Task<NpgsqlCommand> SelectTransactionChainCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.\"Transactions\" WHERE \"Id\" = @id ORDER BY \"Revision\" ASC";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM tr.transactions WHERE id = @id ORDER BY revision ASC";
             cmd.Parameters.Add(new NpgsqlParameter("id", Uuid));
             cmd.Prepare();
             return cmd;
@@ -75,23 +75,20 @@ namespace Transact.Postgres
         private async Task<NpgsqlCommand> SelectChildTransactionsCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = "SELECT DISTINCT (\"Id\") FROM tr.\"TransactionHead\" WHERE \"ParentId\" = @parentId AND \"State\" = ANY(@states)";
+            cmd.CommandText = "SELECT DISTINCT (id) FROM tr.transactions_head WHERE parentId = @parentId AND state = ANY(@states)";
             cmd.Parameters.Add("parentId", Uuid);
             cmd.Parameters.Add("states", NpgsqlTypes.NpgsqlDbType.Array | Integer);
             cmd.Prepare();
             return cmd;
         }
 
-        private readonly SemaphoreSlim transactionLockSync = new SemaphoreSlim(1, 1);
-        private readonly Dictionary<Guid, TransactionLock> transactionLocks;
+        private readonly ConcurrentDictionary<Thread, NpgsqlConnection> _threadConnections = new ConcurrentDictionary<Thread, NpgsqlConnection>();
 
-        private readonly ConcurrentDictionary<Thread, NpgsqlConnection> threadConnections = new ConcurrentDictionary<Thread, NpgsqlConnection>();
-
-        private readonly ConcurrentDictionary<Thread, PostgreSqlQueryProvider> queryProviders = new ConcurrentDictionary<Thread, PostgreSqlQueryProvider>();
+        private readonly ConcurrentDictionary<Thread, PostgreSqlQueryProvider> _queryProviders = new ConcurrentDictionary<Thread, PostgreSqlQueryProvider>();
         private async Task<NpgsqlConnection> GetConnectionAsync()
         {
             NpgsqlConnection conn = null;
-            var result = threadConnections.GetOrAdd(Thread.CurrentThread, thread => conn = CreateConnection());
+            var result = _threadConnections.GetOrAdd(Thread.CurrentThread, thread => conn = CreateConnection());
 
             
             if (conn != null && conn != result)
@@ -110,12 +107,11 @@ namespace Transact.Postgres
         private async Task<PostgreSqlQueryProvider> GetQueryProviderAsync()
         {
             NpgsqlConnection conn = await GetConnectionAsync();
-            return queryProviders.GetOrAdd(Thread.CurrentThread, thread => new PostgreSqlQueryProvider(conn, this));
+            return _queryProviders.GetOrAdd(Thread.CurrentThread, thread => new PostgreSqlQueryProvider(conn, this));
         }
 
         public PostgreSqlTransactionStorage()
         {
-            transactionLocks = new Dictionary<Guid, TransactionLock>();
         }
 
         private NpgsqlConnection CreateConnection()
@@ -168,15 +164,16 @@ namespace Transact.Postgres
             if (next.Revision != original.Revision + 1)
                 throw new ArgumentException("The specified revision already exists.", nameof(next));
 
-            var parentId = next.Parent != null ? next.Parent.Value.Id : default(Guid?);
-            var parentRevision = next.Parent != null ? next.Parent.Value.Revision : default(int?);
+            var parentId = next.Parent?.Id;
+            var parentRevision = next.Parent?.Revision;
 
             var delta = new
             {
                 Id = original.Id,
                 Revision = next.Revision,
                 Expires = next.Expires,
-                Expired = default(DateTime?),
+                Expired = next.Expired,
+                Created = DateTime.UtcNow,
                 Payload = new JsonContainer(JsonConvert.SerializeObject(next.Payload)),
                 Script = next.Script,
                 ParentId = parentId,
@@ -188,10 +185,10 @@ namespace Transact.Postgres
 
             const string query = @"
 begin transaction;
-update tr.""Transactions"" set ""Head"" = 'f' where ""Id"" = @Id;
-INSERT INTO tr.""Transactions"" 
-    (""Id"", ""Revision"", ""Expires"", ""Expired"", ""Payload"",""Script"", ""ParentId"", ""ParentRevision"", ""State"", ""Handler"", ""Error"") VALUES 
-    (@Id, @Revision, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler, @Error) RETURNING ""Id"", ""Revision"", ""Created"", ""Expires"", ""Expired"", ""Payload"", ""Script"", ""ParentId"", ""ParentRevision"", ""State"", ""Handler"", ""Error"";
+update tr.transactions set head = 'f' where id = @Id;
+INSERT INTO tr.transactions 
+    (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) VALUES 
+    (@Id, @Revision, @Created, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler, @Error) RETURNING id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error;
 commit;
 ";
 
@@ -215,6 +212,7 @@ commit;
                 cmd.Transaction = sqlTransaction;
                 cmd.Parameters["id"].Value = transaction.Id;
                 cmd.Parameters["revision"].Value = transaction.Revision;
+                cmd.Parameters["created"].Value = DateTime.UtcNow;
                 cmd.Parameters["expires"].Value = transaction.Expires != null ? (object)transaction.Expires.Value : DBNull.Value;
                 cmd.Parameters["expired"].Value = transaction.Expired != null ? (object)transaction.Expired.Value : DBNull.Value;
                 cmd.Parameters["payload"].Value = transaction.Payload != null ? JsonConvert.SerializeObject(transaction.Payload) : (object)DBNull.Value;
@@ -232,28 +230,15 @@ commit;
                 }
                 cmd.Parameters["state"].Value = (int)transaction.State;
                 cmd.Parameters["handler"].Value = transaction.Handler != null ? (object)transaction.Handler : DBNull.Value;
-                //cmd.Prepare();
-                bool failed = false;
-                do
+                
+                using (var reader = (NpgsqlDataReader)await cmd.ExecuteReaderAsync())
                 {
-                    try
+                    if (!reader.Read())
                     {
-                        using (var reader = (NpgsqlDataReader)await cmd.ExecuteReaderAsync())
-                        {
-                            if (!reader.Read())
-                            {
-                                throw new TransactionMissingException(transaction.Id);
-                            }
-                            result = Map(reader);
-                        }
-                        failed = false;
+                        throw new TransactionMissingException(transaction.Id);
                     }
-                    catch(InvalidOperationException)
-                    {
-                        failed = true;
-                        result = null;
-                    }
-                } while (failed);
+                    result = Map(reader);
+                }
             }
 
             OnTransactionCommitted(result);
@@ -268,7 +253,7 @@ commit;
                 using (var select = await SelectTransactionCommandAsync()) {
 
                     select.Parameters["id"].Value = id;
-                    //select.Prepare();
+
                     using (var reader = (NpgsqlDataReader)await select.ExecuteReaderAsync())
                     {
                         if (!reader.Read())
@@ -298,66 +283,10 @@ commit;
             }
         }
         
-        private sealed class TransactionLock : IDisposable
+        public override Task FreeTransaction(Guid id)
         {
-            private readonly SemaphoreSlim lockSemaphore;
-            private readonly SemaphoreSlim waitSemaphore;
+            return Task.CompletedTask;
 
-            public TransactionLock()
-            {
-                lockSemaphore = new SemaphoreSlim(1, 1);
-                waitSemaphore = new SemaphoreSlim(1, 1);
-            }
-
-            public async Task<bool> FreeAsync()
-            {
-                lockSemaphore.Release();
-                bool locked = await waitSemaphore.WaitAsync(0);
-                if (locked)
-                {
-                    waitSemaphore.Release();
-                    return true;
-                }
-                lockSemaphore.Release();
-                return false;
-            }
-
-            public Task<bool> LockAsync(int timeout = Timeout.Infinite)
-            {
-                return lockSemaphore.WaitAsync(timeout);
-            }
-
-            public void Lock()
-            {
-                lockSemaphore.Wait();
-            }
-
-            public void Dispose()
-            {
-                lockSemaphore.Dispose();
-                waitSemaphore.Dispose();
-            }
-        }
-
-        public override async Task FreeTransaction(Guid id)
-        {
-            return;
-            await transactionLockSync.WaitAsync();
-            TransactionLock semaphore;
-            if (transactionLocks.TryGetValue(id, out semaphore))
-            {
-                bool result = await semaphore.FreeAsync();
-                if (!result)
-                {
-                    semaphore.Dispose();
-                    transactionLocks.Remove(id);
-                }
-                transactionLockSync.Release();
-                return;
-            }
-            transactionLockSync.Release();
-            throw new SynchronizationLockException("Could not remove the lock.");
-            
         }
 
         public override async Task<IEnumerable<Transaction>> GetChain(Guid id)
@@ -400,7 +329,7 @@ commit;
 
         private async Task<DateTime?> GetNextExpiringTransactionTime()
         {
-            string sql = "SELECT \"Expires\" FROM tr.\"TransactionHead\" WHERE \"Expired\" IS NULL AND \"Expires\" IS NOT NULL ORDER BY \"Expires\" ASC LIMIT 1";
+            string sql = "SELECT expires FROM tr.transactions_head WHERE expires IS NOT NULL ORDER BY expires ASC LIMIT 1";
             using (var cmd = (await GetConnectionAsync()).CreateCommand())
             {
                 cmd.CommandText = sql;
@@ -413,7 +342,7 @@ commit;
 
         protected override async Task<List<Transaction>> GetExpiringTransactionsInternal(DateTime now, CancellationToken cancel)
         {
-            string sql = "SELECT * FROM tr.\"TransactionHead\" WHERE \"Expires\" <= @now";
+            string sql = $"SELECT {SelectColumns} FROM tr.transactions_head WHERE expires <= @now";
             var results = new List<Transaction>();
 
             using (var cmd = (await GetConnectionAsync()).CreateCommand())
@@ -448,39 +377,15 @@ commit;
 
         }
 
-        public override async Task<bool> IsTransactionLocked(Guid id)
+        public override Task<bool> IsTransactionLocked(Guid id)
         {
-            return false;
-            await transactionLockSync.WaitAsync();
-            TransactionLock lc;
-            if (transactionLocks.TryGetValue(id, out lc))
-            {
-                bool acquiredLock = await lc.LockAsync(0);
-                await lc.FreeAsync();
-                transactionLockSync.Release();
-                return acquiredLock;
-            }
-            transactionLockSync.Release();
-            return false;
+            return Task.FromResult(false);
+
         }
 
-        public override async Task LockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
+        public override Task LockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
         {
-            return;
-            await transactionLockSync.WaitAsync();
-            TransactionLock lc;
-            if(transactionLocks.TryGetValue(id, out lc))
-            {
-                transactionLockSync.Release();
-                await lc.LockAsync(timeout);
-            }
-            else
-            {
-                lc = new TransactionLock();
-                transactionLocks.Add(id, lc);
-                transactionLockSync.Release();
-                await lc.LockAsync(timeout);
-            }            
+            return Task.CompletedTask;
         }
 
         public override async Task<IQueryable<Transaction>> Query()
@@ -492,7 +397,7 @@ commit;
         {
             using (var cmd = (await GetConnectionAsync()).CreateCommand())
             {
-                cmd.CommandText = "SELECT COUNT(*) FROM tr.\"TransactionHead\" WHERE \"Id\" = @id";
+                cmd.CommandText = "SELECT COUNT(*) FROM tr.transaction_head WHERE id = @id";
                 var idPar = cmd.CreateParameter();
                 idPar.Value = id;
                 idPar.ParameterName = "@id";
@@ -501,20 +406,10 @@ commit;
             }
         }
 
-        public override async Task<bool> TryLockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
+        public override Task<bool> TryLockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
         {
-            return true;
-            await transactionLockSync.WaitAsync();
-            TransactionLock lc;
-            if(transactionLocks.TryGetValue(id, out lc))
-            {
-                transactionLockSync.Release();
-                return await lc.LockAsync(timeout);
-            }
-            lc = new TransactionLock();
-            transactionLocks.Add(id, lc);
-            transactionLockSync.Release();
-            return await lc.LockAsync(timeout);
+            return Task.FromResult(true);
+
         }
     }
 }

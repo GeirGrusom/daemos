@@ -128,13 +128,12 @@ namespace Transact
             return transaction.Storage.FreeTransaction(transaction.Id);
         }
 
-        public static Task<Transaction> CreateDelta(this Transaction original, MutateTransactionDataDelegate delta)
+        public static Task<Transaction> CreateDelta(this Transaction original, int nextRevision, bool expired, MutateTransactionDataDelegate delta)
         {
             var data = original.Data;
-            data.Revision += 1;
+            data.Revision = nextRevision;
             data.Created = DateTime.UtcNow;
-            data.Expires = data.Created; // Unless otherwise stated transactions expire immediately.
-            data.Expired = null;
+            data.Expired = expired ? data.Created : (DateTime?)null;
             var mutableData = new TransactionMutableData
             {
                 Script = data.Script,
@@ -157,33 +156,6 @@ namespace Transact
         public static Task<Transaction> Fetch(this Transaction scope, int revision = -1)
         {
             return scope.Storage.FetchTransaction(scope.Id, revision);
-        }
-
-        public static Task<Transaction> CreateChild(this Transaction trans, NewChildTransactionData data)
-        {
-            var newTransaction = new Transaction(data.Id, 0, DateTime.UtcNow, data.Expires, null, data.Payload, data.Script, TransactionState.Initialized, new TransactionRevision(trans.Id, trans.Revision), data.Error, trans.Storage);
-            return trans.Storage.CreateTransaction(newTransaction);
-        }
-
-        public static async Task<Transaction> Authorize(this Transaction scope)
-        {
-            var last = await Fetch(scope);
-            return await CreateDelta(last, (ref TransactionMutableData x)=>
-            {
-                x.Expires = null;
-                x.State = TransactionState.Authorized;
-            });
-        }
-
-        public static async Task<Transaction> Expire(this Transaction transaction)
-        {
-            var last = await Fetch(transaction);
-            var data = last.Data;
-            data.Expired = DateTime.UtcNow;
-            data.Expires = null;
-            data.Revision = last.Revision + 1;
-            data.Script = null;
-            return await transaction.Storage.CommitTransactionDelta(last, new Transaction(data, transaction.Storage));
         }
     }
 

@@ -10,14 +10,6 @@ namespace Transact.Api.Controllers
     [Route("transactions", Name = "TransactionRoot")]
     public class TransactionRootController  : Controller //: ApiController
     {
-
-        [HttpGet("foo")]
-        public Task<IActionResult> foo()
-        {
-
-            return Task.FromResult<IActionResult>(NoContent());
-        }
-
         private readonly ITransactionStorage _storage;
 
         public TransactionRootController(ITransactionStorage storage)
@@ -46,7 +38,7 @@ namespace Transact.Api.Controllers
             var trans = await factory.StartTransaction(id, expires, model.Payload, model.Script, null);
             await trans.Free();
 
-            var transResult = TransactionMapper.ToTransactionResult(trans);
+            var transResult = trans.ToTransactionResult();
 
             return Created(Url.RouteUrl("TransactionGetRevision", new { id = trans.Id, revision = trans.Revision }), transResult);
         }

@@ -24,6 +24,55 @@ options {
 
 		return Call(rhs, method, lhs);
 	}
+
+	private string Unescape(string input, char tokenBarrier)
+	{
+		var builder = new System.Text.StringBuilder(input.Length);
+
+		bool lastWasSlash = false;
+		int lastCodePoint = 0;
+
+		for (int i = 0; i < input.Length; ++i)
+		{
+			char c = input[i];
+			if (c == '\\')
+			{
+				lastWasSlash = !lastWasSlash;
+			}
+			else if (lastWasSlash)
+			{
+				int copyLen = i - lastCodePoint - 1;
+				builder.Append(input.Substring(lastCodePoint, copyLen));
+			
+				if (c == 'n')
+				{
+					builder.Append('\n');
+				}
+				else if (c == 'r')
+				{
+					builder.Append('\r');
+				}
+				else if (c == tokenBarrier)
+				{
+					builder.Append(tokenBarrier);
+				}
+				else if (c == 't')
+				{
+					builder.Append('\t');
+				}
+				lastCodePoint = i + 1;
+				lastWasSlash = false;
+			}
+		
+		}
+
+		if (lastCodePoint < input.Length)
+		{
+			builder.Append(input.Substring(lastCodePoint));
+		}
+		
+		return builder.ToString();
+	}
 }
 
 /*
@@ -139,6 +188,7 @@ literalExpression returns [Expression expr]
 	| quotedString { $expr = Constant($quotedString.value, typeof(string)); }
 	| singleQuotedString { $expr = Constant($singleQuotedString.value, typeof(string)); }
 	| date { $expr = Constant($date.value, typeof(System.DateTime)); }
+	| period { $expr = Constant($period.value, typeof(System.TimeSpan)); }
 	| guid { $expr = Constant($guid.value, typeof(System.Guid)); }
 	| identifierChain { $expr = $identifierChain.expr; }
 	| array { $expr = $array.expr; }
@@ -174,8 +224,8 @@ identifier returns [string value]
 	| ID { $value = $ID.text; }
 	;
 
-quotedString returns [string value]: QUOTED_STRING { $value = $QUOTED_STRING.text.Substring(1, $QUOTED_STRING.text.Length - 2); } ;
-singleQuotedString returns [string value]: SINGLE_QUOTED_STRING { $value = $SINGLE_QUOTED_STRING.text.Substring(1, $SINGLE_QUOTED_STRING.text.Length - 2); };
+quotedString returns [string value]: QUOTED_STRING { $value = Unescape($QUOTED_STRING.text.Substring(1, $QUOTED_STRING.text.Length - 2), '"'); } ;
+singleQuotedString returns [string value]: SINGLE_QUOTED_STRING { $value = Unescape($SINGLE_QUOTED_STRING.text.Substring(1, $SINGLE_QUOTED_STRING.text.Length - 2), '\''); };
 
 
 float returns [double value]
@@ -202,6 +252,30 @@ guid returns [System.Guid value]
 date returns [System.DateTime value]
 	: '@' DATE { $value = System.DateTime.ParseExact($DATE.text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture); }
 	| '@' DATETIME { $value = System.DateTime.ParseExact($DATETIME.text, new [] { "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.fff" }, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal); }
+	;
+
+period returns [System.TimeSpan value]
+	: 'P' P_YEARS? P_MONTHS? P_DAYS? ('T' P_HOURS? P_MINUTES? P_SECONDS?) {
+		System.TimeSpan timeSpan = new System.TimeSpan();
+		if($P_YEARS != null) {
+			timeSpan = new System.TimeSpan(int.Parse($P_YEARS.text.Substring(1)) * 365, 0, 0, 0);
+		}
+		if($P_MONTHS != null) {
+			timeSpan = timeSpan.Add(new System.TimeSpan(int.Parse($P_MONTHS.text.Substring(1)) * 30, 0, 0, 0));
+		}
+		if($P_DAYS != null) {
+			timeSpan = timeSpan.Add(new System.TimeSpan(int.Parse($P_DAYS.text.Substring(1)), 0, 0, 0));
+		}
+		if($P_HOURS != null) {
+			timeSpan = timeSpan.Add(new System.TimeSpan(int.Parse($P_HOURS.text.Substring(1)), 0, 0));
+		}
+		if($P_MINUTES != null) {
+			timeSpan = timeSpan.Add(new System.TimeSpan(0, int.Parse($P_MINUTES.text.Substring(1)), 0));
+		}
+		if($P_SECONDS != null) {
+			timeSpan = timeSpan.Add(new System.TimeSpan(0, 0, int.Parse($P_SECONDS.text.Substring(1))));
+		}
+	 }
 	;
 
 array returns [Expression expr] : '[' (members += expression (',' members += expression)*)? ']' {
@@ -247,6 +321,13 @@ COMPLETED: [Cc][Oo][Mm][Pp][Ll][Ee][Tt][Ee][Dd]; // Case insensitive Completed
 CANCELLED: [Cc][Aa][Nn][Cc][Ee][Ll][Ll][Ee][Dd]; // Case insensitive Cancelled
 FAILED: [Ff][Aa][Ii][Ll][Ee][Dd]; // Case insensitive Failed
 
+P_YEARS: [0-9]+ 'Y';
+P_MONTHS: [0-9]+ 'M';
+P_DAYS: [0-9]+ 'D';
+P_HOURS: [0-9]+ 'H';
+P_MINUTES: [0-9]+ 'M';
+P_SECONDS: [0-9]+ 'S';
+
 fragment YEAR: [0-9][0-9][0-9][0-9];
 fragment MONTH: [0-1][0-9];
 fragment DAY: [0-3][0-9];
@@ -263,7 +344,7 @@ fragment TIME_FRAGMENT: HOUR ':' MINUTE ':' SECOND ('.' MILLISECOND)? 'Z';
 DATETIME: DATE_FRAGMENT 'T' TIME_FRAGMENT;
 DATE: DATE_FRAGMENT;
 
-NOT_EQ: '==' | '<>';
+NOT_EQ: '!=' | '<>';
 EQ: '=';
 
 GREATER: '>';
