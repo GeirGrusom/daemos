@@ -155,7 +155,7 @@ namespace Transact.Postgres
             {
                 Parameters.Add(DBNull.Value);
             }
-            else if (node.Value.GetType().IsEnum)
+            else if (node.Value.GetType().GetTypeInfo().IsEnum)
             {
                 Parameters.Add((int)node.Value);
             }

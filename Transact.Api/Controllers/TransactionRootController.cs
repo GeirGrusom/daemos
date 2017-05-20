@@ -1,18 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
-using System.Web.Http;
 using Transact.Api.Models;
 
 namespace Transact.Api.Controllers
 {
-    
-    public class TransactionRootController : ApiController
+
+    [Route("transactions", Name = "TransactionRoot")]
+    public class TransactionRootController  : Controller //: ApiController
     {
+
+        [HttpGet("foo")]
+        public Task<IActionResult> foo()
+        {
+
+            return Task.FromResult<IActionResult>(NoContent());
+        }
 
         private readonly ITransactionStorage _storage;
 
@@ -21,23 +25,34 @@ namespace Transact.Api.Controllers
             _storage = storage;
         }
 
-        [HttpPost]
-        public async Task<HttpResponseMessage> Post([FromBody]NewTransactionModel model)
+        [HttpPost(Name = "NewTransaction")]
+        public async Task<IActionResult> Post([FromBody]NewTransactionModel model)
         {
             if (model == null)
-                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+                return BadRequest();
 
             var factory = new TransactionFactory(_storage);
 
             Guid id = model.Id.GetValueOrDefault(Guid.NewGuid());
 
+            DateTime? expires;
+
+
+            if (!DateTimeParser.TryParseDateTime(model.Expires, out expires))
+            {
+                return BadRequest();
+            }
+
             var trans = await factory.StartTransaction(id);
             Transaction result;
             try
             {
+
+                    
+
                 result = await trans.CreateDelta((ref TransactionMutableData data) =>
                 {
-                    data.Expires = model.Expires;
+                    data.Expires = expires;
                     data.Payload = model.Payload;
                     data.Script = model.Script;
                     data.Handler = model.Handler;
@@ -47,22 +62,21 @@ namespace Transact.Api.Controllers
             {
                 await trans.Free();
             }
-            
-            var response = Request.CreateResponse(HttpStatusCode.Created, TransactionMapper.Map(result));
 
-            response.Headers.Add("Location", Url.Route("SpecificTransaction", new { id = result.Id.ToString("N") }));
-            return response;
+            var transResult = TransactionMapper.Map(result);
+
+            return Created(Url.RouteUrl("TransactionGetRevision", new { id = result.Id, revision = result.Revision }), transResult);
         }
 
-        [HttpGet]
-        public IHttpActionResult Get([FromUri] string query)
+        [HttpGet(Name = "TransactionQuery")]
+        public IActionResult Get([FromQuery] string query)
         {
             if(string.IsNullOrEmpty(query))
             {
                 return BadRequest("No query was specified.");
             }
 
-            TransactionMatchCompiler compiler = new TransactionMatchCompiler();
+            var compiler = new Transact.Query.Compiler();
             var exp = compiler.BuildExpression(query);
 
             var results = _storage.Query().Where(exp).Select(TransactionMapper.Map).AsEnumerable();

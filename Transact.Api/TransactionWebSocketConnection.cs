@@ -4,12 +4,12 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Owin.WebSocket;
+using Microsoft.AspNetCore.WebSockets.Server;
 using Transact.Api.Models;
 
 namespace Transact.Api
 {
-    public class TransactionWebSocketConnection : WebSocketConnection
+    public class TransactionWebSocketConnection
     {
         private readonly List<Guid> _subscriptions;
         private readonly SubscriptionService _service;
@@ -20,7 +20,12 @@ namespace Transact.Api
             _subscriptions = new List<Guid>();
         }
 
-        public override async Task OnMessageReceived(ArraySegment<byte> message, WebSocketMessageType type)
+        public Task SendText(byte[] data, bool foo)
+        {
+            return Task.CompletedTask;
+        }
+
+        public async Task OnMessageReceived(ArraySegment<byte> message, WebSocketMessageType type)
         {
             string contents = Encoding.UTF8.GetString(message.Array);
 
@@ -57,7 +62,7 @@ namespace Transact.Api
             SendText(Encoding.UTF8.GetBytes(obj), true);
         }
 
-        public override void OnClose(WebSocketCloseStatus? closeStatus, string closeStatusDescription)
+        public void OnClose(WebSocketCloseStatus? closeStatus, string closeStatusDescription)
         {
             foreach (var id in _subscriptions)
             {

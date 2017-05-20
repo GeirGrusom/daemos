@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Transact.Postgres
 {
@@ -19,13 +20,14 @@ namespace Transact.Postgres
 
         private static Type GetElementType(Type expType)
         {
-            var interf = expType.GetInterface("IEnumerable`1");
-            return interf.GetGenericArguments()[0];
+            // Unsupported in .NET Core 1.0 for some odd reason. Slated for 1.2 as far as I can tell.
+            var interf = expType.GetInterfaces().Single(x => x.Name == "IEnumerable`1");
+            return interf.GetGenericArguments()[0];            
         }
 
         public IQueryable CreateQuery(Expression expression)
         {
-            return (IQueryable)Activator.CreateInstance(typeof(PostgreSqlOrderedQuerableProvider<>).MakeGenericType(GetElementType(expression.Type)), this, expression);
+            return (IQueryable)Activator.CreateInstance(typeof(PostgreSqlOrderedQuerableProvider<>).MakeGenericType(typeof(Transaction)), this, expression);
         }
 
         public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
@@ -60,7 +62,7 @@ namespace Transact.Postgres
                 using (var reader = cmd.ExecuteReader())
                 {
 
-                    var rowResult = typeof(TResult).GetGenericArguments()[0];
+                    var rowResult = typeof(TResult).GenericTypeArguments[0];
 
                     if (rowResult == typeof(Transaction))
                     {

@@ -44,7 +44,7 @@ namespace Transact.Postgres
 
         public IEnumerable<MigrationItem> RetrieveScripts(string prefix)
         {
-            var asm = GetType().Assembly;
+            var asm = GetType().GetTypeInfo().Assembly;
             var resources = asm.GetManifestResourceNames()
                 .Where(x => x.StartsWith(prefix))
                 .Select(x => new MigrationItem(TrimStart(x, prefix), asm.GetManifestResourceStream(x), GenerateHashCode(asm.GetManifestResourceStream(x))))

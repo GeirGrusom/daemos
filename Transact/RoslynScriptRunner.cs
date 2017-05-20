@@ -2,7 +2,10 @@
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Scripting;
-
+using System.Runtime;
+using System.Reflection.Metadata;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Scripting;
 namespace Transact
 {
     public class ScriptGlobals
@@ -31,14 +34,37 @@ namespace Transact
             _transactionHandlerFactory = transactionHandlerFactory;
         }
 
+        private static readonly ScriptOptions options = ScriptOptions.Default
+            //.WithReferences(typeof(object).GetTypeInfo().Assembly)
+            .WithReferences(MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location))
+            .WithReferences("System.Runtime, Version=4.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a")
+            .WithImports("System");
+
+        
+
+        private unsafe ScriptOptions AddSystemRef(ScriptOptions options)
+        {
+            
+            /*var assembly = typeof(object).GetTypeInfo().Assembly;
+            byte* data;
+            int length;
+            if(assembly.TryGetRawMetadata(out data, out length))
+            {
+                var metaData = ModuleMetadata.CreateFromMetadata(new IntPtr(data), length);
+                var reference = metaData.GetReference();
+
+                return options.AddReferences(reference);
+            }
+
+            return options;*/
+            var objectRef = MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location);
+            return options.AddReferences(objectRef);
+            
+        }
+
         public Task Run(string code, Transaction transaction, Transaction previous)
         {
-            var options = ScriptOptions.Default
-                .AddReferences("System.Runtime", "System")
-                .AddReferences(Assembly.Load(new AssemblyName("Transact")))
-                .AddImports("Transact", "System");
-            
-            return Microsoft.CodeAnalysis.CSharp.Scripting.CSharpScript.RunAsync(code, options, new ScriptGlobals(transaction, previous, _transactionHandlerFactory.Get(transaction.Handler ?? "dummy")));
+            return CSharpScript.RunAsync(code, options, new ScriptGlobals(transaction, previous, _transactionHandlerFactory.Get(transaction.Handler ?? "dummy")));
         }
     }
 }

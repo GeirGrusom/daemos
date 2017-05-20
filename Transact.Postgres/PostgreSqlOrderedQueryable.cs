@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Collections;
+using System.Reflection;
 
 namespace Transact.Postgres
 {
@@ -25,7 +26,7 @@ namespace Transact.Postgres
             if (expression == null)
                 throw new ArgumentNullException(nameof(expression));
 
-            if (!typeof(IQueryable<TResult>).IsAssignableFrom(expression.Type))
+            if (!typeof(IQueryable<TResult>).GetTypeInfo().IsAssignableFrom(expression.Type))
                 throw new ArgumentOutOfRangeException(nameof(expression));
 
             Expression = expression;

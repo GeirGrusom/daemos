@@ -94,8 +94,13 @@ namespace Transact.Postgres
             };
             transactionLocks = new Dictionary<Guid, TransactionLock>();
             connection = new NpgsqlConnection(builder);
-            connection.Open();
             provider = new PostgreSqlQueryProvider(connection, this);
+        }
+
+        public override async Task Open()
+        {
+            await connection.OpenAsync();
+            
             GenerateCommands();
         }
 

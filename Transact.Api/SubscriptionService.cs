@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Transact.Query;
 
 namespace Transact.Api
 {
@@ -72,7 +73,7 @@ namespace Transact.Api
 
                 var sub = new Subscription(subscriptionId, x => x.Id == transactionId, callback);
                 if (!_subscriptions.TryAdd(subscriptionId, sub))
-                    throw new ApplicationException();
+                    throw new Exception();
 
                 var transactions = await Storage.GetChain(transactionId);
 
@@ -98,11 +99,11 @@ namespace Transact.Api
         public Guid Subscribe(string expression, Action<Guid, Transaction> callback)
         {
             var subscriptionId = Guid.NewGuid();
-            var compiler = new TransactionMatchCompiler();
+            var compiler = new Compiler();
             var exp = compiler.BuildExpression(expression).Compile();
             var sub = new Subscription(subscriptionId, exp, callback);
             if (!_subscriptions.TryAdd(subscriptionId, sub))
-                throw new ApplicationException();
+                throw new Exception();
 
             return subscriptionId;
         }

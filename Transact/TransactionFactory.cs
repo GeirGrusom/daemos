@@ -206,7 +206,8 @@ namespace Transact
         Task<Transaction> CreateTransaction(Transaction transaction);
         Task<Transaction> CommitTransactionDelta(Transaction original, Transaction next);
         IEnumerable<Transaction> GetExpiringTransactions(DateTime now, CancellationToken cancel);
-        IEnumerable<Transaction> GetChildTransactions(Guid transaction, params TransactionState[] state); 
+        IEnumerable<Transaction> GetChildTransactions(Guid transaction, params TransactionState[] state);
+        Task Open();
 
         event EventHandler<TransactionCommittedEventArgs> TransactionCommitted;
 
@@ -240,6 +241,23 @@ namespace Transact
             Storage = storage;
         }
 
+        public async Task<Transaction> ContinueTransaction(Guid id, int nextRevision, int timeout = Timeout.Infinite)
+        {
+            var trans = await Storage.FetchTransaction(id);
+            if (!await trans.TryLock(timeout: timeout))
+            {
+                throw new TimeoutException("Could not get a lock on the transaction.");
+            }
+
+            if(nextRevision != trans.Revision + 1)
+            {
+                await trans.Free();
+                throw new TransactionConflictException(id, nextRevision);
+            }
+
+            return trans;
+        }
+
         public async Task<Transaction> ContinueTransaction(Guid id, int timeout = Timeout.Infinite)
         {
             var trans = await Storage.FetchTransaction(id);
@@ -247,6 +265,7 @@ namespace Transact
             {
                 throw new TimeoutException("Could not get a lock on the transaction.");
             }
+
             return trans;
         }
 

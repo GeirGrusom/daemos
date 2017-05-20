@@ -1,4 +1,6 @@
 ﻿{
+  "title": "Transact",
+  "description": "Transact Base Library",
   "version": "1.0.0-*",
 
   "dependencies": {

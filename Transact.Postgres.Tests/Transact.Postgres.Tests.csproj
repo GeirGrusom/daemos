@@ -69,10 +69,6 @@
       <Project>{86504821-37d7-46f2-87e2-ebcc6ffae235}</Project>
       <Name>Transact.Postgres</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Transact\Transact.csproj">
-      <Project>{0ea2fcfe-d6ac-4def-8112-bcd8106a4139}</Project>
-      <Name>Transact</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />

@@ -43,6 +43,7 @@ namespace Transact
         public abstract IQueryable<Transaction> Query();
         public abstract Task<bool> TransactionExists(Guid id);
         public abstract Task<bool> TryLockTransaction(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
+        public abstract Task Open();
         public virtual async Task<Transaction> WaitFor(Func<Transaction, bool> predicate, int timeout)
         {
             SemaphoreSlim sem = new SemaphoreSlim(0, 1);

@@ -73,6 +73,12 @@ namespace Transact
             _expiringEvent = new ManualResetEventSlim(false);
             _nextExpiringTransactionChangedEvent = new AutoResetEvent(true);
         }
+
+        public override Task Open()
+        {
+            return Task.CompletedTask;
+        }
+
         public override async Task LockTransaction(Guid id, LockFlags flags, int timeout)
         {
             TransactionSlot slot;

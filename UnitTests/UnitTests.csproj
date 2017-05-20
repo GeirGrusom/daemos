@@ -162,10 +162,6 @@
       <Project>{fdb688df-8243-49a5-af6f-72cc57f23351}</Project>
       <Name>Transact.Api</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Transact\Transact.csproj">
-      <Project>{0ea2fcfe-d6ac-4def-8112-bcd8106a4139}</Project>
-      <Name>Transact</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />

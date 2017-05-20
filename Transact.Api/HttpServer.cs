@@ -2,43 +2,18 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Reflection.Metadata;
-using System.Web.Http;
-using System.Web.Http.Dispatcher;
-using System.Web.Http.Tracing;
-using Microsoft.Owin.Hosting;
-using Microsoft.Practices.Unity;
-using Owin;
 using Transact.Api.Controllers;
 using Newtonsoft.Json;
-using Owin.WebSocket.Extensions;
-
+using Microsoft.AspNetCore.Server.Kestrel;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.WebSockets.Server;
+using Microsoft.Extensions.DependencyInjection;
+using System.Threading;
 
 namespace Transact.Api
 {
-    public class ControllerTypeResolver : IHttpControllerTypeResolver
-    {
-        public ICollection<Type> GetControllerTypes(IAssembliesResolver assembliesResolver)
-        {
-            return new List<Type> {typeof (TransactionController), typeof(TransactionRootController), typeof(ErrorController)};
-        }
-    }
-
-    public class TraceManager : ITraceManager
-    {
-        public void Initialize(HttpConfiguration configuration)
-        {
-            Console.WriteLine("Trace config");
-        }
-    }
-
-    public class TraceWriter : ITraceWriter
-    {
-        public void Trace(HttpRequestMessage request, string category, TraceLevel level, Action<TraceRecord> traceAction)
-        {
-            Console.WriteLine(request.RequestUri.ToString());
-        }
-    }
-
+   
     public class WebSocketEvent
     {
         [JsonProperty("action")]
@@ -54,59 +29,77 @@ namespace Transact.Api
     {
         private IDisposable _server;
         private readonly Uri _baseAddress;
-        private readonly ITransactionStorage _storage;
-        public  IUnityContainer Container { get; }
+        public IServiceProvider Container { get; }
         private readonly SubscriptionService _subscriptionService;
+        private IWebHost _host;
 
-        public HttpServer(Uri baseAddress, ITransactionStorage storage, IUnityContainer container)
+        public ITransactionStorage Storage { get; }
+
+        private readonly CancellationTokenSource cancel;
+
+        public HttpServer()
         {
-            Container = container;
+            cancel = new CancellationTokenSource();
+        }
+
+        public void Stop()
+        {
+            cancel.Cancel();
+        }
+
+        public void Wait()
+        {
+            cancel.Token.WaitHandle.WaitOne();
+        }
+
+        public HttpServer(Uri baseAddress, ITransactionStorage storage)
+            : this()
+        {
             _baseAddress = baseAddress;
-            _storage = storage;
-            _subscriptionService = new SubscriptionService(_storage);
+            Storage = storage;
+            _subscriptionService = new SubscriptionService(storage);
             
         }
 
         public void Start()
         {
-            var startupOptions = new StartOptions(_baseAddress.ToString());
-            _server = WebApp.Start(startupOptions, Configuration);
+
+            WebHostBuilder hostBuilder = new WebHostBuilder();
+
+            hostBuilder.UseKestrel();
+            hostBuilder.ConfigureServices(ConfigureServices);
+            hostBuilder.Configure(Configuration);
+            
+            
+            _host = hostBuilder.Build();
+          
+            _host.Run(cancel.Token);
         }
 
-        public void Configuration(IAppBuilder appBuilder)
+        public void ConfigureServices(IServiceCollection services)
         {
-            var config = new HttpConfiguration();
-
-            var resolver = new UnityResolver(Container);
-            var dep = new DefaultHttpControllerSelector(config);
-
-            Container.RegisterInstance(_storage);
-            Container.RegisterInstance(_subscriptionService);
-            Container.RegisterType<ITraceManager, TraceManager>();
-            Container.RegisterType<ITraceWriter, TraceWriter>();
-            config.DependencyResolver = resolver;
-
-            appBuilder.MapWebSocketRoute<TransactionWebSocketConnection>("/api/transaction/filter", new UnityServiceLocator(Container));
-            config.Routes.MapHttpRoute("TransactionQuery", "api/transaction", new { controller = "TransactionRoot" });
-            config.Routes.MapHttpRoute("SpecificTransaction", "api/transaction/{id}", new { controller = "Transaction" });
-            config.Routes.MapHttpRoute("TransactionChain", "api/transaction/{id}/chain/{revision}", new { controller = "TransactionChain", revision = RouteParameter.Optional });
-            config.Routes.MapHttpRoute("TransactionHandling", "api/transaction/{id}/{action}", new {controller = "TransactionHandling"});
-            
-            config.Routes.MapHttpRoute("any", "{*wildcard}", new {Controller = "Error", Action = "Get"});
-
-            config.EnsureInitialized();
-
-            appBuilder.UseWebApi(config);
-            
-
+            services.AddSingleton<ITransactionStorage>(Storage);
+            services.AddSingleton<SubscriptionService>(_subscriptionService);
+            services.AddMvc(x => x.Filters.Add(typeof(ExceptionFilter)));
+            //services.AddRouting();
         }
 
-
-
-        public void Stop()
+        public void Configuration(IApplicationBuilder appBuilder)
         {
-            _subscriptionService.Dispose();
-            _server.Dispose();
+            appBuilder.UseWebSockets();
+            appBuilder.UseMvc();
+            
+
+            /*appBuilder.Use(async (http, next) => {
+                if(http.WebSockets.IsWebSocketRequest)
+                {
+
+                }
+                else
+                {
+                    await next();
+                }
+            });*/
         }
     }
     

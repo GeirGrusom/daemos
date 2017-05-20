@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text;
+﻿using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
-using System.Web.Http;
+
 using Transact.Api.Models;
 
 namespace Transact.Api.Controllers
 {
-    public class TransactionHandlingController : ApiController
+    [Route("transactions/{id:guid}/{revision:min(0)}")]
+    public class TransactionHandlingController : Controller
     {
         private readonly ITransactionStorage _storage;
         private const int BlockTimeMs = 2000;
@@ -25,17 +22,21 @@ namespace Transact.Api.Controllers
             Nonblocking,
         }
 
-        private async Task<HttpResponseMessage> Process(Guid id, string verb, TransactionState state, int timeout)
+        private async Task<IActionResult> Process(Guid id, int revision, string verb, TransactionState state, int timeout)
         {
             var factory = new TransactionFactory(_storage);
             Transaction trans;
             try
             {
-                trans = await factory.ContinueTransaction(id);
+                trans = await factory.ContinueTransaction(id, revision);
+            }
+            catch(TransactionConflictException)
+            {
+                return new StatusCodeResult(409);
             }
             catch (TransactionMissingException)
             {
-                return Request.CreateResponse(HttpStatusCode.NotFound);
+                return NotFound();
             }
             Task<Transaction> waitTask;
             try
@@ -53,32 +54,32 @@ namespace Transact.Api.Controllers
             }
 
             if (timeout == 0)
-                return Request.CreateResponse(HttpStatusCode.Accepted);
+                return new StatusCodeResult(202);
 
             var transaction = await waitTask;
 
             if (transaction == null)
-                return Request.CreateResponse(HttpStatusCode.Accepted);
+                return new StatusCodeResult(202);
 
-            return Request.CreateResponse(HttpStatusCode.Created, TransactionMapper.Map(transaction));
+            return Created(Url.RouteUrl("TransactionGetRevision", new { id = transaction.Id, revision = transaction.Revision }), TransactionMapper.Map(transaction));
         }
 
-        [HttpPost]
-        public Task<HttpResponseMessage> Complete(Guid id, [FromUri] int wait = BlockTimeMs)
+        [HttpPost("complete", Name = "CompleteTransaction")]
+        public Task<IActionResult> Complete(Guid id, [FromRoute] int revision, [FromQuery] int wait = BlockTimeMs)
         {
-            return Process(id, "Complete", TransactionState.Completed, wait);
+            return Process(id, revision, "Complete", TransactionState.Completed, wait);
         }
 
-        [HttpPost]
-        public Task<HttpResponseMessage> Authorize(Guid id, [FromUri] int wait = BlockTimeMs)
+        [HttpPost("authorize", Name = "AuthorizeTransaction")]
+        public Task<IActionResult> Authorize(Guid id, [FromRoute] int revision, [FromQuery] int wait = BlockTimeMs)
         {
-            return Process(id, "Authorize", TransactionState.Authorized, wait);
+            return Process(id, revision, "Authorize", TransactionState.Authorized, wait);
         }
 
-        [HttpPost]
-        public Task<HttpResponseMessage> Cancel(Guid id, [FromUri] int wait = BlockTimeMs)
+        [HttpPost("cancel", Name = "CancelTransaction")]
+        public Task<IActionResult> Cancel(Guid id, [FromRoute] int revision, [FromQuery] int wait = BlockTimeMs)
         {
-            return Process(id, "Cancel", TransactionState.Cancelled, wait);
+            return Process(id, revision, "Cancel", TransactionState.Cancelled, wait);
         }
     }
 }
