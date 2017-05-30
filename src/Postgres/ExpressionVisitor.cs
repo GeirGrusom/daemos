@@ -66,11 +66,11 @@ namespace Daemos.Postgres
         {
             if(count)
             {
-                return $"SELECT COUNT(*) FROM markurion.transactions_head WHERE {predicateVisitor.ToString()};";
+                return $"SELECT COUNT(*) FROM daemos.transactions_head WHERE {predicateVisitor.ToString()};";
             }
             string limit = take != null ? "LIMIT " + take.Value : "";
             string offset = skip != null ? " OFFSET " + skip.Value : "";
-            return $"SELECT {defaultSelect} FROM markurion.Transactions_head WHERE {predicateVisitor.ToString()} {limit} {offset};";
+            return $"SELECT {defaultSelect} FROM daemos.Transactions_head WHERE {predicateVisitor.ToString()} {limit} {offset};";
         }
     }
 }

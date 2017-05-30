@@ -36,6 +36,7 @@ namespace Daemos
                     var dependencyResolver = Container.CreateProxy();
 
                     var proxyTransactionData = transaction.Data;
+                    proxyTransactionData.Created = DateTime.UtcNow;
                     proxyTransactionData.Expires = null;
                     var state = await transaction.Storage.GetTransactionStateAsync(transaction.Id, transaction.Revision);
 

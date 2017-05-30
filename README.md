@@ -8,11 +8,8 @@ This is licensed under the [MIT license](https://github.com/GeirGrusom/daemos/bl
 
 ## Introduction
 
-Daemos is a transaction engine for handling time and action based operations. Basically each transaction may have a script and / or an expiration time. When the expiration
+Daemos is a transaction engine for handling time- and action based operations. Basically each transaction may have a script and / or an expiration time. When the expiration
 time is hit the script will get executed. The script may produce a new transaction to be executed in the future.
-
-
-
 
 ## MuteScript
 
@@ -23,13 +20,13 @@ by storing the transaction stage.
 
 Note that any syntax described in this document is intended to explain the expressions; they're edited for brevity.
 
-Generally Mute is a imperative programming language. It does not support user-defined types or functions currently (although user defined functions are planned, and some syntax for it exists).
+Generally Mute is an imperative programming language. It does not support user-defined types or functions currently (although user defined functions are planned, and some syntax for it exists).
 Statements are terminated with `;` and is generally in the C camp of syntax.
 
 ```antlr4
 statementBody
     : '{' statement* '}'
-	;
+    ;
 ```
 
 #### Module
@@ -47,7 +44,7 @@ Datatypes can be either nullable or non-nullable. The default is non-nullable. T
 ```antlr4
 dataType
     : (identifier) '?'?
-	;
+    ;
 ```
 
 #### Variable declaration
@@ -57,7 +54,7 @@ Variables are declared with either `let` (readonly) or `var` (mutable). Some exp
 declaration
     : ('let'|'var') identifier (':' dataType)? ('<-' (expression))
     | 'let' identifier '<-' 'import' dataType
-	;
+    ;
 ```
 
 Import expressions are readonly since they denote unserializable dependencies for the script. This may be changed in the future.
@@ -69,7 +66,7 @@ Conditional execution is done using the `if` expression or statement. An `if` wi
 ```antlr4
 ifExpression
     : 'if' '(' expression ')' expression ('elseif' '(' expression ')' expression)* ('else' expression)?
-	;
+    ;
 ```
 
 #### Function call
@@ -77,16 +74,16 @@ ifExpression
 Functions on dependencies (or other objects) can be called using familiar C-style syntax although it also includes named arguments.
 
 ```antlr4
-argument:
+argument
     : expression
-	;
-namedArgument:
+    ;
+namedArgument
     : identifier ':' expression
-	;
+    ;
 functionCall
     : expression '(' (argument)* ')'
-	| expression '(' (namedArgument)+ ')'
-	;
+    | expression '(' (namedArgument)+ ')'
+    ;
 ```
 
 #### Cast expressions
@@ -95,23 +92,23 @@ Cast's are currently done using the cast operator, but will use function call sy
 
 ```antlr4
 cast
-	: dataType '!' '(' expression ')'
-	;
-
+    : dataType '!' '(' expression ')'
+    ;
+```
 
 #### Literal expressions
 
 ```antlr4
 literalExpression
-	: ('true'|'false')
-	| 'null'
-	| [0-9]+
-	| 'this'
-	| '@' dateTime // Datetime follows ISO-8601 date format
-	| '"' doubleQuotedStringContents '"'
-	| '\'' singleQuotedStringContents '\''
-	| ('initialized'|'authorized'|'completed'|'failed','cancelled')
-	;
+    : ('true'|'false')
+    | 'null'
+    | [0-9]+
+    | 'this'
+    | '@' dateTime // Datetime follows ISO-8601 date format
+    | '"' doubleQuotedStringContents '"'
+    | '\'' singleQuotedStringContents '\''
+    | ('initialize'|'authorize'|'complete'|'fail','cancel') // Used to assign transaction state
+    ;
 ```
 
 #### While loop
@@ -121,8 +118,8 @@ Follows regular C `while` and `do-while` expressions.
 ```antlr4
 while
     : 'while' '(' expression ')' statementBody
-	| 'do' statementBody 'while' '(' expression ')'
-	;
+    | 'do' statementBody 'while' '(' expression ')'
+    ;
 ```
 
 #### Commit transaction
@@ -132,7 +129,7 @@ Commits the specified transaction to its storage engine.
 ```antlr4
 commitExpression
     : 'commit' expression
-	;
+    ;
 ```
 
 #### Await transaction
@@ -142,7 +139,7 @@ Awaits a committed transaction. This stores the scripts state and exits.
 ```antlr4
 awaitExpression
     : 'await' expression
-	;
+    ;
 ```
 
 #### Object expression
@@ -151,8 +148,8 @@ Object expressions are general object structure definitions. It more or less fol
 
 ```antlr4
 objectExpression
-	: '{' (identifier ':' expression)* '}'
-	;
+    : '{' (identifier ':' expression)* '}'
+    ;
 ```
 
 #### With expression
@@ -161,13 +158,45 @@ Generally used to alter a transaction since transactions are immutable.
 
 ```antl4
 withExpression
-	: expression 'with' objectExpression
-	;
+    : expression 'with' objectExpression
+    ;
+```
+
+#### Example
+
+```
+module foo;
+let communication <- import PaymentService;
+let now <- this.Created;
+
+var failureCount <- 0;
+
+try
+{
+	let result <- communication.Authorize(this.Payload.Amount);
+	await commit this with { Expires: this.Created + timespan(hours: 1, minutes: 0, seconds: 0), State: authorize, Payload: this.Payload with { transactionId: result.TransactionId } };
+}
+catch(ex: Exception)
+{
+	failureCount <- failureCount + 1;
+	if(failureCount < 3)
+	{
+		await commit this with { Expires: this.Created + timespan(hours: 24, minutes: 0, seconds: 0, State: fail, Error: ex }
+		retry;
+	}
+	else
+	{
+		rethrow;
+	}
+}
+
+communication.Complete(this.Payload.TransactionId);
+commit this with { State: complete };
 ```
 
 ## Usage
 
-Run the console application using `dotnet`. It requires PostgreSQL server to run properly although an in-memory options is available.
+Run the console application using `dotnet`. It requires PostgreSQL server to run properly although an in-memory option is available.
 
 ### Command line arguments
 

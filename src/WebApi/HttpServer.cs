@@ -2,7 +2,12 @@
 using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.Mvc.Formatters.Json.Internal;
+using Microsoft.AspNetCore.Mvc.ViewFeatures.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
 
@@ -60,8 +65,11 @@ namespace Daemos.WebApi
 
             WebHostBuilder hostBuilder = new WebHostBuilder();
 
+            var loggerFactory = new LoggerFactory();
+
             hostBuilder.UseKestrel();
-            hostBuilder.ConfigureServices(ConfigureServices);
+            hostBuilder.UseLoggerFactory(loggerFactory);
+            hostBuilder.ConfigureServices(x => ConfigureServices(loggerFactory, x));
             hostBuilder.Configure(Configuration);
             
             
@@ -70,12 +78,31 @@ namespace Daemos.WebApi
             _host.Run(cancel.Token);
         }
 
-        public void ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(ILoggerFactory loggerFactory, IServiceCollection services)
         {
             services.AddCors(x => x.AddPolicy("Default", b => b.AllowAnyOrigin().Build()));
             services.AddSingleton(Storage);
             services.AddSingleton(_subscriptionService);
-            services.AddMvcCore(x => x.Filters.Add(typeof(ExceptionFilter))).AddApiExplorer();
+            services.AddWebEncoders();
+            services.AddLogging();
+            var jsonSerializerSettings = new JsonSerializerSettings
+            {
+                DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                DateParseHandling = DateParseHandling.DateTime,
+                FloatFormatHandling = FloatFormatHandling.String,
+                Formatting = Formatting.None,
+                ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
+                DateTimeZoneHandling = DateTimeZoneHandling.Utc,
+            };
+
+            services.AddMvcCore(x =>
+            {
+                x.Filters.Add(typeof(ExceptionFilter));
+            })
+            .AddApiExplorer()
+            .AddFormatterMappings()
+            .AddJsonFormatters();
+
             services.AddSwaggerGen(x => x.SwaggerDoc("v1",
                 new Info {Title = "Daemos", License = new License {Name = "MIT"}, Version = "v1"}));
         }

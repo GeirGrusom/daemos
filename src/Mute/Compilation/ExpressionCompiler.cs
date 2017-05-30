@@ -171,17 +171,8 @@ namespace Daemos.Mute.Compilation
             il.Emit(OpCodes.Xor);
         }
 
-
         public override void OnVisit(BinaryAddExpression exp)
         {
-
-            /*if (exp.Left.Type == DataType.NonNullDateTime && exp.Right.Type == DataType.NonNullTimeSpan)
-            {
-                il.Emit(OpCodes.Call, typeof(DateTime).GetMethod(nameof(DateTime.Add)));
-                return;
-            }*/
-
-
             if (exp.Method == null)
             {
                 Visit(exp.Left);
@@ -194,19 +185,45 @@ namespace Daemos.Mute.Compilation
                 if (exp.Method.IsStatic || !exp.Left.Type.ClrType.GetTypeInfo().IsValueType)
                 {
                     Visit(exp.Left);
-                    Visit(exp.Right);
                 }
                 else
                 {
-
                     var tmp = il.DeclareLocal(exp.Left.Type.ClrType);
                     Visit(exp.Left);
                     il.Emit(OpCodes.Stloc, tmp);
                     il.Emit(OpCodes.Ldloca, tmp);
-                    Visit(exp.Right);
                 }
+                Visit(exp.Right);
                 il.Emit(OpCodes.Call, exp.Method);
             }
+        }
+
+        public override void OnVisit(MemberExpression exp)
+        {
+            if (exp.Member is PropertyInfo property)
+            {
+                if (exp.Instance.Type.ClrType.GetTypeInfo().IsValueType)
+                {
+                    if (exp.Instance is VariableExpression v)
+                    {
+                        il.Emit(OpCodes.Ldloc, v.Name == "this" ? _this : _variableIndices[v].Local);
+                    }
+                    else
+                    {
+                        var tmp = il.DeclareLocal(exp.Instance.Type.ClrType);
+                        OnVisit(exp.Instance);
+                        il.Emit(OpCodes.Stloc, tmp);
+                        il.Emit(OpCodes.Ldloca, tmp);
+                    }
+                }
+                else
+                {
+                    OnVisit(exp.Instance);
+                }
+                il.Emit(OpCodes.Call, property.GetMethod);
+                return;
+            }
+            throw new NotImplementedException();
         }
 
         public override void OnVisit(BinarySubtractExpression exp)

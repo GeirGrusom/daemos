@@ -5,6 +5,7 @@ namespace Daemos.Mute.Expressions
 {
     public class Visitor
     {
+        [DebuggerStepThrough]
         public void Visit(Expression expression)
         {
             OnVisit(expression);
