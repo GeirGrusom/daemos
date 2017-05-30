@@ -36,8 +36,7 @@ namespace Daemos.Mute.Expressions
         public static DataType NullDateTime { get; } = new DataType(typeof(DateTime?), true);
         public static DataType NullDateTimeOffset { get; } = new DataType(typeof(DateTimeOffset?), true);
         public static DataType NullTimeSpan { get; } = new DataType(typeof(TimeSpan?), true);
-        
-
+        public static DataType Dynamic { get; } = new DataType(typeof(IDictionary<string, object>), true);
         public static DataType Void { get; } = new DataType(typeof(void), false);
         
 

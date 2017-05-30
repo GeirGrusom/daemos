@@ -2,7 +2,7 @@
   "profiles": {
     "Transact.Console": {
       "commandName": "Project",
-      "commandLineArgs": "--database-type postgresql --connection-string \"User ID=transact;Password=qwerty12345;Host=localhost;Port=5432;Database=postgres;\""
+      "commandLineArgs": "--database-type postgresql --connection-string \"User ID=transact;Password=qwerty12345;Host=localhost;Port=5432;Database=daemos;\""
     }
   }
 }

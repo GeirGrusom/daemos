@@ -419,6 +419,10 @@ namespace Daemos.Mute.Compilation
                 {
                     EmitParse<int>();
                 }
+                else if (exp.Operand.Type.ClrType == typeof(object))
+                {
+                    il.Emit(OpCodes.Call, typeof(Convert).GetMethod(nameof(Convert.ToInt32), new [] { typeof(object)}));
+                }
                 else
                 {
                     il.Emit(OpCodes.Conv_I4);
@@ -429,6 +433,10 @@ namespace Daemos.Mute.Compilation
                 if (exp.Operand.Type.ClrType == typeof(string))
                 {
                     EmitParse<long>();
+                }
+                else if (exp.Operand.Type.ClrType == typeof(object))
+                {
+                    il.Emit(OpCodes.Call, typeof(Convert).GetMethod(nameof(Convert.ToInt64), new[] { typeof(object) }));
                 }
                 else
                 {
@@ -441,6 +449,11 @@ namespace Daemos.Mute.Compilation
                 {
                     EmitParse<float>();
                 }
+                else if (exp.Operand.Type.ClrType == typeof(object))
+                {
+                    il.Emit(OpCodes.Call, typeof(Convert).GetMethod(nameof(Convert.ToSingle), new[] { typeof(object) }));
+                }
+
                 else
                 {
                     il.Emit(OpCodes.Conv_R4);
@@ -452,14 +465,38 @@ namespace Daemos.Mute.Compilation
                 {
                     EmitParse<double>();
                 }
+                else if (exp.Operand.Type.ClrType == typeof(object))
+                {
+                    il.Emit(OpCodes.Call, typeof(Convert).GetMethod(nameof(Convert.ToDouble), new[] { typeof(object) }));
+                }
+
                 else
                 {
                     il.Emit(OpCodes.Conv_R8);
                 }
             }
+            else if (exp.Type == DataType.NonNullDecimal)
+            {
+                if (exp.Operand.Type.ClrType == typeof(string))
+                {
+                    EmitParse<decimal>();
+                }
+                else if (exp.Operand.Type.ClrType == typeof(object))
+                {
+                    il.Emit(OpCodes.Call, typeof(Convert).GetMethod(nameof(Convert.ToDecimal), new[] { typeof(object) }));
+                }
+
+                else
+                {
+                    var ctor = typeof(decimal).GetConstructor(new Type[] {exp.Operand.Type.ClrType});
+                    il.Emit(OpCodes.Newobj, ctor);
+                }
+            }
             else
             {
-                throw new InvalidOperationException("Unsupported type conversion.");
+                var tmp = il.DeclareLocal(exp.Type.ClrType);
+                il.Emit(OpCodes.Stloc, tmp);
+                il.Emit(OpCodes.Ldloc, tmp);
             }
         }
 
@@ -581,13 +618,15 @@ namespace Daemos.Mute.Compilation
             var tmpLocal = il.DeclareLocal(exp.Type.ClrType);
             Visit(exp.Operand);
             il.Emit(OpCodes.Stloc, tmpLocal);
+            il.Emit(OpCodes.Stloc, tmpLocal);
             // Stores state
             foreach (var item in _variableIndices.Where(x => !x.Value.IsImport).OrderBy(x => x.Value.Index))
             {
                 if (!SerializeMethods.TryGetValue(item.Key.Type.ClrType, out MethodInfo meth))
                 {
                     // Default to BinaryFormatter serialization.
-                    meth = typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.Serialize), new[] { typeof(string), typeof(object) });
+                    meth = typeof(StateSerializer).GetMethods().Single(x => x.Name == "Serialize" && x.IsGenericMethodDefinition).MakeGenericMethod(item.Key.Type.ClrType);
+                    //meth = typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.Serialize), new[] { typeof(string), typeof(object) });
                 }
                 il.Emit(OpCodes.Ldarg_0); // Load StateSerializer
                 il.Emit(OpCodes.Ldstr, item.Key.Name); // Load key name (first argument in serializer method)
@@ -674,10 +713,24 @@ namespace Daemos.Mute.Compilation
                     if (exp.Instance is MemberExpression mex)
                     {
                         OnVisit(mex.Instance);
+                        
                     }
                     else
                     {
                         OnVisit(exp.Instance);
+                    }
+                    if (exp.Instance.Type == DataType.Dynamic) // If the call-target is dynamic, a type check must be performed.
+                    {
+                        var castOk = il.DefineLabel();
+                        var tmp = il.DeclareLocal(exp.Instance.Type.ClrType);
+                        il.Emit(OpCodes.Stloc, tmp);
+                        il.Emit(OpCodes.Ldloc, tmp);
+                        il.Emit(OpCodes.Castclass, typeof(IDictionary<string, object>));
+                        il.Emit(OpCodes.Brtrue);
+                        il.Emit(OpCodes.Newobj, typeof(InvalidCastException).GetConstructor(new Type[0]));
+                        il.Emit(OpCodes.Throw);
+                        il.MarkLabel(castOk);
+                        il.Emit(OpCodes.Ldloc, tmp);
                     }
                 }
 
@@ -696,7 +749,7 @@ namespace Daemos.Mute.Compilation
                 }
                 else
                 {
-                    il.Emit(OpCodes.Call, meth);
+                    il.Emit(OpCodes.Callvirt, meth);
                 }
             }
             else if (exp.Method is ConstructorInfo ctor)

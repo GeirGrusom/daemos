@@ -20,7 +20,7 @@ namespace Daemos.Scripting
         private readonly GZipStream gzipStream;
         private bool _disposed;
 
-        public Stream UnderlyingStream => gzipStream;
+        public System.IO.Stream UnderlyingStream => gzipStream;
 
         public void Dispose()
         {
@@ -196,7 +196,7 @@ namespace Daemos.Scripting
         private void ProtoBuf<T>(T value)
         {
             writer.Write((byte)SerializationFlags.ProtoBuf);
-            Serializer.Serialize(UnderlyingStream, value);
+            Serializer.Serialize<T>(UnderlyingStream, value);
         }
     }
 }

@@ -96,7 +96,9 @@ namespace Daemos.Console
             var muteScriptRunner = new MuteScriptRunner();
 
             muteScriptRunner.AddImplicitType("Console", typeof(IEchoService));
+            muteScriptRunner.AddImplicitType("IPaymentService", typeof(IPaymentService));
             dependencyResolver.Register<IEchoService>(new EchoService());
+            dependencyResolver.Register<IPaymentService>(new MockPaymentService());
 
             foreach (var mod in modules)
             {

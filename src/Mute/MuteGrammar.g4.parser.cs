@@ -436,19 +436,30 @@ namespace Daemos.Mute
             return exp;
         }
 
-        protected MemberExpression Member(Expression instance, string name, ParserRuleContext context)
+        protected Expression Member(Expression instance, string name, ParserRuleContext context)
         {
             if (instance == null || name == null)
             {
                 return null;
             }
+
+            if (instance.Type == DataType.Dynamic)
+            {
+                return new CallExpression(typeof(IDictionary<string, object>).GetMethod("get_Item", new [] { typeof(string) }), instance, new Expression[] { new ConstantExpression(DataType.NonNullString, name, context) }, context);
+            }
+
             var type = instance.Type.ClrType;
             var members = type.GetMembers(BindingFlags.Public | BindingFlags.Instance).Where(x => x.Name == name);
 
             var member = members.SingleOrDefault();
             if (member == null)
             {
-                throw new MissingMemberException(name);
+                AddSyntaxError($"The member {name} was not found on the type {instance.Type.ClrType.Name}.", context);
+            }
+
+            if (instance.Type.ClrType == typeof(Transaction) && name == nameof(Transaction.Payload))
+            {
+                return new UnaryConvertExpression(DataType.Dynamic, new MemberExpression(instance, member, context), context);
             }
 
             return new MemberExpression(instance, member, context);
@@ -513,6 +524,10 @@ namespace Daemos.Mute
 
         protected void ValidateTransactionWithExpression(ObjectExpression exp, ParserRuleContext context)
         {
+            if (exp == null)
+            {
+                return;
+            }
             foreach(var member in exp.Members)
             {
                 if(!MutableTransactionProperties.Contains(member.Name))

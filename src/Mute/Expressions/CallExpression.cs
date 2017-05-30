@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Antlr4.Runtime;
 
 namespace Daemos.Mute.Expressions
@@ -45,6 +46,38 @@ namespace Daemos.Mute.Expressions
             Method = ctor;
             Arguments = arguments.Cast<Expression>().ToList();
             IsNamedArguments = true;
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            if (Instance != null)
+            {
+                sb.Append(Instance);
+            }
+            else
+            {
+                if (Method is ConstructorInfo ctor)
+                {
+                    sb.Append(ctor.DeclaringType.Name);
+                }
+                else
+                {
+                    sb.Append(Method.Name);
+                }
+            }
+            sb.Append("(");
+            for (var index = 0; index < Arguments.Count; index++)
+            {
+                var arg = Arguments[index];
+                sb.Append(arg);
+                if (index < Arguments.Count - 1)
+                {
+                    sb.Append(", ");
+                }
+            }
+            sb.Append(")");
+            return sb.ToString();
         }
     }
 }

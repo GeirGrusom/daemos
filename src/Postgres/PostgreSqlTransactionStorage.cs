@@ -17,6 +17,7 @@ namespace Daemos.Postgres
 {
     public class PostgreSqlTransactionStorage : TransactionStorageBase
     {
+        private const string Schema = "trans";
         private static readonly bool LockEnabled = false;
 
         private const string SelectColumns = "id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error";
@@ -26,7 +27,7 @@ namespace Daemos.Postgres
         {
             NpgsqlCommand cmd = (await GetConnectionAsync()).CreateCommand();
             cmd.CommandText = $@"
-INSERT INTO daemos.transactions (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) 
+INSERT INTO {Schema}.transactions (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) 
 VALUES (@id, @revision, @created, @expires, @expired, @payload, @script, @parentId, @parentRev, @state, @handler, @error)
 RETURNING {SelectColumns};";
             cmd.CommandType = System.Data.CommandType.Text;
@@ -51,7 +52,7 @@ RETURNING {SelectColumns};";
         private async Task<NpgsqlCommand> SelectTransactionRevisionCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM daemos.transactions WHERE id = @id AND revision = @revision";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM {Schema}.transactions WHERE id = @id AND revision = @revision";
             cmd.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Uuid));
             cmd.Parameters.Add(new NpgsqlParameter("revision", NpgsqlDbType.Integer));
             cmd.Prepare();
@@ -61,7 +62,7 @@ RETURNING {SelectColumns};";
         private async Task<NpgsqlCommand> SelectTransactionCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM daemos.transactions_head WHERE id = @id";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM {Schema}.transactions_head WHERE id = @id";
             cmd.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Uuid));
             cmd.Prepare();
             return cmd;
@@ -70,7 +71,7 @@ RETURNING {SelectColumns};";
         private async Task<NpgsqlCommand> SelectTransactionChainCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = $"SELECT {SelectColumns} FROM daemos.transactions WHERE id = @id ORDER BY revision ASC";
+            cmd.CommandText = $"SELECT {SelectColumns} FROM {Schema}.transactions WHERE id = @id ORDER BY revision ASC";
             cmd.Parameters.Add(new NpgsqlParameter("id", NpgsqlDbType.Uuid));
             cmd.Prepare();
             return cmd;
@@ -79,7 +80,7 @@ RETURNING {SelectColumns};";
         private async Task<NpgsqlCommand> SelectChildTransactionsCommandAsync()
         {
             var cmd = (await GetConnectionAsync()).CreateCommand();
-            cmd.CommandText = "SELECT DISTINCT (id) FROM daemos.transactions_head WHERE parentId = @parentId AND state = ANY(@states)";
+            cmd.CommandText = $"SELECT DISTINCT (id) FROM {Schema}.transactions_head WHERE parentId = @parentId AND state = ANY(@states)";
             cmd.Parameters.Add("parentId", NpgsqlDbType.Uuid);
             cmd.Parameters.Add("states", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlDbType.Integer);
             cmd.Prepare();
@@ -188,7 +189,7 @@ RETURNING {SelectColumns};";
 
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "SELECT state FROM daemos.transaction_state where id = @Id and revision = @Revision";
+                cmd.CommandText = $"SELECT state FROM {Schema}.transaction_state where id = @Id and revision = @Revision";
                 var idParam = cmd.CreateParameter();
                 idParam.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Uuid;
                 idParam.ParameterName = "Id";
@@ -253,7 +254,7 @@ RETURNING {SelectColumns};";
                     p.ParameterName = "id";
                     p.Value = original.Id;
                     headRevCmd.Parameters.Add(p);
-                    headRevCmd.CommandText = "select revision from daemos.transactions_head where id = @id";
+                    headRevCmd.CommandText =  $"select revision from {Schema}.transactions_head where id = @id";
                     headRevCmd.Transaction = trans;
                     lastRev = (int)await headRevCmd.ExecuteScalarAsync();
                 }
@@ -286,9 +287,9 @@ RETURNING {SelectColumns};";
                     Error = new JsonContainer(JsonConvert.SerializeObject(next.Error)),
                 };
 
-                const string query = @"
-update daemos.transactions set head = 'f' where id = @Id;
-INSERT INTO daemos.transactions 
+                string query = $@"
+update {Schema}.transactions set head = 'f' where id = @Id;
+INSERT INTO {Schema}.transactions 
     (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) VALUES 
     (@Id, @Revision, @Created, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler, @Error) RETURNING id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error;
 ";
@@ -314,7 +315,7 @@ INSERT INTO daemos.transactions
                     p.ParameterName = "id";
                     p.Value = original.Id;
                     headRevCmd.Parameters.Add(p);
-                    headRevCmd.CommandText = "select revision from daemos.transactions_head where id = @id";
+                    headRevCmd.CommandText = $"select revision from {Schema}.transactions_head where id = @id";
                     headRevCmd.Transaction = trans;
                     lastRev = (int)headRevCmd.ExecuteScalar();
                 }
@@ -347,9 +348,9 @@ INSERT INTO daemos.transactions
                     Error = new JsonContainer(JsonConvert.SerializeObject(next.Error)),
                 };
 
-                const string query = @"
-update daemos.transactions set head = 'f' where id = @Id;
-INSERT INTO daemos.transactions 
+                string query = $@"
+update {Schema}.transactions set head = 'f' where id = @Id;
+INSERT INTO {Schema}.transactions 
     (id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error) VALUES 
     (@Id, @Revision, @Created, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler, @Error) RETURNING id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error;
 ";
@@ -376,7 +377,7 @@ INSERT INTO daemos.transactions
                 using (var checkCmd = cmd.Connection.CreateCommand())
                 {
                     checkCmd.Transaction = trans;
-                    checkCmd.CommandText = "select exists(select 1 from daemos.transactions_head where id = @id)";
+                    checkCmd.CommandText = $"select exists(select 1 from {Schema}.transactions_head where id = @id)";
                     var p = checkCmd.CreateParameter();
                     p.ParameterName = "id";
                     p.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Uuid;
@@ -467,6 +468,9 @@ INSERT INTO daemos.transactions
         
         public override async Task FreeTransactionAsync(Guid id)
         {
+            if (!LockEnabled)
+                return;
+
             Console.WriteLine($"Unlocking {id}.");
             var conn = await GetConnectionAsync();
 
@@ -519,7 +523,7 @@ INSERT INTO daemos.transactions
 
         private async Task<DateTime?> GetNextExpiringTransactionTime()
         {
-            string sql = "SELECT expires FROM daemos.transactions_head WHERE expires IS NOT NULL ORDER BY expires ASC LIMIT 1";
+            string sql = $"SELECT expires FROM {Schema}.transactions_head WHERE expires IS NOT NULL ORDER BY expires ASC LIMIT 1";
             using (var cmd = (await GetConnectionAsync()).CreateCommand())
             {
                 cmd.CommandText = sql;
@@ -539,7 +543,7 @@ INSERT INTO daemos.transactions
 
         protected override async Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel)
         {
-            string sql = $"SELECT {SelectColumns} FROM daemos.transactions_head WHERE expires <= @now";
+            string sql = $"SELECT {SelectColumns} FROM {Schema}.transactions_head WHERE expires <= @now";
             var results = new List<Transaction>();
 
             using (var cmd = (await GetConnectionAsync()).CreateCommand())
@@ -633,7 +637,7 @@ INSERT INTO daemos.transactions
 
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = "select exists(select 1 from daemos.transactions_head where id = @id)";
+                cmd.CommandText = $"select exists(select 1 from {Schema}.transactions_head where id = @id)";
                 var idPar = cmd.CreateParameter();
                 idPar.Value = id;
                 idPar.NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Uuid;
@@ -685,7 +689,7 @@ INSERT INTO daemos.transactions
                 cmd.Parameters["id"].Value = id;
                 cmd.Parameters["revision"].Value = revision;
                 cmd.Parameters["state"].Value = state;
-                cmd.CommandText = "INSERT INTO daemos.transaction_state (id, revision, state) VALUES (@id, @revision, @state)";
+                cmd.CommandText = $"INSERT INTO {Schema}.transaction_state (id, revision, state) VALUES (@id, @revision, @state)";
                 cmd.ExecuteNonQuery();
             }            
         }
@@ -701,7 +705,7 @@ INSERT INTO daemos.transactions
                 cmd.Parameters["id"].Value = id;
                 cmd.Parameters["revision"].Value = revision;
                 cmd.Parameters["state"].Value = state;
-                cmd.CommandText = "INSERT INTO daemos.transaction_state (id, revision, state) VALUES (@id, @revision, @state)";
+                cmd.CommandText = $"INSERT INTO {Schema}.transaction_state (id, revision, state) VALUES (@id, @revision, @state)";
                 await cmd.ExecuteNonQueryAsync();
             }
         }

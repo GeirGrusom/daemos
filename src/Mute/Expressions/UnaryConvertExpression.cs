@@ -11,7 +11,7 @@ namespace Daemos.Mute.Expressions
 
         public override string ToString()
         {
-            return $" {Type.Name}({Operand})";
+            return $" {Type.Name}!({Operand})";
         }
     }
 }
