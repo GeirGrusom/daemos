@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Antlr4.Runtime;
 using Daemos.Mute.Expressions;
 using Daemos.Scripting;
 
@@ -1056,6 +1057,34 @@ namespace Daemos.Mute.Compilation
             return _variableIndices[exp].Local;
         }
 
+        private void VisitPayloadWith(Expression payload, ObjectExpression expression)
+        {
+            var dictType = typeof(IDictionary<string, object>);
+            var dict = il.DeclareLocal(dictType);
+            var notNull = il.DefineLabel();
+            //OnVisit(payload);
+            //il.Emit(OpCodes.Stloc, dict);
+            //il.Emit(OpCodes.Ldloc, dict);
+            //il.Emit(OpCodes.Brtrue, notNull);
+            il.Emit(OpCodes.Newobj, typeof(System.Dynamic.ExpandoObject).GetConstructor(new Type[0]));
+            il.Emit(OpCodes.Stloc, dict);
+            il.MarkLabel(notNull);
+
+            var put = dictType.GetMethod("set_Item");
+            foreach (var mem in expression.Members)
+            {
+                il.Emit(OpCodes.Ldloc, dict);
+                il.Emit(OpCodes.Ldstr, mem.Name);
+                OnVisit(mem.Value);
+                if (mem.Value.Type.ClrType.GetTypeInfo().IsValueType)
+                {
+                    il.Emit(OpCodes.Box, mem.Value.Type.ClrType);
+                }
+                il.Emit(OpCodes.Callvirt, put);
+            }
+            il.Emit(OpCodes.Ldloc, dict);
+        }
+
         public void OnVisit(WithExpression exp, bool incrementRevision)
         {
             if (exp.Type.ClrType != typeof(Transaction))
@@ -1095,7 +1124,15 @@ namespace Daemos.Mute.Compilation
             {
                 var prop = typeof(TransactionData).GetProperty(mem.Name);
                 il.Emit(OpCodes.Ldloca, transactionData);
-                OnVisit(mem);
+
+                if (exp.Left.Type.ClrType == typeof(Transaction) && mem.Name == "Payload")
+                {
+                    VisitPayloadWith(new MemberExpression(exp.Left, prop, ParserRuleContext.EmptyContext), (ObjectExpression)mem.Value);
+                }
+                else
+                {
+                    OnVisit(mem);
+                }
 
                 if (prop.PropertyType.GetTypeInfo().IsGenericType &&
                     prop.PropertyType.GetTypeInfo().GetGenericTypeDefinition() == typeof(Nullable<>))

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -216,6 +217,23 @@ await commit this;
 
             // Assert
             Assert.Equal("Foo", result.Script);
+        }
+
+        [Fact]
+        public void With_AltersPayload()
+        {
+            // Arrange
+            var service = new Service();
+            dynamic payload = new ExpandoObject();
+            payload.Foo = "Bar";
+            
+            var t = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, payload, null, TransactionState.Initialized, null, null, null);
+
+            // Act
+            var result = service.CompileWithResult<Transaction>("this with { Payload: { Status: 'OK' } }");
+
+            // Assert
+            Assert.Equal(((dynamic)result.Payload).Status, "OK");
         }
 
         [Fact]

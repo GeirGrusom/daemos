@@ -46,16 +46,10 @@ andExpression returns [Expression expr]
 
 equalityExpression returns [Expression expr]
 	: lhs = equalityExpression EQ rhs = comparisonExpression {
-		if($lhs.expr.Type == typeof(JsonValue) || $rhs.expr.Type == typeof(JsonValue)) {
-			$expr = Equal($lhs.expr, $rhs.expr, false,  typeof(JsonValue).GetMethod("Equals", new [] { $lhs.expr.Type, $rhs.expr.Type }));
-		}
-		else { 
-			$expr = Equal($lhs.expr, $rhs.expr);
-		}
-				
+		$expr = CompareEqual($lhs.expr, $rhs.expr);
 	}
 	| lhs = equalityExpression NOT_EQ rhs = comparisonExpression {
-					$expr = NotEqual($lhs.expr, $rhs.expr);
+		$expr = NotEqual($lhs.expr, $rhs.expr);
 	}
 	| comparisonExpression { $expr = $comparisonExpression.expr; }
 	;
@@ -187,7 +181,7 @@ guid returns [System.Guid value]
 
 date returns [System.DateTime value]
 	: '@' DATE { $value = System.DateTime.ParseExact($DATE.text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture); }
-	| '@' DATETIME { $value = System.DateTime.ParseExact($DATETIME.text, new [] { "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.fff" }, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal); }
+	| '@' DATETIME { $value = System.DateTime.ParseExact($DATETIME.text, new [] { "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ss.fff'Z'" }, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal); }
 	;
 
 period returns [System.TimeSpan value]

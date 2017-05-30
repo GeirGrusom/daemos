@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.Common;
 using System.Dynamic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -120,7 +121,14 @@ RETURNING {SelectColumns};";
 
             if (result.State != ConnectionState.Open)
             {
-                result.Open();
+                try
+                {
+                    result.Open();
+                }
+                catch (SocketException)
+                {
+                    
+                }
             }
 
             return result;

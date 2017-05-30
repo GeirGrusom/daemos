@@ -153,6 +153,7 @@ objectMemberList returns [IEnumerable<ObjectMember> members]
 
 objectMember returns [ObjectMember item]
 	: IDENTIFIER ':' expression { $item = ObjectMember($IDENTIFIER.text, $expression.expr, $ctx); }
+	| IDENTIFIER ':' objectExpression { $item = ObjectMember($IDENTIFIER.text, $objectExpression.expr, $ctx); }
 	;
 
 variableExpression returns [VariableExpression expr]

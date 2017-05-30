@@ -1,6 +1,8 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
 
+using static System.Linq.Expressions.Expression;
+
 namespace Daemos.Query
 {
     public partial class TransactQueryParser
@@ -9,6 +11,14 @@ namespace Daemos.Query
         public static MemberExpression GetPropertyCI(Expression owner, string name)
         {
             return Expression.Property(owner, owner.Type.GetProperty(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.GetProperty | System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public));
+        }
+
+        private Expression CompareEqual(Expression lhs, Expression rhs)
+        {
+            if (lhs.Type == typeof(JsonValue) || rhs.Type == typeof(JsonValue)) {
+			    return Equal(lhs, rhs, false, typeof(JsonValue).GetMethod("Equals", new[] { lhs.Type, rhs.Type }));
+            }
+			return Equal(lhs, rhs);
         }
 
         private static Expression In(Expression lhs, Expression rhs)

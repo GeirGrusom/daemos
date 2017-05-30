@@ -562,7 +562,10 @@ namespace Daemos.Mute
 
         protected void ValidatePayloadMembers(ObjectMember payload)
         {
-
+            if (!(payload.Value is ObjectExpression))
+            {
+                AddSyntaxError("Payload must be an object expression.", payload.Context);
+            }
         }
 
         private T GetMethodForNamedArguments<T>(Type type, List<NamedArgument> arguments, T[] methods)

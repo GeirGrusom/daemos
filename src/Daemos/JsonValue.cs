@@ -342,6 +342,11 @@ namespace Daemos
             return json.CompareTo(value) <= 0;
         }
 
+        public static bool Equals(JsonValue lhs, string rhs)
+        {
+            return lhs.Equals(rhs);
+        }
+
         public static bool Equals(JsonValue lhs, int rhs)
         {
             return lhs.Equals(rhs);
@@ -367,6 +372,10 @@ namespace Daemos
             return lhs.Equals(rhs);
         }
 
+        public static bool Equals(string rhs, JsonValue lhs)
+        {
+            return lhs.Equals(rhs);
+        }
         public static bool Equals(int rhs, JsonValue lhs)
         {
             return lhs.Equals(rhs);
