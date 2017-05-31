@@ -455,6 +455,7 @@ namespace Daemos.Mute
             if (member == null)
             {
                 AddSyntaxError($"The member {name} was not found on the type {instance.Type.ClrType.Name}.", context);
+                return null;
             }
 
             if (instance.Type.ClrType == typeof(Transaction) && name == nameof(Transaction.Payload))

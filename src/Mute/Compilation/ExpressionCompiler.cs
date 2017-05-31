@@ -89,7 +89,6 @@ namespace Daemos.Mute.Compilation
             il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
             il.EmitCall(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(typeof(Transaction)), null);
             il.Emit(OpCodes.Stloc, _this);
-            
 
             EntryPointVisitor entrypoints = new EntryPointVisitor(il);
             entrypoints.Visit(expression);
@@ -618,7 +617,7 @@ namespace Daemos.Mute.Compilation
             var tmpLocal = il.DeclareLocal(exp.Type.ClrType);
             Visit(exp.Operand);
             il.Emit(OpCodes.Stloc, tmpLocal);
-            il.Emit(OpCodes.Stloc, tmpLocal);
+            
             // Stores state
             foreach (var item in _variableIndices.Where(x => !x.Value.IsImport).OrderBy(x => x.Value.Index))
             {
@@ -626,7 +625,6 @@ namespace Daemos.Mute.Compilation
                 {
                     // Default to BinaryFormatter serialization.
                     meth = typeof(StateSerializer).GetMethods().Single(x => x.Name == "Serialize" && x.IsGenericMethodDefinition).MakeGenericMethod(item.Key.Type.ClrType);
-                    //meth = typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.Serialize), new[] { typeof(string), typeof(object) });
                 }
                 il.Emit(OpCodes.Ldarg_0); // Load StateSerializer
                 il.Emit(OpCodes.Ldstr, item.Key.Name); // Load key name (first argument in serializer method)
@@ -1210,7 +1208,9 @@ namespace Daemos.Mute.Compilation
         public void RegisterVariable(VariableExpression expr, bool isImport)
         {
             var builder = il.DeclareLocal(expr.Type.ClrType);
-            //builder.SetLocalSymInfo(expr.Name);
+            il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
+            il.Emit(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(expr.Type.ClrType));
+            il.Emit(OpCodes.Stloc, builder);
             _variableIndices.Add(expr, new VariableInfo(builder, isImport));
         }
 

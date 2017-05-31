@@ -152,6 +152,7 @@ namespace Daemos.Tests
         [InlineData("1 >= 1", true)]
         [InlineData("2 <= 1", false)]
         [InlineData("0 <= 1", true)]
+        [InlineData("float!(10)", 10.0)]
         [MemberData(nameof(ResultData))]
         public void Expression_CorrectResult(string expression, object result)
         {
@@ -163,6 +164,19 @@ namespace Daemos.Tests
 
                 // Assert
                 Assert.Equal(result, res);
+        }
+
+        [Fact]
+        public void Expression_Cast10ToDouble_ReturnsDouble()
+        {
+            // Arrange
+            var service = new Service();
+
+            // Act
+            object res = service.CompileWithResult<double>("float!(10)");
+
+            // Assert
+            Assert.Equal(10.0, res);
         }
 
         [Fact]

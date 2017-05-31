@@ -148,7 +148,7 @@ namespace Daemos.Tests
             // Arrange
             var service = new Service();
             var foo = new VariableExpression("foo", true, new DataType(typeof(Foobar), false), ParserRuleContext.EmptyContext);
-
+            service.DependencyResolver.GetService<Foobar>().Returns(new Foobar());
             var res = service.CompileAndRun<string>((cmp, exp) => { cmp.RegisterVariable(foo, true); cmp.OnVisit(exp);}, new CallExpression(typeof(Foobar).GetMethod(nameof(Foobar.Foo)), foo, new Expression[0], ParserRuleContext.EmptyContext));
 
             Assert.Equal("Hello World!", res);

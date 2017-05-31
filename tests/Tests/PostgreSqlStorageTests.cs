@@ -22,14 +22,12 @@ namespace Daemos.Tests
         {
 
             PostgresHostName = "localhost";
-            //transact_test; Password = qwerty12345
-            string username = "transact_test";//Guid.NewGuid().ToString("N").Substring(0, 10);
-            string password = "qwerty12345";//Guid.NewGuid().ToString("N").Substring(0, 10);
+            string username = "transact";
+            string password = "qwerty12345";
 
             //InitPostgres(username, password).Wait();
 
-
-            ConnectionString = $@"User ID={username};Password={password};Host={PostgresHostName};Port=5432;Database=transact;Pooling = true;";
+            ConnectionString = $@"User ID={username};Password={password};Host={PostgresHostName};Port=5432;Database=daemos;Pooling = true;";
 
             //var storage = new PostgreSqlTransactionStorage(ConnectionString);
             //storage.InitializeAsync().Wait();
