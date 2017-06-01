@@ -520,7 +520,16 @@ namespace Daemos.Mute
                 AddSyntaxError($"The expression '{ctx.GetChild(1).GetText()}' is not nullable.", ctx);
                 return null;
             }
-            return new NotNullExpression(expr, ctx);
+            Type clrType;
+            if (expr.Type.ClrType.GetTypeInfo().IsValueType)
+            {
+                clrType = expr.Type.ClrType.GetGenericArguments()[0];
+            }
+            else
+            {
+                clrType = expr.Type.ClrType;
+            }
+            return new UnaryConvertExpression(new DataType(clrType, false),  expr, ctx);
         }
 
         protected void ValidateTransactionWithExpression(ObjectExpression exp, ParserRuleContext context)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace Daemos
 {
@@ -27,7 +28,7 @@ namespace Daemos
         IContainer CreateProxy();
     }
 
-    public sealed class DefaultDependencyResolver : IContainer
+    public sealed class DefaultDependencyResolver : IContainer, IServiceProvider
     {
 
         private sealed class NullDependencyResolver : IDependencyResolver
@@ -114,6 +115,27 @@ namespace Daemos
             where T : class
         {
             throw new NotImplementedException();
+        }
+
+        public object GetService(Type serviceType)
+        {
+            if (_factories.TryGetValue(serviceType, out Func<IDependencyResolver, object> factory))
+            {
+                return factory(this);
+            }
+            else
+            {
+                var baseResult = ((IServiceProvider)BaseResolver).GetService(serviceType);
+                if (baseResult != null)
+                {
+                    return baseResult;
+                }
+
+                //var fac = _constructorFactory.Create(serviceType);
+                //_factories.TryAdd(serviceType, fac);
+                //return fac(this);
+                throw new NotSupportedException();
+            }
         }
     }
 }

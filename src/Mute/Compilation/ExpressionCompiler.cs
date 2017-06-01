@@ -365,15 +365,51 @@ namespace Daemos.Mute.Compilation
 
         public override void OnVisit(UnaryConvertExpression exp)
         {
-            OnVisit(exp.Operand);
-
+           
             if (exp.Type == exp.Operand.Type)
             {
                 return;
             }
+            if (!exp.Type.Nullable && exp.Operand.Type.Nullable && exp.Type.ClrType.GetTypeInfo().IsValueType)
+            {
+                if (exp.Type.ClrType.GetTypeInfo().IsValueType && exp.Operand.Type.ClrType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    OnVisit(exp.Operand);
+                    var tmp = il.DeclareLocal(exp.Operand.Type.ClrType);
+                    il.Emit(OpCodes.Stloc, tmp);
+                    il.Emit(OpCodes.Ldloca, tmp);
+                    il.Emit(OpCodes.Call, exp.Operand.Type.ClrType.GetProperty("Value").GetMethod);
+                    return;
+                }
+                var isNotNull = il.DefineLabel();
+                var ctor = typeof(NullReferenceException).GetConstructor(Array.Empty<Type>());
+                if (exp.Operand is VariableExpression var)
+                {
+                    OnVisit(var);
+                    il.Emit(OpCodes.Brtrue_S, isNotNull);
+                    il.Emit(OpCodes.Newobj, ctor);
+                    il.Emit(OpCodes.Throw);
+                    il.MarkLabel(isNotNull);
+                    OnVisit(var);
+                }
+                else
+                {
+                    var tmp = il.DeclareLocal(exp.Type.ClrType);
+                    Visit(exp.Operand);
+                    il.Emit(OpCodes.Stloc, tmp);
+                    il.Emit(OpCodes.Ldloc, tmp);
+                    il.Emit(OpCodes.Brtrue_S, isNotNull);
+                    il.Emit(OpCodes.Newobj, ctor);
+                    il.Emit(OpCodes.Throw);
+                    il.MarkLabel(isNotNull);
+                    il.Emit(OpCodes.Ldloc, tmp);
+                }
+                return;
+            }
             if(exp.Type.Equals(DataType.NullString))
             {
-                if(exp.Operand is ConstantExpression ce && ce.Value == null)
+                OnVisit(exp.Operand);
+                if (exp.Operand is ConstantExpression ce && ce.Value == null)
                 {
                     return;
                 }
@@ -404,6 +440,7 @@ namespace Daemos.Mute.Compilation
             }
             if (exp.Type.Equals(DataType.NonNullString))
             {
+                OnVisit(exp.Operand);
                 if (exp.Operand.Type.ClrType.GetTypeInfo().IsValueType)
                 {
                     il.Emit(OpCodes.Box);
@@ -414,6 +451,7 @@ namespace Daemos.Mute.Compilation
             }
             if (exp.Type == DataType.NonNullInt)
             {
+                OnVisit(exp.Operand);
                 if (exp.Operand.Type.ClrType == typeof(string)) // Don't care if the target is nullable or not.
                 {
                     EmitParse<int>();
@@ -429,6 +467,7 @@ namespace Daemos.Mute.Compilation
             }
             else if (exp.Type == DataType.NonNullLong)
             {
+                OnVisit(exp.Operand);
                 if (exp.Operand.Type.ClrType == typeof(string))
                 {
                     EmitParse<long>();
@@ -444,6 +483,7 @@ namespace Daemos.Mute.Compilation
             }
             else if (exp.Type == DataType.NonNullFloat)
             {
+                OnVisit(exp.Operand);
                 if (exp.Operand.Type.ClrType == typeof(string))
                 {
                     EmitParse<float>();
@@ -460,6 +500,7 @@ namespace Daemos.Mute.Compilation
             }
             else if (exp.Type == DataType.NonNullDouble)
             {
+                OnVisit(exp.Operand);
                 if (exp.Operand.Type.ClrType == typeof(string))
                 {
                     EmitParse<double>();
@@ -476,6 +517,7 @@ namespace Daemos.Mute.Compilation
             }
             else if (exp.Type == DataType.NonNullDecimal)
             {
+                OnVisit(exp.Operand);
                 if (exp.Operand.Type.ClrType == typeof(string))
                 {
                     EmitParse<decimal>();
@@ -493,6 +535,7 @@ namespace Daemos.Mute.Compilation
             }
             else
             {
+                OnVisit(exp.Operand);
                 var tmp = il.DeclareLocal(exp.Type.ClrType);
                 il.Emit(OpCodes.Stloc, tmp);
                 il.Emit(OpCodes.Ldloc, tmp);
@@ -1208,11 +1251,21 @@ namespace Daemos.Mute.Compilation
         public void RegisterVariable(VariableExpression expr, bool isImport)
         {
             var builder = il.DeclareLocal(expr.Type.ClrType);
-            il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
-            il.Emit(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(expr.Type.ClrType));
-            il.Emit(OpCodes.Stloc, builder);
             _variableIndices.Add(expr, new VariableInfo(builder, isImport));
         }
+
+        public void RegisterVariableExtern(VariableExpression expr, bool isImport)
+        {
+            var builder = il.DeclareLocal(expr.Type.ClrType);
+            if (isImport)
+            {
+                il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
+                il.Emit(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(expr.Type.ClrType));
+                il.Emit(OpCodes.Stloc, builder);
+            }
+            _variableIndices.Add(expr, new VariableInfo(builder, isImport));
+        }
+
 
         public override void OnVisit(BlockExpression exp)
         {

@@ -22,6 +22,7 @@ namespace Daemos
 
         public async Task RunAsync(CancellationToken cancel)
         {
+            Console.WriteLine("Starting transaction processing.");
             while (!cancel.IsCancellationRequested)
             {
                 var transactions = await Storage.GetExpiringTransactionsAsync(cancel);
@@ -37,6 +38,7 @@ namespace Daemos
 
                     var proxyTransactionData = transaction.Data;
                     proxyTransactionData.Created = DateTime.UtcNow;
+                    proxyTransactionData.Expired = proxyTransactionData.Expires ?? proxyTransactionData.Created;
                     proxyTransactionData.Expires = null;
                     var state = await transaction.Storage.GetTransactionStateAsync(transaction.Id, transaction.Revision);
 
@@ -114,6 +116,7 @@ namespace Daemos
                 
                 await Task.Yield();
             }
+            Console.WriteLine("Transaction processing stopped.");
         }
     }
 }

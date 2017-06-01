@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Daemos.Console.Configuration;
 using Daemos.Mute;
 using Daemos.Postgres;
+using Daemos.Scripting;
 using Daemos.WebApi;
 using Daemos.WebApi.Scripting;
 using Newtonsoft.Json;
@@ -88,7 +89,7 @@ namespace Daemos.Console
                 System.Console.WriteLine(ex.Message);
                 return;
             }
-            var httpServer = new HttpServer(settings.Listening.BuildUri(), storage);
+            var httpServer = new HttpServer(settings.Listening.BuildUri(), storage, dependencyResolver);
 
             var location = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             var dir = Directory.CreateDirectory(Path.Combine(location, "Modules"));
@@ -134,6 +135,7 @@ namespace Daemos.Console
 
             ScriptingProvider provider = new ScriptingProvider(storage);
             provider.RegisterLanguageProvider("mute", muteScriptRunner);
+            dependencyResolver.Register<IScriptRunner>(provider);
             TransactionProcessor processor = new TransactionProcessor(storage, provider, dependencyResolver);
          
             var cancelSource = new CancellationTokenSource();

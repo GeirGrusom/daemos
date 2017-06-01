@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using Daemos.Scripting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Formatters;
@@ -27,7 +28,7 @@ namespace Daemos.WebApi
 
     public class HttpServer
     {
-        private readonly Uri _baseAddress;
+        private readonly string _baseAddress;
         public IServiceProvider Container { get; }
         private readonly SubscriptionService _subscriptionService;
         private IWebHost _host;
@@ -36,8 +37,9 @@ namespace Daemos.WebApi
 
         private readonly CancellationTokenSource cancel;
 
-        public HttpServer()
+        public HttpServer(IServiceProvider serviceProvider)
         {
+            Container = serviceProvider;
             cancel = new CancellationTokenSource();
         }
 
@@ -51,8 +53,8 @@ namespace Daemos.WebApi
             cancel.Token.WaitHandle.WaitOne();
         }
 
-        public HttpServer(Uri baseAddress, ITransactionStorage storage)
-            : this()
+        public HttpServer(string baseAddress, ITransactionStorage storage, IServiceProvider serviceProvider)
+            : this(serviceProvider)
         {
             _baseAddress = baseAddress;
             Storage = storage;
@@ -85,6 +87,7 @@ namespace Daemos.WebApi
             services.AddSingleton(_subscriptionService);
             services.AddWebEncoders();
             services.AddLogging();
+            services.AddSingleton((IScriptRunner) Container.GetService(typeof(IScriptRunner)));
             var jsonSerializerSettings = new JsonSerializerSettings
             {
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,

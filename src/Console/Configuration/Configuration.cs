@@ -26,10 +26,10 @@ namespace Daemos.Console.Configuration
             return 443;
         }
 
-        public Uri BuildUri()
+        public string BuildUri()
         {
             var path = $"{Scheme.ToString().ToLower()}://{Host}:{HttpPort ?? GetDefaultPort()}/{Path}";
-            return new Uri(path, UriKind.Absolute);
+            return path;
         }
     }
 }

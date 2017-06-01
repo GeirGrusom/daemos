@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Daemos.Scripting;
 using Daemos.WebApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -13,10 +14,12 @@ namespace Daemos.WebApi.Controllers
     public class TransactionRootController  : Controller //: ApiController
     {
         private readonly ITransactionStorage _storage;
+        private readonly IScriptRunner _scriptRunner;
 
-        public TransactionRootController(ITransactionStorage storage)
+        public TransactionRootController(ITransactionStorage storage, IScriptRunner scriptRunner)
         {
             _storage = storage;
+            _scriptRunner = scriptRunner;
         }
 
         [ProducesResponseType(typeof(TransactionResult), 201)]
@@ -25,6 +28,22 @@ namespace Daemos.WebApi.Controllers
         {
             if (model == null)
                 return BadRequest();
+
+            if (model.Script != null)
+            {
+                try
+                {
+                    _scriptRunner.Compile(model.Script);
+                }
+                catch (CompilationFailedException compilationFailed)
+                {
+                    return BadRequest(new
+                    {
+                        compilationFailed.Message,
+                        compilationFailed.Errors
+                    });
+                }
+            }
 
             var factory = new TransactionFactory(_storage);
 
