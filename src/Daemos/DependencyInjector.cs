@@ -8,6 +8,7 @@ namespace Daemos
     {
         T GetService<T>() where T : class;
         T GetService<T>(string name) where T : class;
+        object GetService(Type type);
     }
 
     public interface IDependencyRegister
@@ -28,7 +29,7 @@ namespace Daemos
         IContainer CreateProxy();
     }
 
-    public sealed class DefaultDependencyResolver : IContainer, IServiceProvider
+    public sealed class DefaultDependencyResolver : IContainer
     {
 
         private sealed class NullDependencyResolver : IDependencyResolver
@@ -44,6 +45,11 @@ namespace Daemos
                 where T : class
             {
                 return default(T);
+            }
+
+            public object GetService(Type type)
+            {
+                return null;
             }
         }
 
@@ -125,7 +131,7 @@ namespace Daemos
             }
             else
             {
-                var baseResult = ((IServiceProvider)BaseResolver).GetService(serviceType);
+                var baseResult = BaseResolver.GetService(serviceType);
                 if (baseResult != null)
                 {
                     return baseResult;

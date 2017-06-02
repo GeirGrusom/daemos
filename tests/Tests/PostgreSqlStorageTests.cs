@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Daemos.Postgres;
@@ -22,7 +23,7 @@ namespace Daemos.Tests
         {
 
             PostgresHostName = "localhost";
-            string username = "transact";
+            string username = "transact_test";
             string password = "qwerty12345";
 
             //InitPostgres(username, password).Wait();
@@ -112,10 +113,17 @@ namespace Daemos.Tests
         {
             using (var conn = new Npgsql.NpgsqlConnection(_collection.ConnectionString))
             {
-                conn.Open();
+                try
+                {
+                    conn.Open();
+                }
+                catch (SocketException)
+                {
+                    
+                }
                 using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "delete from tr.transactions;";
+                    cmd.CommandText = "delete from trans.transaction_state; delete from trans.transactions;";
                     cmd.ExecuteNonQuery();
                 }
             }

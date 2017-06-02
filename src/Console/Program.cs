@@ -89,7 +89,10 @@ namespace Daemos.Console
                 System.Console.WriteLine(ex.Message);
                 return;
             }
-            var httpServer = new HttpServer(settings.Listening.BuildUri(), storage, dependencyResolver);
+
+
+
+            var httpServer = new HttpServer(settings.Listening.BuildUri(), storage);
 
             var location = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             var dir = Directory.CreateDirectory(Path.Combine(location, "Modules"));
@@ -124,18 +127,20 @@ namespace Daemos.Console
                 }
             }
 
-            var listeningThread = new Thread(httpServer.Start)
+            ScriptingProvider provider = new ScriptingProvider(storage);
+            provider.RegisterLanguageProvider("mute", muteScriptRunner);
+            dependencyResolver.Register<IScriptRunner>(provider);
+
+
+            var listeningThread = new Thread(() => httpServer.Start(provider))
             {
                 Name = "Web Server"
             };
 
             listeningThread.Start();
 
-            _handlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)httpServer.Container.GetService(type));
+            _handlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)dependencyResolver.GetService(type));
 
-            ScriptingProvider provider = new ScriptingProvider(storage);
-            provider.RegisterLanguageProvider("mute", muteScriptRunner);
-            dependencyResolver.Register<IScriptRunner>(provider);
             TransactionProcessor processor = new TransactionProcessor(storage, provider, dependencyResolver);
          
             var cancelSource = new CancellationTokenSource();

@@ -4,7 +4,7 @@
     <Description>Markurion API Library</Description>
     <AssemblyTitle>Markurion API</AssemblyTitle>
     <TargetFramework>netstandard1.6</TargetFramework>
-    <AssemblyName>Markurion.WebApi</AssemblyName>
+    <AssemblyName>WebApi</AssemblyName>
     <PackageId>Markurion.WebApi</PackageId>
     <NetStandardImplicitPackageVersion>1.6.1</NetStandardImplicitPackageVersion>
     <PackageTargetFallback>$(PackageTargetFallback);dnxcore50</PackageTargetFallback>

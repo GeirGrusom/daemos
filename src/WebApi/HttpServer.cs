@@ -29,7 +29,6 @@ namespace Daemos.WebApi
     public class HttpServer
     {
         private readonly string _baseAddress;
-        public IServiceProvider Container { get; }
         private readonly SubscriptionService _subscriptionService;
         private IWebHost _host;
 
@@ -37,9 +36,8 @@ namespace Daemos.WebApi
 
         private readonly CancellationTokenSource cancel;
 
-        public HttpServer(IServiceProvider serviceProvider)
+        public HttpServer()
         {
-            Container = serviceProvider;
             cancel = new CancellationTokenSource();
         }
 
@@ -53,8 +51,8 @@ namespace Daemos.WebApi
             cancel.Token.WaitHandle.WaitOne();
         }
 
-        public HttpServer(string baseAddress, ITransactionStorage storage, IServiceProvider serviceProvider)
-            : this(serviceProvider)
+        public HttpServer(string baseAddress, ITransactionStorage storage)
+            : this()
         {
             _baseAddress = baseAddress;
             Storage = storage;
@@ -62,7 +60,7 @@ namespace Daemos.WebApi
             
         }
 
-        public void Start()
+        public void Start(IScriptRunner scriptRunner)
         {
 
             WebHostBuilder hostBuilder = new WebHostBuilder();
@@ -71,7 +69,7 @@ namespace Daemos.WebApi
 
             hostBuilder.UseKestrel();
             hostBuilder.UseLoggerFactory(loggerFactory);
-            hostBuilder.ConfigureServices(x => ConfigureServices(loggerFactory, x));
+            hostBuilder.ConfigureServices(x => ConfigureServices(loggerFactory, scriptRunner, x));
             hostBuilder.Configure(Configuration);
             
             
@@ -80,14 +78,14 @@ namespace Daemos.WebApi
             _host.Run(cancel.Token);
         }
 
-        public void ConfigureServices(ILoggerFactory loggerFactory, IServiceCollection services)
+        public void ConfigureServices(ILoggerFactory loggerFactory, IScriptRunner scriptRunner, IServiceCollection services)
         {
             services.AddCors(x => x.AddPolicy("Default", b => b.AllowAnyOrigin().Build()));
             services.AddSingleton(Storage);
             services.AddSingleton(_subscriptionService);
             services.AddWebEncoders();
             services.AddLogging();
-            services.AddSingleton((IScriptRunner) Container.GetService(typeof(IScriptRunner)));
+            services.AddSingleton(scriptRunner);
             var jsonSerializerSettings = new JsonSerializerSettings
             {
                 DateFormatHandling = DateFormatHandling.IsoDateFormat,

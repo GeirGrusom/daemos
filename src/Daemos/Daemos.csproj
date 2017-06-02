@@ -37,10 +37,4 @@
     <PackageReference Include="System.Reflection.TypeExtensions" Version="4.3.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="System.ComponentModel">
-      <HintPath>..\..\..\..\Users\henning.moe\.nuget\packages\system.componentmodel\4.3.0\ref\netstandard1.0\System.ComponentModel.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>

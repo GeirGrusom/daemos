@@ -53,7 +53,7 @@ namespace Daemos.Mute.Compilation
             {
                 return new CompilationResult(null, parser.Messages);
             }
-            var t = ctx.module.ToString();
+
             var cmp = new ExpressionCompiler();
             var result = cmp.Compile(ctx.module);
 

@@ -23,10 +23,11 @@
 
   <ItemGroup>
     <Antlr4 Include="MuteGrammar.g4">
+      <!--
       <Link>obj/%(Configuration)/%(TargetFramework)/MuteGrammarParser.cs</Link>
       <Link>obj/%(Configuration)/%(TargetFramework)/MuteGrammarLexer.cs</Link>
       <Link>obj/%(Configuration)/%(TargetFramework)/MuteGrammarListener.cs</Link>
-      <Link>obj/%(Configuration)/%(TargetFramework)/MuteGrammarVisitor.cs</Link>
+      <Link>obj/%(Configuration)/%(TargetFramework)/MuteGrammarVisitor.cs</Link>-->
     </Antlr4>
   </ItemGroup>
 

@@ -370,7 +370,7 @@ namespace Daemos.Mute.Compilation
             {
                 return;
             }
-            if (!exp.Type.Nullable && exp.Operand.Type.Nullable && exp.Type.ClrType.GetTypeInfo().IsValueType)
+            if (!exp.Type.Nullable && exp.Operand.Type.Nullable && exp.Operand.Type.ClrType.GetTypeInfo().IsValueType)
             {
                 if (exp.Type.ClrType.GetTypeInfo().IsValueType && exp.Operand.Type.ClrType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
