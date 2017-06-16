@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Daemos.Installation
 {
     public interface ITask
     {
-        void Install();
+        Task Install();
 
-        void Rollback();
+        Task Rollback();
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Daemos.Installation;
 using Npgsql;
 using NpgsqlTypes;
@@ -27,7 +28,7 @@ namespace Daemos.Postgres.Installation
             _prompt = prompt;
         }
 
-        protected override void OnInstall()
+        protected override async Task OnInstall()
         {
             Connection.ChangeDatabase("daemos");
             var useCredentials = _prompt.ReadCredentials("Please enter Daemos Postgres credentials");
@@ -88,13 +89,14 @@ grant select, insert on table transaction_state to ""{escapedUsername}"";
 grant select on table transactions_head to ""{escapedUsername}"";
 ";
 
-                cmd.ExecuteNonQuery();
+                await cmd.ExecuteNonQueryAsync();
 
             }
 
 
             _connectionStringBuilder.Username = useCredentials.UserName;
             _connectionStringBuilder.Password = useCredentials.Password;
+            _connectionStringBuilder.Database = "daemos";
 
             ClientConnectionString = _connectionStringBuilder.ToString();
 
@@ -102,9 +104,19 @@ grant select on table transactions_head to ""{escapedUsername}"";
 
             dynamic payload = new ExpandoObject();
             ((IDictionary<string,object>)payload)["$$type"] = "Migration";
+            ((IDictionary<string, object>)payload)["version"] = "1.0";
+
 
             var migrationTransaction = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, payload, null, TransactionState.Initialized, null, null, storage );
-            storage.CreateTransaction(migrationTransaction, null).GetAwaiter().GetResult();
+            try
+            {
+                await storage.CreateTransaction(migrationTransaction, null);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using Daemos.Installation;
 using Npgsql;
 
@@ -19,7 +20,7 @@ namespace Daemos.Postgres.Installation
 
         public ICredentialsPrompt CredentialsPrompt { get; }
         public string ConnectionString { get; private set; }
-        public void Install()
+        public Task Install()
         {
             string host;
             if (Host == null)
@@ -28,7 +29,7 @@ namespace Daemos.Postgres.Installation
                 host = Console.ReadLine();
                 if (host == null)
                 {
-                    return;
+                    return Task.CompletedTask;
                 }
             }
             else
@@ -42,10 +43,12 @@ namespace Daemos.Postgres.Installation
             connectionStringBuilder.Username = credentials.UserName;
             connectionStringBuilder.Password = credentials.Password;
             ConnectionString = connectionStringBuilder.ToString();
+            return Task.CompletedTask;
         }
 
-        public void Rollback()
+        public Task Rollback()
         {
+            return Task.CompletedTask;
         }
     }
 }

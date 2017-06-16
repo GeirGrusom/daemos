@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Daemos.Console.Configuration;
 using Daemos.Installation;
 using Daemos.Postgres.Installation;
@@ -11,7 +12,7 @@ namespace Daemos.Console
 {
     public class Installer
     {
-        public void Run(Settings settings)
+        public async Task Run(Settings settings)
         {
             var completedTasks = new Stack<ITask>();
             var connbuilder = new NpgsqlConnectionStringBuilder(settings?.ConnectionString);
@@ -23,7 +24,7 @@ namespace Daemos.Console
             {
                 try
                 {
-                    step.Install();
+                    await step.Install();
                     if (step is IDisposable disposable)
                     {
                         disposable.Dispose();
@@ -37,7 +38,7 @@ namespace Daemos.Console
                     {
                         System.Console.WriteLine($"  Rolling back {step.GetType().Name}");
                         var completedTask = completedTasks.Pop();
-                        completedTask.Rollback();
+                        await completedTask.Rollback();
                     }
                     break;
                 }

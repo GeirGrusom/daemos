@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using Daemos.Installation;
 using Npgsql;
 
@@ -22,21 +23,21 @@ namespace Daemos.Postgres.Installation
             Connection.Open();
         }
 
-        public void Install()
+        public async Task Install()
         {
             using (var cmd = Connection.CreateCommand())
             {
                 cmd.CommandText = @"create database daemos;";
-                cmd.ExecuteNonQuery();
+                await cmd.ExecuteNonQueryAsync();
             }
         }
 
-        public void Rollback()
+        public async Task Rollback()
         {
             using (var cmd = Connection.CreateCommand())
             {
                 cmd.CommandText = "drop database daemos;";
-                cmd.ExecuteNonQuery();
+                await cmd.ExecuteNonQueryAsync();
             }
         }
     }

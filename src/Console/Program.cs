@@ -81,7 +81,7 @@ namespace Daemos.Console
             if (settings.Install)
             {
                 var installer = new Installer();
-                installer.Run(null);
+                await installer.Run(null);
                 return;
             }
 

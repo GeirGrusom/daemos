@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Text;
+using System.Threading.Tasks;
 using Daemos.Installation;
 using Npgsql;
 
@@ -30,26 +31,26 @@ namespace Daemos.Postgres.Installation
             Connection.Dispose();
         }
 
-        public void Install()
+        public async Task Install()
         {
-            OnInstall();
+            await OnInstall();
             if (!Transaction.IsCompleted)
             {
-                Transaction.Commit();
+                await Transaction.CommitAsync();
             }
         }
 
-        public void Rollback()
+        public async Task Rollback()
         {
-            OnRollback();
-            Transaction.Rollback();
+            await OnRollback();
+            await Transaction.RollbackAsync();
         }
 
-        protected abstract void OnInstall();
+        protected abstract Task OnInstall();
 
-        protected virtual void OnRollback()
+        protected virtual Task OnRollback()
         {
-            
+            return Task.CompletedTask;
         }
     }
 }
