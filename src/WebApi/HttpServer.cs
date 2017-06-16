@@ -67,7 +67,11 @@ namespace Daemos.WebApi
 
             var loggerFactory = new LoggerFactory();
 
-            hostBuilder.UseKestrel();
+            hostBuilder.UseKestrel(x =>
+            {
+                x.AddServerHeader = false;
+            });
+            hostBuilder.UseUrls(_baseAddress);
             hostBuilder.UseLoggerFactory(loggerFactory);
             hostBuilder.ConfigureServices(x => ConfigureServices(loggerFactory, scriptRunner, x));
             hostBuilder.Configure(Configuration);

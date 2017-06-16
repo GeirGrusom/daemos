@@ -72,11 +72,18 @@ namespace Daemos.Console
                 settings = new Settings
                 {
                     DatabaseType = DatabaseType.Memory,
-                    Listening = new ListenSettings { HttpPort = 5000, Host = "localhost", Scheme = Scheme.Http, WebSocketEnabled = true }
+                    Listening = new ListenSettings { HttpPort = 5000, Host = "*", Scheme = Scheme.Http, WebSocketEnabled = true }
                 };
             }
 
             settings = parser.Parse(settings, args);
+
+            if (settings.Install)
+            {
+                var installer = new Installer();
+                installer.Run(null);
+                return;
+            }
 
             ITransactionStorage storage = CreateStorageFromSettings(settings);
             try

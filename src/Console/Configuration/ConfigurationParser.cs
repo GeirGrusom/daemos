@@ -78,6 +78,10 @@ namespace Daemos.Console.Configuration
                         settings.Listening.Path = args[++i];
                         break;
                     }
+                    case "--install":
+                    case "-i":
+                        settings.Install = true;
+                        break;
                     default:
                         throw new ArgumentException($"Unrecognized option {args[i]}",nameof(args));
                 }

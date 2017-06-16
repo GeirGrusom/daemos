@@ -7,6 +7,8 @@ namespace Daemos.Console.Configuration
         public string ConnectionString { get; set; }
         public DatabaseType DatabaseType { get; set; }
         public ListenSettings Listening { get; set; }   
+
+        public bool Install { get; set; }
     }
 
     public class ListenSettings
