@@ -14,7 +14,7 @@ namespace Daemos.Postgres.Installation
         public string Host { [return: CanBeNull] get; }
         public int Port { get; set; }
 
-        public PostgresInstallerStep([CanBeNull]string host, ICredentialsPrompt credentialsPrompt)
+        public PostgresInstallerStep([CanBeNull]string host, int? port, ICredentialsPrompt credentialsPrompt)
         {
             CredentialsPrompt = credentialsPrompt;
             if (host != null)
@@ -28,9 +28,8 @@ namespace Daemos.Postgres.Installation
             }
             else
             {
-                Port = 5432;
+                Port = port ?? 5432;
             }
-            
         }
 
         public IEnumerable<ITask> GetStepTasks()

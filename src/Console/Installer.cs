@@ -15,6 +15,9 @@ namespace Daemos.Console
         {
             var completedTasks = new Stack<ITask>();
             var connbuilder = new NpgsqlConnectionStringBuilder(settings?.ConnectionString);
+
+            
+
             var postgresStep = new PostgresInstallerStep(connbuilder.Host, connbuilder.Port, new ConsoleCredentialsPrompt());
             foreach (var step in postgresStep.GetStepTasks())
             {
