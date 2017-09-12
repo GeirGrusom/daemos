@@ -1099,7 +1099,16 @@ namespace Daemos.Mute
             {
                 return null;
             }
-            return new ImportExpression(type, context);
+            return new ImportExpression(type, null, context);
+        }
+
+        public ImportExpression Import(DataType type, string name, ParserRuleContext context)
+        {
+            if (type.Equals(default(DataType)))
+            {
+                return null;
+            }
+            return new ImportExpression(type, name, context);
         }
 
         protected ConditionalExpression If(Expression condition, Expression ifValue, ParserRuleContext context)

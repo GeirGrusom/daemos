@@ -28,10 +28,10 @@ namespace Daemos.Tests
             // Arrange
             var resolver = new DefaultDependencyResolver();
             var value = new Instance();
-            resolver.Register(value);
+            resolver.Register(value, null);
 
             // Act
-            var result = resolver.GetService<Instance>();
+            var result = resolver.GetService<Instance>(null);
 
             // Assert
             Assert.Equal(value, result);
@@ -43,10 +43,10 @@ namespace Daemos.Tests
             // Arrange
             var resolver = new DefaultDependencyResolver();
             var value = new Instance();
-            resolver.Register<IDisposable>(value);
+            resolver.Register<IDisposable>(value, null);
 
             // Act
-            var result = resolver.GetService<IDisposable>();
+            var result = resolver.GetService<IDisposable>(null);
 
             // Assert
             Assert.Equal(value, result);
@@ -57,10 +57,10 @@ namespace Daemos.Tests
         {
             // Arrange
             var resolver = new DefaultDependencyResolver();
-            resolver.Register<IDisposable>(ir => new Instance());
+            resolver.Register<IDisposable>(ir => new Instance(), null);
 
             // Act
-            var result = resolver.GetService<IDisposable>();
+            var result = resolver.GetService<IDisposable>(null);
 
             // Assert
             Assert.NotNull(result);
@@ -74,7 +74,7 @@ namespace Daemos.Tests
             resolver.Register<IDisposable, Instance>();
 
             // Act
-            var result = resolver.GetService<IDisposable>();
+            var result = resolver.GetService<IDisposable>(null);
 
             // Assert
             Assert.NotNull(result);
@@ -88,7 +88,7 @@ namespace Daemos.Tests
             resolver.Register<IDisposable, Instance>();
 
             // Act
-            var result = resolver.GetService<TypeWithDependency>();
+            var result = resolver.GetService<TypeWithDependency>(null);
 
             // Assert
             Assert.NotNull(result.Dependency);

@@ -111,8 +111,8 @@ namespace Daemos.Tests
             var serializer = new StateSerializer();
             var deserializer = new StateDeserializer();
             var dependencyResolver = new DefaultDependencyResolver();
-            dependencyResolver.Register<Transaction>(TransactionFactory.CreateNew(null));
-            dependencyResolver.Register("Hello World!");
+            dependencyResolver.Register<Transaction>(TransactionFactory.CreateNew(null), null);
+            dependencyResolver.Register("Hello World!", null);
 
             // Act
             var state = result.Result(serializer, deserializer, dependencyResolver);
@@ -120,6 +120,27 @@ namespace Daemos.Tests
             // Assert
             Assert.True(result.Success);
             
+        }
+
+        [Fact]
+        public void Compile_Greeting_Success()
+        {
+            // Arrange
+            var muteCompiler = new Compiler();
+            var result = muteCompiler.Compile("module foo;\r\nlet s <- import 'greeting' as string;");
+
+            var serializer = new StateSerializer();
+            var deserializer = new StateDeserializer();
+            var dependencyResolver = new DefaultDependencyResolver();
+            dependencyResolver.Register<Transaction>(TransactionFactory.CreateNew(null), null);
+            dependencyResolver.Register("Hello World!", "greeting");
+
+            // Act
+            var state = result.Result(serializer, deserializer, dependencyResolver);
+
+            // Assert
+            Assert.True(result.Success);
+
         }
 
         public static readonly object[][] ResultData = 

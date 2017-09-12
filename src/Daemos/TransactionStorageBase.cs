@@ -10,7 +10,7 @@ namespace Daemos
     {
         public event EventHandler<TransactionCommittedEventArgs> TransactionCommitted;
 
-        private readonly AutoResetEvent _nextExpiringTransactionChangedEvent;
+        private readonly Threading.AutoResetEvent _nextExpiringTransactionChangedEvent;
         private DateTime? _nextExpiringTransaction;
         private readonly ITimeService _timeService;
 
@@ -18,13 +18,13 @@ namespace Daemos
 
         protected TransactionStorageBase()
         {
-            _nextExpiringTransactionChangedEvent = new AutoResetEvent(true);
+            _nextExpiringTransactionChangedEvent = new Threading.AutoResetEvent(true);
             _timeService = new UtcTimeService();
         }
 
         protected TransactionStorageBase(ITimeService timeService)
         {
-            _nextExpiringTransactionChangedEvent = new AutoResetEvent(true);
+            _nextExpiringTransactionChangedEvent = new Threading.AutoResetEvent(true);
             _timeService = timeService;
         }
 
@@ -78,11 +78,14 @@ namespace Daemos
 
             return result;
         }
-
-        public Task<List<Transaction>> GetExpiringTransactionsAsync(CancellationToken cancel)
+        private readonly List<Transaction> Empty = new List<Transaction>(0);
+        public async Task<List<Transaction>> GetExpiringTransactionsAsync(CancellationToken cancel)
         {
-            WaitForExpiringTransactions(cancel);
-            return GetExpiringTransactionsInternal(cancel);
+            if (await WaitForExpiringTransactions(cancel))
+            {
+                return await GetExpiringTransactionsInternal(cancel);
+            }
+            return Empty;
         }
 
         protected abstract Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel);
@@ -92,7 +95,7 @@ namespace Daemos
             _nextExpiringTransaction = next;
         }
 
-        protected virtual void WaitForExpiringTransactions(CancellationToken cancel)
+        protected virtual async Task<bool> WaitForExpiringTransactions(CancellationToken cancel)
         {
             try
             {
@@ -102,8 +105,7 @@ namespace Daemos
                 // No other threads is supposed to open it.
                 if (_nextExpiringTransaction == null)
                 {
-                    _nextExpiringTransactionChangedEvent.WaitOne();
-                    return;
+                    return await _nextExpiringTransactionChangedEvent.WaitOne(500, cancel);
                 }
 
                 int delta;
@@ -117,14 +119,15 @@ namespace Daemos
 
                     delta = deltaD > int.MaxValue ? int.MaxValue : (int)deltaD;
                     if (delta > 0)
-                        _nextExpiringTransactionChangedEvent.WaitOne(delta);
+                        return await _nextExpiringTransactionChangedEvent.WaitOne(delta, cancel);
                 }
                 while (delta > 0);
             }
             catch (OperationCanceledException)
             {
-                return;
+                return false;
             }
+            return true;
         }
     }
 }

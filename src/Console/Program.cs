@@ -19,9 +19,9 @@ namespace Daemos.Console
         private static CancellationToken _cancel;
         private static TransactionHandlerFactory _handlerFactory;
 
-        public static void Main(string[] args)
+        public static Task<int> Main(string[] args)
         {
-            Nito.AsyncEx.AsyncContext.Run(() => MainApp(args));
+            return MainApp(args);
         }
 
         private static ITransactionStorage CreateStorageFromSettings(Settings settings)
@@ -39,7 +39,7 @@ namespace Daemos.Console
 
 
 
-        public static async Task MainApp(string[] args)
+        public static async Task<int> MainApp(string[] args)
         {
             var parser = new ConfigurationParser();
             var dependencyResolver = new DefaultDependencyResolver();
@@ -82,7 +82,7 @@ namespace Daemos.Console
             {
                 var installer = new Installer();
                 await installer.Run(null);
-                return;
+                return -1;
             }
 
             ITransactionStorage storage = CreateStorageFromSettings(settings);
@@ -94,7 +94,7 @@ namespace Daemos.Console
             catch(System.Net.Sockets.SocketException ex)
             {
                 System.Console.WriteLine(ex.Message);
-                return;
+                return -1;
             }
 
 
@@ -108,8 +108,8 @@ namespace Daemos.Console
 
             muteScriptRunner.AddImplicitType("Console", typeof(IEchoService));
             muteScriptRunner.AddImplicitType("IPaymentService", typeof(IPaymentService));
-            dependencyResolver.Register<IEchoService>(new EchoService());
-            dependencyResolver.Register<IPaymentService>(new MockPaymentService());
+            dependencyResolver.Register<IEchoService>(new EchoService(), null);
+            dependencyResolver.Register<IPaymentService>(new MockPaymentService(), "mock");
 
             foreach (var mod in modules)
             {
@@ -136,25 +136,25 @@ namespace Daemos.Console
 
             ScriptingProvider provider = new ScriptingProvider(storage);
             provider.RegisterLanguageProvider("mute", muteScriptRunner);
-            dependencyResolver.Register<IScriptRunner>(provider);
+            dependencyResolver.Register<IScriptRunner>(provider, null);
 
 
-            var listeningThread = new Thread(() => httpServer.Start(provider))
+            var listeningThread = new Thread(async () => await httpServer.Start(provider))
             {
                 Name = "Web Server"
             };
 
             listeningThread.Start();
 
-            _handlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)dependencyResolver.GetService(type));
+            _handlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)dependencyResolver.GetService(type, null));
 
             TransactionProcessor processor = new TransactionProcessor(storage, provider, dependencyResolver);
          
             var cancelSource = new CancellationTokenSource();
             _cancel = cancelSource.Token;
-            System.Console.CancelKeyPress += (sender, ev) =>
+            System.Console.CancelKeyPress += async (sender, ev) =>
             {
-                httpServer.Stop();
+                await httpServer.Stop();
             };
 
 
@@ -165,6 +165,8 @@ namespace Daemos.Console
 
 
             httpServer.Wait();
+
+            return 0;
         }        
     }
 }

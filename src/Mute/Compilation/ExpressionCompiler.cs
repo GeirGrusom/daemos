@@ -44,6 +44,8 @@ namespace Daemos.Mute.Compilation
         private List<KeyValuePair<UnaryAwaitExpression, Label>> _awaitEntryPoints;
 
         private LocalBuilder _this;
+        private LocalBuilder _now;
+        private LocalBuilder _expired;
 
 
         public ExpressionCompiler()
@@ -106,6 +108,8 @@ namespace Daemos.Mute.Compilation
             il = method.GetILGenerator();
 
             _this = il.DeclareLocal(typeof(Transaction));
+            _now = il.DeclareLocal(typeof(DateTime));
+            _expired = il.DeclareLocal(typeof(DateTime));
             var stageLocal = il.DeclareLocal(typeof(int));
 
             endOfScript = il.DefineLabel();
@@ -117,6 +121,12 @@ namespace Daemos.Mute.Compilation
             il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
             il.EmitCall(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(typeof(Transaction)), null);
             il.Emit(OpCodes.Stloc, _this);
+
+            // now = GetService<ITimeService>().Now();
+            il.Emit(OpCodes.Ldarg_2);
+            il.Emit(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(typeof(ITimeService)));
+            il.Emit(OpCodes.Callvirt, typeof(ITimeService).GetMethod(nameof(ITimeService.Now)));
+            il.Emit(OpCodes.Stloc, _now);
 
             EntryPointVisitor entrypoints = new EntryPointVisitor(il);
             entrypoints.Visit(expression);
@@ -1286,14 +1296,45 @@ namespace Daemos.Mute.Compilation
             il.EmitCall(OpCodes.Callvirt, loadMethod, null);
         }
 
+
         public override void OnVisit(VariableExpression exp)
         {
+            OnVisit(exp, false);
+        }
+
+        public void OnVisit(VariableExpression exp, bool refValueType)
+        {
+            OpCode opcode;
+            LocalBuilder local;
+            if (exp.Type.ClrType.GetTypeInfo().IsValueType && refValueType)
+            {
+                opcode = OpCodes.Ldloca;
+            }
+            else
+            {
+                opcode = OpCodes.Ldloc;
+            }
             if(exp.Name == "this")
             {
-                il.Emit(OpCodes.Ldloc, _this);
-                return;
+                local = _this;
             }
-            il.Emit(OpCodes.Ldloc, _variableIndices[exp].Index);
+            else if (exp.Name == "expired")
+            {
+                local = _expired;
+            }
+            else
+            {
+                local = _variableIndices[exp].Local;
+            }
+            
+            il.Emit(opcode, local);
+        }
+
+        
+
+        public void VisitVariable(VariableExpression exp, bool refValueType = false)
+        {
+            
         }
 
         public override void OnVisit(VariableDeclarationExpression exp)

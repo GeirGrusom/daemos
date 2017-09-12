@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Daemos.Scripting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -41,9 +42,10 @@ namespace Daemos.WebApi
             cancel = new CancellationTokenSource();
         }
 
-        public void Stop()
+        public Task Stop()
         {
             cancel.Cancel();
+            return _host.StopAsync();
         }
 
         public void Wait()
@@ -60,7 +62,7 @@ namespace Daemos.WebApi
             
         }
 
-        public void Start(IScriptRunner scriptRunner)
+        public Task Start(IScriptRunner scriptRunner)
         {
 
             WebHostBuilder hostBuilder = new WebHostBuilder();
@@ -72,14 +74,11 @@ namespace Daemos.WebApi
                 x.AddServerHeader = false;
             });
             hostBuilder.UseUrls(_baseAddress);
-            hostBuilder.UseLoggerFactory(loggerFactory);
             hostBuilder.ConfigureServices(x => ConfigureServices(loggerFactory, scriptRunner, x));
             hostBuilder.Configure(Configuration);
             
-            
             _host = hostBuilder.Build();
-          
-            _host.Run(cancel.Token);
+            return _host.RunAsync(cancel.Token);
         }
 
         public void ConfigureServices(ILoggerFactory loggerFactory, IScriptRunner scriptRunner, IServiceCollection services)

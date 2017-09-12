@@ -4,8 +4,10 @@ namespace Daemos.Mute.Expressions
 {
     public class ImportExpression : Expression
     {
-        public ImportExpression(DataType resultType, ParserRuleContext context) : base(resultType, context)
+        public string Name { get; }
+        public ImportExpression(DataType resultType, string name, ParserRuleContext context) : base(resultType, context)
         {
+            Name = name;
         }
     }
 }

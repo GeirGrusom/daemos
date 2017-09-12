@@ -32,8 +32,11 @@ namespace Daemos.Postgres.Installation
         {
             Connection.ChangeDatabase("daemos");
             var useCredentials = _prompt.ReadCredentials("Please enter Daemos Postgres credentials");
+
+            // I'm not entirely confident that this string is unescapable, but I would think it matters very little.
             string escapedUsername = useCredentials.UserName.Replace("\"", "\"\"");
             string escapedPassword = useCredentials.Password.Replace("'", "''");
+
             using (var cmd = Connection.CreateCommand())
             {
                 cmd.Transaction = Transaction;
@@ -88,6 +91,8 @@ grant select, update, insert on table transactions to ""{escapedUsername}"";
 grant select, insert on table transaction_state to ""{escapedUsername}"";
 grant select on table transactions_head to ""{escapedUsername}"";
 ";
+
+                // Can't use parameters for username or password because reasons.
 
                 await cmd.ExecuteNonQueryAsync();
 

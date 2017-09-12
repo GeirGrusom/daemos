@@ -11,7 +11,7 @@ using Xunit;
 namespace Daemos.Tests
 {
 
-    public class PostgresDatabaseFixture : IDisposable
+    public class PostgresDatabaseFixture
     {
         public string ConnectionString { get; }
 
@@ -33,53 +33,6 @@ namespace Daemos.Tests
             //var storage = new PostgreSqlTransactionStorage(ConnectionString);
             //storage.InitializeAsync().Wait();
 
-        }
-
-        private DockerClient CreateDockerClient() => new DockerClientConfiguration(new Uri("npipe://./pipe/docker_engine")).CreateClient();
-        public async Task InitPostgres(string username, string password)
-        {
-            var client = CreateDockerClient();
-
-            var postgresImageResult = await client.Images.PullImageAsync(new ImagesPullParameters { Parent = "postgres", Tag = "9.6.2" }, null);
-
-            var buffer = new byte[65536];
-            var builder = new System.Text.StringBuilder();
-            int readBytes = 0;
-            do
-            {
-                readBytes = await postgresImageResult.ReadAsync(buffer, 0, buffer.Length);
-                builder.Append(System.Text.Encoding.UTF8.GetString(buffer, 0, readBytes));
-            } while (readBytes > 0);
-
-
-
-            var createParameters = new CreateContainerParameters
-            {
-                Env = new List<string>
-                {
-                    $"POSTGRES_USER={username}",
-                    $"POSTGRES_PASSWORD={password}"
-                },
-                Hostname = PostgresHostName,
-                Image = "postgres:9.6.2",
-                HostConfig = new HostConfig
-                {
-                }
-            };
-
-            var createdContainer = await client.Containers.CreateContainerAsync(createParameters);
-
-            var startedContainer = await client.Containers.StartContainerAsync(createdContainer.ID, new ContainerStartParameters());
-
-            this.ContainerId = createdContainer.ID;
-        }
-
-        public void Dispose()
-        {
-            var client = CreateDockerClient();
-
-            client.Containers.StopContainerAsync(ContainerId, new ContainerStopParameters { WaitBeforeKillSeconds = 30 }, CancellationToken.None).Wait();
-            client.Containers.RemoveContainerAsync(ContainerId, new ContainerRemoveParameters());
         }
     }
 

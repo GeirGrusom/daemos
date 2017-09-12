@@ -45,6 +45,8 @@ namespace Daemos
                     dependencyResolver.Register(new Transaction(proxyTransactionData, transaction.Storage));
                     dependencyResolver.Register<IStateDeserializer>(new StateDeserializer(state));
                     dependencyResolver.Register<IStateSerializer>(new StateSerializer());
+                    dependencyResolver.Register<ITimeService>(new ConstantTimeService(proxyTransactionData.Created), "now");
+                    dependencyResolver.Register<ITimeService>(new ConstantTimeService(transaction.Expires ?? proxyTransactionData.Created), "expired");
 
                     Console.WriteLine($"Processing transaction {transaction.Id:N}[{transaction.Revision}]...");
                     try

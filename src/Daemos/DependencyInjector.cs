@@ -6,20 +6,19 @@ namespace Daemos
 {
     public interface IDependencyResolver
     {
-        T GetService<T>() where T : class;
-        T GetService<T>(string name) where T : class;
-        object GetService(Type type);
+        T GetService<T>(string name = null) where T : class;
+        object GetService(Type type, string name = null);
     }
 
     public interface IDependencyRegister
     {
-        void Register<T>(T instance)
+        void Register<T>(T instance, string name = null)
             where T : class;
 
-        void Register<T>(Func<IDependencyResolver, T> factory)
+        void Register<T>(Func<IDependencyResolver, T> factory, string name = null)
             where T : class;
 
-        void Register<TFor, TTo>()
+        void Register<TFor, TTo>(string name = null)
             where TFor : class
             where TTo : class;
     }
@@ -35,11 +34,6 @@ namespace Daemos
         private sealed class NullDependencyResolver : IDependencyResolver
         {
             public static NullDependencyResolver Instance { get; } = new NullDependencyResolver();
-            public T GetService<T>()
-                where T : class
-            {
-                return default(T);
-            }
 
             public T GetService<T>(string name)
                 where T : class
@@ -47,7 +41,7 @@ namespace Daemos
                 return default(T);
             }
 
-            public object GetService(Type type)
+            public object GetService(Type type, string name)
             {
                 return null;
             }
@@ -57,30 +51,78 @@ namespace Daemos
 
         private readonly ConstructorFactory _constructorFactory;
 
-        private readonly ConcurrentDictionary<Type, Func<IDependencyResolver, object>> _factories;
+        private readonly ConcurrentDictionary<FactoryIndex, Func<IDependencyResolver, object>> _factories;
 
         public DefaultDependencyResolver()
             : this(NullDependencyResolver.Instance)
         {
         }
 
+        private struct FactoryIndex : IEquatable<FactoryIndex>
+        {
+            public Type Type { get; }
+            public string Name { get; }
+
+            public FactoryIndex(Type type, string name)
+            {
+                Type = type;
+                Name = name;
+            }
+
+            public static FactoryIndex Create<T>()
+            {
+                return new FactoryIndex(typeof(T));
+            }
+
+            public static FactoryIndex Create<T>(string name)
+            {
+                return new FactoryIndex(typeof(T), name);
+            }
+
+
+            public FactoryIndex(Type type)
+                : this(type, null)
+            {
+                
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return ((Type != null ? Type.GetHashCode() : 0) * 397) ^ (Name != null ? Name.GetHashCode() : 0);
+                }
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj is null) return false;
+                return obj is FactoryIndex && Equals((FactoryIndex) obj);
+            }
+
+            public bool Equals(FactoryIndex other)
+            {
+                return Type == other.Type && string.Equals(Name, other.Name);
+            }
+        }
+
         public DefaultDependencyResolver(IDependencyResolver baseResolver)
         {
             BaseResolver = baseResolver;
             _constructorFactory = new ConstructorFactory();
-            _factories = new ConcurrentDictionary<Type, Func<IDependencyResolver, object>>();
+            _factories = new ConcurrentDictionary<FactoryIndex, Func<IDependencyResolver, object>>();
         }
 
-        public void Register<T>(T instance)
+        public void Register<T>(T instance, string name)
             where T : class
         {
-            _factories.TryAdd(typeof(T), ir => instance);
+            _factories.TryAdd(FactoryIndex.Create<T>(name), ir => instance);
         }
 
-        public void Register<T>(Func<IDependencyResolver, T> factory)
+        public void Register<T>(Func<IDependencyResolver, T> factory, string name)
             where T : class
         {
-            _factories.TryAdd(typeof(T), factory);
+            _factories.TryAdd(FactoryIndex.Create<T>(name), factory);
         }
 
         public IContainer CreateProxy()
@@ -88,60 +130,34 @@ namespace Daemos
             return new DefaultDependencyResolver(this);
         }
 
-        public void Register<TFor, TTo>()
+        public void Register<TFor, TTo>(string name = null)
             where TFor : class
             where TTo : class
         {
             var fac = _constructorFactory.Create<TTo>();
-            _factories.TryAdd(typeof(TFor), fac);
-        }
-
-        public T GetService<T>()
-            where T : class
-        {
-            if(_factories.TryGetValue(typeof(T), out Func<IDependencyResolver, object> factory))
-            {
-                return (T)factory(this);
-            }
-            else
-            {
-                var baseResult = BaseResolver.GetService<T>();
-                if (baseResult != null)
-                {
-                    return baseResult;
-                }
-
-                var fac = _constructorFactory.Create<T>();
-                _factories.TryAdd(typeof(T), fac);
-                return fac(this);
-            }
+            _factories.TryAdd(FactoryIndex.Create<TFor>(name), fac);
         }
 
         public T GetService<T>(string name)
             where T : class
         {
-            throw new NotImplementedException();
+            return (T) GetService(typeof(T), name);
         }
 
-        public object GetService(Type serviceType)
+        public object GetService(Type serviceType, string name)
         {
-            if (_factories.TryGetValue(serviceType, out Func<IDependencyResolver, object> factory))
+            if (_factories.TryGetValue(new FactoryIndex(serviceType, name), out Func<IDependencyResolver, object> factory))
             {
                 return factory(this);
             }
-            else
-            {
-                var baseResult = BaseResolver.GetService(serviceType);
-                if (baseResult != null)
-                {
-                    return baseResult;
-                }
 
-                //var fac = _constructorFactory.Create(serviceType);
-                //_factories.TryAdd(serviceType, fac);
-                //return fac(this);
-                throw new NotSupportedException();
+            var baseResult = BaseResolver.GetService(serviceType);
+            if (baseResult != null)
+            {
+                return baseResult;
             }
+
+            throw new NotSupportedException();
         }
     }
 }

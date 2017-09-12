@@ -11,4 +11,16 @@ namespace Daemos
     {
         public DateTime Now() => DateTime.UtcNow;
     }
+
+    public sealed class ConstantTimeService : ITimeService
+    {
+        private readonly DateTime _now;
+
+        public ConstantTimeService(DateTime value)
+        {
+            _now = value;
+        }
+
+        public DateTime Now() => _now;
+    }
 }

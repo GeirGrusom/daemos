@@ -129,6 +129,8 @@ commitTransaction returns [Expression expr]
 
 importExpression returns [Expression expr]
 	: IMPORT dataType { $expr = Import($dataType.type, $ctx); }
+	| IMPORT quotedString AS dataType { $expr = Import($dataType.type, $quotedString.value, $ctx);  }
+	| IMPORT singleQuotedString  AS dataType { $expr = Import($dataType.type, $singleQuotedString.value, $ctx);  }
 	;
 
 ifExpression returns [ConditionalExpression expr]
@@ -184,6 +186,8 @@ literalExpression returns [Expression expr]
 	| NULL { $expr = ConstantExpression.NullExpression; }
 	| INTEGER { $expr = new ConstantExpression(DataType.NonNullInt, $INTEGER.int, $ctx); }
 	| THIS { $expr = new VariableExpression("this", false, new DataType(typeof(Daemos.Transaction), false), $ctx); }
+	| NOW { $expr = new VariableExpression("now", false, new DataType(typeof(DateTime), false), $ctx); }
+	| EXPIRED { $expr = new VariableExpression("expired", false, new DataType(typeof(DateTime), false), $ctx); }
 	| DATETIME { $expr = DateTime($DATETIME.text, $ctx); }
 	| quotedString { $expr = new ConstantExpression(DataType.NonNullString, $quotedString.value, $ctx); }
 	| singleQuotedString { $expr = new ConstantExpression(DataType.NonNullString, $singleQuotedString.value, $ctx); }
@@ -349,7 +353,9 @@ DATETIME
 	// P1Y2M10DT2H30M
 //TIMESPAN
 //	: '@' 'P' [0-9]+ 'Y' [0-9]+ 'M' [0-9]+ 'D' 'T' [0-9]+ 'H' [-9]+ 'M'
-	
+
+EXPIRED: 'expired';
+NOW: 'now';
 CHILD: 'child';
 TRANSACTION_STATE: 'initialize' | 'authorize' | 'complete' | 'cancel' | 'fail';
 COMMIT: 'commit';

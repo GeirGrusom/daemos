@@ -1,8 +1,7 @@
 {
   "profiles": {
     "Transact.Console": {
-      "commandName": "Project",
-      "commandLineArgs": "--install"
+      "commandName": "Project"
     }
   }
 }

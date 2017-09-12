@@ -26,7 +26,7 @@ namespace Daemos.Benchmark
             await storage.CreateTransactionAsync(new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, null, storage));
         }
 
-        [Cleanup]
+        [GlobalCleanup]
         public void Cleanup()
         {
             using (var conn = new Npgsql.NpgsqlConnection("User ID=transact_test;Password=qwerty12345;Host=localhost;Port=5432;Database=transact;Pooling = true;"))
