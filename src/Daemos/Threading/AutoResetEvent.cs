@@ -10,6 +10,7 @@ namespace Daemos.Threading
     public sealed class AutoResetEvent : IDisposable
     {
         private static readonly Task<bool> Completed = Task.FromResult(true);
+        private static readonly Task<bool> TimedOut = Task.FromResult(false);
         private readonly List<EventRegistration> _taskCompletions;
         private readonly object _syncLock;
         private bool _signalled;
@@ -43,6 +44,11 @@ namespace Daemos.Threading
             return WaitOne(Timeout.Infinite, cancel);
         }
 
+        public Task<bool> WaitOne(int timeout)
+        {
+            return WaitOne(timeout, CancellationToken.None);
+        }
+
         public Task<bool> WaitOne()
         {
             return WaitOne(Timeout.Infinite, CancellationToken.None);
@@ -62,10 +68,14 @@ namespace Daemos.Threading
                     _signalled = false;
                     return Completed;
                 }
+                if (timeout == 0)
+                {
+                    return TimedOut;
+                }
                 var task = new TaskCompletionSource<bool>();
 
                 var reg = new EventRegistration(this) { Task = task };
-                var cancelReg = cancel.Register(reg.Cancel);
+                var cancelReg = cancel.Register(OnCancelCallback, reg);
                 reg.CancellationTokenRegistration = cancelReg;
 
                 _taskCompletions.Add(reg);
@@ -74,7 +84,6 @@ namespace Daemos.Threading
                 {
                     reg.Timeout = new Timer(OnTimeoutCallback, reg, timeout, Timeout.Infinite);
                 }
-                cancel.Register(OnCancelCallback, reg);
                 return task.Task;
             }
         }
@@ -82,7 +91,7 @@ namespace Daemos.Threading
         private static void OnCancelCallback(object state)
         {
             var re = (EventRegistration)state;
-            re.Timeout.Dispose();
+            re.Timeout?.Dispose();
             re.CancellationTokenRegistration.Dispose();
             re.AutoResetEvent.Remove(re);
             re.Task.TrySetCanceled();

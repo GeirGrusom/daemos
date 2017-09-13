@@ -83,6 +83,7 @@ namespace Daemos
         {
             if (await WaitForExpiringTransactions(cancel))
             {
+                // If WaitForExpiringTransactions returns false, it either timed out or was cancelled.
                 return await GetExpiringTransactionsInternal(cancel);
             }
             return Empty;
@@ -105,7 +106,7 @@ namespace Daemos
                 // No other threads is supposed to open it.
                 if (_nextExpiringTransaction == null)
                 {
-                    return await _nextExpiringTransactionChangedEvent.WaitOne(500, cancel);
+                    return await _nextExpiringTransactionChangedEvent.WaitOne(cancel);
                 }
 
                 int delta;
