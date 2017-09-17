@@ -26,12 +26,14 @@ namespace Daemos.Mute.Compilation
         {
             public int Index => Local.LocalIndex;
             public bool IsImport { get; }
+            public string ImportAlias { get; }
             public LocalBuilder Local { get; }
 
-            public VariableInfo(LocalBuilder local, bool isImport)
+            public VariableInfo(LocalBuilder local, bool isImport, string importAlias)
             {
                 Local = local;
                 IsImport = isImport;
+                ImportAlias = importAlias;
             }
         }
 
@@ -73,7 +75,7 @@ namespace Daemos.Mute.Compilation
             return _variables.Reverse().SelectMany(x => x).FirstOrDefault(x => x.Variable.Name == expression.Name);
         }
 
-        private static readonly MethodInfo GetServiceMethod = typeof(IDependencyResolver).GetMethod(nameof(IDependencyResolver.GetService), new Type[] { });
+        private static readonly MethodInfo GetServiceMethod = typeof(IDependencyResolver).GetMethod(nameof(IDependencyResolver.GetService), new Type[] { typeof(string) });
         private static readonly MethodInfo LoadStageMethod = typeof(IStateDeserializer).GetMethod(nameof(IStateDeserializer.ReadStage), Array.Empty<Type>());
         private Label endOfScript;
 
@@ -89,6 +91,7 @@ namespace Daemos.Mute.Compilation
 
             _this = il.DeclareLocal(typeof(Transaction));
             il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
+            il.Emit(OpCodes.Ldnull);
             il.EmitCall(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(typeof(Transaction)), null);
             il.Emit(OpCodes.Stloc, _this);
 
@@ -119,11 +122,13 @@ namespace Daemos.Mute.Compilation
 
             // Initialization code
             il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
+            il.Emit(OpCodes.Ldnull);
             il.EmitCall(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(typeof(Transaction)), null);
             il.Emit(OpCodes.Stloc, _this);
 
             // now = GetService<ITimeService>().Now();
             il.Emit(OpCodes.Ldarg_2);
+            il.Emit(OpCodes.Ldnull);
             il.Emit(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(typeof(ITimeService)));
             il.Emit(OpCodes.Callvirt, typeof(ITimeService).GetMethod(nameof(ITimeService.Now)));
             il.Emit(OpCodes.Stloc, _now);
@@ -563,7 +568,7 @@ namespace Daemos.Mute.Compilation
         static ExpressionCompiler()
         {
             var methods = typeof(IDependencyResolver).GetMethods(BindingFlags.Instance | BindingFlags.Public);
-            GetDependencyMethod = methods.Single(x => x.Name == "GetService" && x.GetParameters().Length == 0);
+            GetDependencyMethod = methods.Single(x => x.Name == "GetService" && x.GetParameters().Length == 1);
 
             SerializeMethods = new Dictionary<Type, MethodInfo>();
 
@@ -740,6 +745,7 @@ namespace Daemos.Mute.Compilation
                 {
                     var loadMethod = GetDependencyMethod.MakeGenericMethod(item.Key.Type.ClrType);
                     il.Emit(OpCodes.Ldarg_2); // Load IDependencyResolver
+                    il.Emit(OpCodes.Ldnull);
                     il.EmitCall(OpCodes.Callvirt, loadMethod, null);
                     il.Emit(OpCodes.Stloc, item.Value.Index);
                 }
@@ -1258,22 +1264,23 @@ namespace Daemos.Mute.Compilation
             OnVisit(exp, false);
         }
 
-        public void RegisterVariable(VariableExpression expr, bool isImport)
+        public void RegisterVariable(VariableExpression expr, bool isImport, string importAlias)
         {
             var builder = il.DeclareLocal(expr.Type.ClrType);
-            _variableIndices.Add(expr, new VariableInfo(builder, isImport));
+            _variableIndices.Add(expr, new VariableInfo(builder, isImport, importAlias));
         }
 
-        public void RegisterVariableExtern(VariableExpression expr, bool isImport)
+        public void RegisterVariableExtern(VariableExpression expr, bool isImport, string importAlias)
         {
             var builder = il.DeclareLocal(expr.Type.ClrType);
             if (isImport)
             {
                 il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
+                il.Emit(OpCodes.Ldnull);
                 il.Emit(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(expr.Type.ClrType));
                 il.Emit(OpCodes.Stloc, builder);
             }
-            _variableIndices.Add(expr, new VariableInfo(builder, isImport));
+            _variableIndices.Add(expr, new VariableInfo(builder, isImport, importAlias));
         }
 
 
@@ -1293,6 +1300,14 @@ namespace Daemos.Mute.Compilation
         {
             var loadMethod = GetDependencyMethod.MakeGenericMethod(exp.Type.ClrType);
             il.Emit(OpCodes.Ldarg_2);
+            if (exp.Name == null)
+            {
+                il.Emit(OpCodes.Ldnull);
+            }
+            else
+            {
+                il.Emit(OpCodes.Ldstr, exp.Name);
+            }
             il.EmitCall(OpCodes.Callvirt, loadMethod, null);
         }
 
@@ -1341,7 +1356,8 @@ namespace Daemos.Mute.Compilation
         {
             if (exp.Assignment != null)
             {
-                RegisterVariable(exp.Variable, exp.Assignment is ImportExpression);
+                var imp = exp.Assignment as ImportExpression;
+                RegisterVariable(exp.Variable, imp != null, imp?.Name);
                 
                 OnVisit(exp.Assignment);
                 il.Emit(OpCodes.Stloc, _variableIndices[exp.Variable].Index);
@@ -1349,7 +1365,7 @@ namespace Daemos.Mute.Compilation
             }
             else
             {
-                RegisterVariable(exp.Variable, isImport: false);
+                RegisterVariable(exp.Variable, isImport: false, importAlias: null);
             }
         }
 

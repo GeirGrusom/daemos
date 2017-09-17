@@ -112,6 +112,7 @@ namespace Daemos.Tests
             var deserializer = new StateDeserializer();
             var dependencyResolver = new DefaultDependencyResolver();
             dependencyResolver.Register<Transaction>(TransactionFactory.CreateNew(null), null);
+            dependencyResolver.Register<ITimeService>(Substitute.For<ITimeService>(), null);
             dependencyResolver.Register("Hello World!", null);
 
             // Act
@@ -133,6 +134,7 @@ namespace Daemos.Tests
             var deserializer = new StateDeserializer();
             var dependencyResolver = new DefaultDependencyResolver();
             dependencyResolver.Register<Transaction>(TransactionFactory.CreateNew(null), null);
+            dependencyResolver.Register<ITimeService>(Substitute.For<ITimeService>(), null);
             dependencyResolver.Register("Hello World!", "greeting");
 
             // Act
