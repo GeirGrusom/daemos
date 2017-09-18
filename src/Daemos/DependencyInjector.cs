@@ -146,7 +146,8 @@ namespace Daemos
 
         public object GetService(Type serviceType, string name)
         {
-            if (_factories.TryGetValue(new FactoryIndex(serviceType, name), out Func<IDependencyResolver, object> factory))
+            var index = new FactoryIndex(serviceType, name);
+            if (_factories.TryGetValue(index, out Func<IDependencyResolver, object> factory))
             {
                 return factory(this);
             }
@@ -155,6 +156,17 @@ namespace Daemos
             if (baseResult != null)
             {
                 return baseResult;
+            }
+
+            if(serviceType.IsClass && serviceType.GetConstructors().Length != 0)
+            {
+                var meth = _constructorFactory.GetType().GetMethod(nameof(ConstructorFactory.Create));
+                var factoryMethod = meth.MakeGenericMethod(serviceType);
+                var resultFactory = (Func<IDependencyResolver, object>) factoryMethod.Invoke(_constructorFactory, null);
+                if(_factories.TryAdd(index, resultFactory))
+                {
+                    return resultFactory(this);
+                }
             }
 
             throw new NotSupportedException();

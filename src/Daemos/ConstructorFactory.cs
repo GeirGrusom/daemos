@@ -14,7 +14,7 @@ namespace Daemos
             var constructors = t.GetConstructors();
             var ctor = constructors.Where(x => x.IsPublic).OrderByDescending(x => x.GetParameters().Length).FirstOrDefault();
 
-            if(ctor == null)
+            if (ctor == null)
             {
                 throw new InvalidOperationException("Type does not have any public constructors");
             }
@@ -22,14 +22,14 @@ namespace Daemos
             var dependencyResolverArgument = Expression.Parameter(typeof(IDependencyResolver), "dependencyResolver");
 
             var parameters = ctor.GetParameters();
-            if(parameters.Count() == 0)
+            if (parameters.Count() == 0)
             {
                 var lambda = Expression.Lambda<Func<IDependencyResolver, T>>(Expression.New(ctor), dependencyResolverArgument);
                 return lambda.Compile();
             }
 
             var arguments = new Expression[parameters.Length];
-            var resolveMethod = typeof(IDependencyResolver).GetMethod("GetService", new Type[0]);
+            var resolveMethod = typeof(IDependencyResolver).GetMethod("GetService", new Type[1] { typeof(string) });
 
 
             for(int i = 0; i < parameters.Length; ++i)
@@ -39,7 +39,7 @@ namespace Daemos
                     var resolveMethodType = resolveMethod.MakeGenericMethod(parameters[i].ParameterType);
                     var argVar = Expression.Variable(parameters[i].ParameterType);
                     arguments[i] = Expression.Block(parameters[i].ParameterType, new[] { argVar },
-                        Expression.Assign(argVar, Expression.Call(dependencyResolverArgument, resolveMethodType)),
+                        Expression.Assign(argVar, Expression.Call(dependencyResolverArgument, resolveMethodType, Expression.Constant(null, typeof(string)))),
                         Expression.IfThen(Expression.Equal(argVar, Expression.Constant(null, parameters[i].ParameterType)), Expression.Throw(Expression.New(typeof(DependencyFailedException).GetConstructor(new[] { typeof(Type) }), Expression.Constant(parameters[i].ParameterType)))),
                         argVar
                         );
