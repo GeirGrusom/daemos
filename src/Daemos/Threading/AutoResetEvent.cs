@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Daemos.Threading
 {
-    // Base on Stephen Toub's "Building Async Coordination Primitives, Part 2: AsyncAutoResetEvent"
+    // Based on Stephen Toub's "Building Async Coordination Primitives, Part 2: AsyncAutoResetEvent"
     // https://blogs.msdn.microsoft.com/pfxteam/2012/02/11/building-async-coordination-primitives-part-2-asyncautoresetevent/
 
     public sealed class AutoResetEvent : IDisposable, IAwaitableEvent
@@ -62,13 +62,14 @@ namespace Daemos.Threading
                 throw new ArgumentException("Timeout cannot be less than zero", nameof(timeout));
             }
 
+            TaskCompletionSource<bool> task;
+            if (cancel.IsCancellationRequested)
+            {
+                return Task.FromCanceled<bool>(cancel);
+            }
+
             lock (_taskCompletions)
             {
-                if (cancel.IsCancellationRequested)
-                {
-                    return Task.FromCanceled<bool>(cancel);
-                }
-
                 if (_signalled)
                 {
                     _signalled = false;
@@ -78,24 +79,23 @@ namespace Daemos.Threading
                 {
                     return TimedOut;
                 }
-            }
 
-            var task = new TaskCompletionSource<bool>();
+                task = new TaskCompletionSource<bool>();
+                var reg = new EventRegistration(this) {Task = task};
 
-            var reg = new EventRegistration(this) { Task = task };
+                if (cancel.CanBeCanceled)
+                {
+                    var cancelReg = cancel.Register(OnCancelCallback, reg, useSynchronizationContext: true);
+                    reg.CancellationTokenRegistration = cancelReg;
+                }
 
-            if (cancel.CanBeCanceled)
-            {
-                var cancelReg = cancel.Register(OnCancelCallback, reg, useSynchronizationContext: true);
-                reg.CancellationTokenRegistration = cancelReg;
-            }
+                _taskCompletions.Add(reg);
 
-            _taskCompletions.Add(reg);
-
-            if (timeout != Timeout.Infinite)
-            {
-                // The idea of using a time is based on Corefx's Task.Delay.
-                reg.Timeout = new Timer(OnTimeoutCallback, reg, timeout, Timeout.Infinite);
+                if (timeout != Timeout.Infinite)
+                {
+                    // The idea of using a timer is based on Corefx's Task.Delay.
+                    reg.Timeout = new Timer(OnTimeoutCallback, reg, timeout, Timeout.Infinite);
+                }
             }
             return task.Task;
             
@@ -106,31 +106,26 @@ namespace Daemos.Threading
             var re = (EventRegistration)state;
             lock (re.AutoResetEvent._taskCompletions)
             {
-                re.Timeout?.Dispose();
-                re.CancellationTokenRegistration.Dispose();
-                re.AutoResetEvent.Remove(re);
-                re.Task.TrySetCanceled();
+                if (re.AutoResetEvent._taskCompletions.Remove(re))
+                {
+                    re.Task.SetCanceled();
+                    re.CancellationTokenRegistration.Dispose();
+                    re.Timeout?.Dispose();
+                }
             }
         }
 
         private static void OnTimeoutCallback(object state)
         {
-            
             var re = (EventRegistration)state;
             lock (re.AutoResetEvent._taskCompletions)
             {
-                re.AutoResetEvent.Remove(re);
-                re.CancellationTokenRegistration.Dispose();
-                re.Timeout.Dispose();
-                re.Task.TrySetResult(false);
-            }
-        }
-
-        private void Remove(EventRegistration reg)
-        {
-            lock (_taskCompletions)
-            {
-                _taskCompletions.Remove(reg);
+                if (re.AutoResetEvent._taskCompletions.Remove(re))
+                {
+                    re.Task.SetResult(false);
+                    re.CancellationTokenRegistration.Dispose();
+                    re.Timeout?.Dispose();
+                }
             }
         }
 
