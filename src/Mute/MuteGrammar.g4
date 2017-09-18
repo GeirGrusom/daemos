@@ -271,7 +271,7 @@ dataType returns [DataType type]
 	| DATETIME_TYPE nullable { $type = new DataType(typeof(DateTime), $nullable.result); }
 	| TIMESPAN_TYPE nullable { $type = new DataType(typeof(TimeSpan), $nullable.result); }
 	| TRANSACTION_TYPE nullable { $type = new DataType(typeof(Daemos.Transaction), $nullable.result); }
-	| IDENTIFIER ('.' IDENTIFIER)* nullable { $type = new DataType(TypeLookup($ctx.GetText()), $nullable.result); }
+	| IDENTIFIER nullable { $type = new DataType(TypeLookup($ctx.GetText()), $nullable.result); }
 	;
 
 

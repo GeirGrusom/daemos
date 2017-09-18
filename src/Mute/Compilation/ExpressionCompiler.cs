@@ -86,7 +86,6 @@ namespace Daemos.Mute.Compilation
         {
             method = new DynamicMethod($"DynamicExpression_Main", typeof(T), new[] { typeof(IStateSerializer), typeof(IStateDeserializer), typeof(IDependencyResolver) });
             il = method.GetILGenerator();
-
             _this = il.DeclareLocal(typeof(Transaction));
             il.Emit(OpCodes.Ldarg_2); // this = di.GetService<Transaction>()
             il.EmitCall(OpCodes.Callvirt, GetServiceMethod.MakeGenericMethod(typeof(Transaction)), null);

@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 
 namespace Daemos.Threading
 {
-    public sealed class AutoResetEvent : IDisposable
+    // Base on Stephen Toub's "Building Async Coordination Primitives, Part 2: AsyncAutoResetEvent"
+    // https://blogs.msdn.microsoft.com/pfxteam/2012/02/11/building-async-coordination-primitives-part-2-asyncautoresetevent/
+
+    public sealed class AutoResetEvent : IDisposable, IAwaitableEvent
     {
         private static readonly Task<bool> Completed = Task.FromResult(true);
         private static readonly Task<bool> TimedOut = Task.FromResult(false);
         private readonly List<EventRegistration> _taskCompletions;
-        private readonly object _syncLock;
         private bool _signalled;
 
         private class EventRegistration
@@ -35,7 +37,6 @@ namespace Daemos.Threading
         public AutoResetEvent(bool signalled)
         {
             _signalled = signalled;
-            _syncLock = new object();
             _taskCompletions = new List<EventRegistration>();
         }
 
@@ -56,7 +57,12 @@ namespace Daemos.Threading
 
         public Task<bool> WaitOne(int timeout, CancellationToken cancel)
         {
-            lock (_syncLock)
+            if (timeout < 0 && timeout != Timeout.Infinite)
+            {
+                throw new ArgumentException("Timeout cannot be less than zero", nameof(timeout));
+            }
+
+            lock (_taskCompletions)
             {
                 if (cancel.IsCancellationRequested)
                 {
@@ -72,43 +78,57 @@ namespace Daemos.Threading
                 {
                     return TimedOut;
                 }
-                var task = new TaskCompletionSource<bool>();
-
-                var reg = new EventRegistration(this) { Task = task };
-                var cancelReg = cancel.Register(OnCancelCallback, reg);
-                reg.CancellationTokenRegistration = cancelReg;
-
-                _taskCompletions.Add(reg);
-
-                if (timeout != Timeout.Infinite)
-                {
-                    reg.Timeout = new Timer(OnTimeoutCallback, reg, timeout, Timeout.Infinite);
-                }
-                return task.Task;
             }
+
+            var task = new TaskCompletionSource<bool>();
+
+            var reg = new EventRegistration(this) { Task = task };
+
+            if (cancel.CanBeCanceled)
+            {
+                var cancelReg = cancel.Register(OnCancelCallback, reg, useSynchronizationContext: true);
+                reg.CancellationTokenRegistration = cancelReg;
+            }
+
+            _taskCompletions.Add(reg);
+
+            if (timeout != Timeout.Infinite)
+            {
+                // The idea of using a time is based on Corefx's Task.Delay.
+                reg.Timeout = new Timer(OnTimeoutCallback, reg, timeout, Timeout.Infinite);
+            }
+            return task.Task;
+            
         }
 
         private static void OnCancelCallback(object state)
         {
             var re = (EventRegistration)state;
-            re.Timeout?.Dispose();
-            re.CancellationTokenRegistration.Dispose();
-            re.AutoResetEvent.Remove(re);
+            lock (re.AutoResetEvent._taskCompletions)
+            {
+                re.Timeout?.Dispose();
+                re.CancellationTokenRegistration.Dispose();
+                re.AutoResetEvent.Remove(re);
+            }
             re.Task.TrySetCanceled();
         }
 
         private static void OnTimeoutCallback(object state)
         {
+            
             var re = (EventRegistration)state;
-            re.AutoResetEvent.Remove(re);
-            re.CancellationTokenRegistration.Dispose();
-            re.Timeout.Dispose();
+            lock (re.AutoResetEvent._taskCompletions)
+            {
+                re.AutoResetEvent.Remove(re);
+                re.CancellationTokenRegistration.Dispose();
+                re.Timeout.Dispose();
+            }
             re.Task.TrySetResult(false);
         }
 
         private void Remove(EventRegistration reg)
         {
-            lock (_syncLock)
+            lock (_taskCompletions)
             {
                 _taskCompletions.Remove(reg);
             }
@@ -124,7 +144,7 @@ namespace Daemos.Threading
         public void Set()
         {
             EventRegistration toRelease = null;
-            lock (_syncLock)
+            lock (_taskCompletions)
             {
                 if (_taskCompletions.Count > 0)
                     toRelease = Dequeue();
@@ -135,13 +155,13 @@ namespace Daemos.Threading
             {
                 toRelease.Timeout?.Dispose();
                 toRelease.CancellationTokenRegistration.Dispose();
-                toRelease.Task.TrySetResult(true);
+                toRelease.Task.SetResult(true);
             }
         }
 
         public void Dispose()
         {
-            lock (_syncLock)
+            lock (_taskCompletions)
             {
                 while(_taskCompletions.Count > 0)
                 {

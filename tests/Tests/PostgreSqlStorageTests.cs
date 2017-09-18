@@ -4,8 +4,6 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Daemos.Postgres;
-using Docker.DotNet;
-using Docker.DotNet.Models;
 using Xunit;
 
 namespace Daemos.Tests
