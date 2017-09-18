@@ -57,14 +57,11 @@ namespace Daemos.Threading
 
         public Task<bool> WaitOne(int timeout, CancellationToken cancel)
         {
-<<<<<<< HEAD
             if (timeout < 0 && timeout != Timeout.Infinite)
             {
                 throw new ArgumentException("Timeout cannot be less than zero", nameof(timeout));
             }
 
-=======
->>>>>>> 2c5637ef79fbd8ea037c2bf72eff318cd0863f6d
             lock (_taskCompletions)
             {
                 if (cancel.IsCancellationRequested)
@@ -112,13 +109,8 @@ namespace Daemos.Threading
                 re.Timeout?.Dispose();
                 re.CancellationTokenRegistration.Dispose();
                 re.AutoResetEvent.Remove(re);
-<<<<<<< HEAD
-            }
-            re.Task.TrySetCanceled();
-=======
                 re.Task.TrySetCanceled();
             }
->>>>>>> 2c5637ef79fbd8ea037c2bf72eff318cd0863f6d
         }
 
         private static void OnTimeoutCallback(object state)
@@ -130,13 +122,8 @@ namespace Daemos.Threading
                 re.AutoResetEvent.Remove(re);
                 re.CancellationTokenRegistration.Dispose();
                 re.Timeout.Dispose();
-<<<<<<< HEAD
-            }
-            re.Task.TrySetResult(false);
-=======
                 re.Task.TrySetResult(false);
             }
->>>>>>> 2c5637ef79fbd8ea037c2bf72eff318cd0863f6d
         }
 
         private void Remove(EventRegistration reg)

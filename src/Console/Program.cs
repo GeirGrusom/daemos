@@ -19,9 +19,9 @@ namespace Daemos.Console
         private static CancellationToken _cancel;
         private static TransactionHandlerFactory _handlerFactory;
 
-        public static Task<int> Main(string[] args)
+        public static int Main(string[] args)
         {
-            return MainApp(args);
+            return MainApp(args).GetAwaiter().GetResult();
         }
 
         private static ITransactionStorage CreateStorageFromSettings(Settings settings)
