@@ -19,11 +19,11 @@ namespace Daemos
 
         public override bool Equals(object obj)
         {
-            if(obj is JsonValue)
+            if (obj is JsonValue)
             {
-                return Equals(GetValue(),((JsonValue)obj).GetValue());
+                return Equals(GetValue(), ((JsonValue)obj).GetValue());
             }
-            return Equals(GetValue(), obj);            
+            return Equals(GetValue(), obj);
         }
 
         public JsonValue(IDictionary<string, object> owner, string memberOf, string member)
@@ -40,26 +40,28 @@ namespace Daemos
 
         private object GetValue()
         {
-            return _owner[_member];
+            if (!_owner.TryGetValue(_member, out var result))
+                return float.NaN;
+            return result;
         }
 
         public int CompareTo(int other)
         {
             object local = GetValue();
 
-            if(local is int)
+            if (local is int)
             {
                 return ((int)local).CompareTo(other);
             }
-            if(local is long)
+            if (local is long)
             {
                 return ((long)local).CompareTo(other);
             }
-            if(local is float)
+            if (local is float)
             {
                 return ((float)local).CompareTo(other);
             }
-            if(local is double)
+            if (local is double)
             {
                 return ((double)local).CompareTo(other);
             }
@@ -97,7 +99,7 @@ namespace Daemos
             {
                 return ((int)local).CompareTo((int)other);
             }
-            if(local is long)
+            if (local is long)
             {
                 return ((long)local).CompareTo((long)other);
             }
@@ -105,7 +107,7 @@ namespace Daemos
             {
                 return ((float)local).CompareTo(other);
             }
-            if(local is double)
+            if (local is double)
             {
                 return ((double)local).CompareTo(other);
             }
@@ -138,7 +140,7 @@ namespace Daemos
         public bool Equals(string other)
         {
             object local = GetValue();
-            if(local is string)
+            if (local is string)
             {
                 return (string)local == other;
             }
@@ -148,19 +150,19 @@ namespace Daemos
         public bool Equals(float other)
         {
             object local = GetValue();
-            if(local is float)
+            if (local is float)
             {
                 return (float)local == other;
             }
-            if(local is double)
+            if (local is double)
             {
                 return (double)local == other;
             }
-            if(local is int)
+            if (local is int)
             {
                 return (int)local == other;
             }
-            if(local is long)
+            if (local is long)
             {
                 return (long)local == other;
             }
@@ -196,7 +198,7 @@ namespace Daemos
             {
                 return (float)local == other;
             }
-            if(local is double)
+            if (local is double)
             {
                 return (double)local == other;
             }
@@ -238,7 +240,7 @@ namespace Daemos
         public bool Equals(bool other)
         {
             object local = GetValue();
-            if(local is bool)
+            if (local is bool)
             {
                 return (bool)local == other;
             }

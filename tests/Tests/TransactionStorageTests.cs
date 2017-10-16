@@ -1,6 +1,8 @@
 using NSubstitute;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -73,6 +75,21 @@ namespace Daemos.Tests
 
             // Assert
             Assert.Equal(state, committedTransaction.State);
+        }
+
+        [Fact]
+        public async Task QueryFoo()
+        {
+            int clientId = new Random().Next();
+            var storage = CreateStorage();
+            var trans = await storage.CreateTransactionAsync(new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null,
+                new { clientId }, null, TransactionState.Initialized, null, null, storage));
+
+
+            Expression<Func<Transaction, bool>> exp = x => new JsonValue((IDictionary<string, object>)x.Payload, "payload", "clientId") == clientId;
+
+            var results = (await storage.QueryAsync()).Where(exp).ToArray();
+            Assert.Equal(trans.Id, results[0].Id);
         }
 
         [Fact]

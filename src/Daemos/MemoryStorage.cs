@@ -12,7 +12,7 @@ namespace Daemos
     {
         private class TransactionSlot : IEquatable<TransactionSlot>
         {
-            
+
             public List<Transaction> Chain { get; }
             public Transaction Head { get; internal set; }
             public SemaphoreSlim Lock { get; }
@@ -55,7 +55,7 @@ namespace Daemos
             public int Compare(DateTime x, DateTime y)
             {
                 var result = y.CompareTo(x);
-                if(result == 0)
+                if (result == 0)
                 {
                     return 1;
                 }
@@ -110,16 +110,16 @@ namespace Daemos
 
             }
 
-            if(!await slot.Lock.WaitAsync(timeout))
+            if (!await slot.Lock.WaitAsync(timeout))
                 throw new TimeoutException();
         }
 
         public override Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid id, params TransactionState[] states)
         {
             return Task.FromResult(from slot in _transactions
-                let trans = slot.Value.Chain.Last()
-                where trans.Parent != null && trans.Parent.Value.Id == id && states.Any(x => x == trans.State)
-                select trans);
+                                   let trans = slot.Value.Chain.Last()
+                                   where trans.Parent != null && trans.Parent.Value.Id == id && states.Any(x => x == trans.State)
+                                   select trans);
 
         }
 
@@ -185,6 +185,8 @@ namespace Daemos
             return Task.FromResult((IEnumerable<Transaction>)slot.Chain);
         }
 
+        //private
+
         public override Task<Transaction> CreateTransactionAsync(Transaction transaction)
         {
             lock (_transactionsByExpiriation)
@@ -193,22 +195,23 @@ namespace Daemos
 
                 transData.Revision = 1;
                 transData.Created = TimeService.Now();
+                //transData.Payload = transData.Payload.ToDictionary();
                 var insertedTransaction = new Transaction(ref transData, transaction.Storage);
 
                 var slot = new TransactionSlot(insertedTransaction);
 
-                if(!_transactions.TryAdd(insertedTransaction.Id, slot))
+                if (!_transactions.TryAdd(insertedTransaction.Id, slot))
                 {
                     throw new TransactionExistsException(insertedTransaction.Id);
                 }
 
                 int index = _transactionsByExpiriation.IndexOfValue(slot);
-                if(index >= 0)
+                if (index >= 0)
                     _transactionsByExpiriation.RemoveAt(index);
-                if(insertedTransaction.Expired == null && insertedTransaction.Expires != null)
+                if (insertedTransaction.Expired == null && insertedTransaction.Expires != null)
                     _transactionsByExpiriation.Add(insertedTransaction.Expires.Value, slot);
 
-                
+
                 OnTransactionCommitted(insertedTransaction);
                 return Task.FromResult(insertedTransaction);
             }
@@ -276,16 +279,16 @@ namespace Daemos
 
             if (max < 0 || list[max] > now)
             {
-                if(values.Length != 0)
+                if (values.Length != 0)
                 {
                     SetNextExpiringTransactionTime(values.Last().Chain.Last().Expires);
                 }
-                
+
                 return Task.FromResult(EmptyTransactionList);
             }
 
             // Binary search
-            
+
             int mid = 0;
             while (min <= max)
             {
