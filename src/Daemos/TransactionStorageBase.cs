@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -14,23 +15,29 @@ namespace Daemos
         private DateTime? _nextExpiringTransaction;
         private readonly ITimeService _timeService;
 
+        private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _rowLock;
+        private readonly ReaderWriterLockSlim _readerWriterLock;
+
+
         public ITimeService TimeService => _timeService;
 
         protected TransactionStorageBase()
+            : this(new UtcTimeService())
         {
-            _nextExpiringTransactionChangedEvent = new Threading.AutoResetEvent(true);
-            _timeService = new UtcTimeService();
         }
 
         protected TransactionStorageBase(ITimeService timeService)
         {
+            _rowLock = new ConcurrentDictionary<Guid, SemaphoreSlim>();
+            _readerWriterLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
             _nextExpiringTransactionChangedEvent = new Threading.AutoResetEvent(true);
             _timeService = timeService;
         }
 
+
         protected virtual void OnTransactionCommitted(Transaction transaction)
         {
-            if(transaction.Expires != null && (_nextExpiringTransaction == null || transaction.Expires < _nextExpiringTransaction))
+            if (transaction.Expires != null && (_nextExpiringTransaction == null || transaction.Expires < _nextExpiringTransaction))
             {
                 _nextExpiringTransaction = transaction.Expires;
                 _nextExpiringTransactionChangedEvent.Set();
@@ -45,17 +52,111 @@ namespace Daemos
         public abstract Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1);
         public abstract void SaveTransactionState(Guid id, int revision, byte[] state);
         public abstract Task SaveTransactionStateAsync(Guid id, int revision, byte[] state);
-        public abstract Task FreeTransactionAsync(Guid id);
+        public virtual Task FreeTransactionAsync(Guid id)
+        {
+            if (_rowLock.TryGetValue(id, out var sem))
+            {
+                sem.Release();
+            }
+            return Task.CompletedTask;
+        }
         public abstract Task<IEnumerable<Transaction>> GetChainAsync(Guid id);
         public abstract Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state);
-        public abstract Task<bool> IsTransactionLockedAsync(Guid id);
-        public abstract Task LockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
+        public virtual async Task<bool> IsTransactionLockedAsync(Guid id)
+        {
+            if (_rowLock.TryGetValue(id, out var sem))
+            {
+                return !await sem.WaitAsync(0);
+            }
+            return false;
+        }
+
+        public void TransactionLockCleanup()
+        {
+            _readerWriterLock.EnterWriteLock();
+            try
+            {
+                var rows = _rowLock.Keys.ToArray();
+
+                foreach (var rowId in rows)
+                {
+                    _rowLock.TryGetValue(rowId, out var sem);
+                    if (sem.Wait(0))
+                    {
+                        sem.Release();
+                        sem.Dispose();
+                        _rowLock.TryRemove(rowId, out sem);
+                    }
+                }
+            }
+            finally
+            {
+                _readerWriterLock.ExitWriteLock();
+            }
+        }
+
+        public virtual async Task LockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
+        {
+            _readerWriterLock.EnterReadLock();
+            try
+            {
+                Task<bool> task = Task.FromResult(true);
+                _rowLock.AddOrUpdate(id, rowId =>
+                    {
+                        var res = new SemaphoreSlim(1);
+                        task = res.WaitAsync(timeout);
+                        return res;
+
+                    },
+                    (rowId, mut) =>
+                    {
+                        task = mut.WaitAsync(timeout);
+                        return mut;
+                    });
+                if (!await task)
+                {
+                    throw new TransactionConflictException("The transaction was already locked.", id, 0);
+                }
+            }
+            finally
+            {
+                _readerWriterLock.ExitReadLock();
+            }
+        }
+
+
         public abstract Task<IQueryable<Transaction>> QueryAsync();
         public abstract Task<bool> TransactionExistsAsync(Guid id);
-        public abstract Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1);
+
+        public virtual async Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
+        {
+            _readerWriterLock.EnterReadLock();
+            try
+            {
+                Task<bool> task = Task.FromResult(true);
+                _rowLock.AddOrUpdate(id, rowId =>
+                    {
+                        var res = new SemaphoreSlim(1);
+                        task = res.WaitAsync(timeout);
+                        return res;
+
+                    },
+                    (rowId, mut) =>
+                    {
+                        task = mut.WaitAsync(timeout);
+                        return mut;
+                    });
+                return await task;
+            }
+            finally
+            {
+                _readerWriterLock.ExitReadLock();
+            }
+        }
+
         public abstract Task OpenAsync();
         public abstract Task<byte[]> GetTransactionStateAsync(Guid id, int revision);
-        
+
         public virtual async Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout)
         {
             SemaphoreSlim sem = new SemaphoreSlim(0, 1);

@@ -19,7 +19,7 @@ namespace Daemos.Tests.Threading
         public async Task WaitOne_ReleasesOnce_ReturnsTrue()
         {
             var ev = new AutoResetEvent(false);
-            
+
 
             var stp = Stopwatch.StartNew();
             Timeout(() => ev.Set(), 10);
@@ -70,7 +70,7 @@ namespace Daemos.Tests.Threading
 
             var stp = Stopwatch.StartNew();
             var cancel = new CancellationTokenSource(10);
-            await Assert.ThrowsAsync<TaskCanceledException>( () => ev.WaitOne(cancel.Token));
+            await Assert.ThrowsAsync<TaskCanceledException>(() => ev.WaitOne(cancel.Token));
             stp.Stop();
 
             Assert.True(stp.ElapsedMilliseconds >= 10);
@@ -113,7 +113,7 @@ namespace Daemos.Tests.Threading
                 await ev.WaitOne(cancel.Token);
                 throw new InvalidOperationException("WaitOne should throw a TaskCancelledException");
             }
-            catch(TaskCanceledException)
+            catch (TaskCanceledException)
             {
             }
 
@@ -143,8 +143,8 @@ namespace Daemos.Tests.Threading
             var cancel = new CancellationTokenSource(10);
 
             try
-            { 
-                await ev.WaitOne(25, cancel.Token);
+            {
+                await ev.WaitOne(50, cancel.Token);
                 throw new InvalidOperationException("WaitOne should throw a TaskCancelledException");
             }
             catch (TaskCanceledException)

@@ -1,5 +1,6 @@
-﻿using System;
-using Daemos.Scripting;
+﻿using Daemos.Scripting;
+using System;
+using System.Collections.Generic;
 using Xunit;
 
 namespace Daemos.Tests
@@ -7,7 +8,7 @@ namespace Daemos.Tests
     public class StateSerializerTests
     {
 
-        public static readonly object[] AcceptedValues =
+        public static readonly IEnumerable<object[]> AcceptedValues = new[]
         {
             new object[] { (byte)10},
             new object[] { true },
@@ -65,7 +66,7 @@ namespace Daemos.Tests
                 ThrowArgumentNullException();
                 throw new InvalidOperationException();
             }
-            catch(ArgumentNullException ex)
+            catch (ArgumentNullException ex)
             {
                 exception = ex;
             }

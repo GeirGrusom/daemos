@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,18 +17,19 @@ namespace Daemos.Threading
 
         private class EventRegistration
         {
-            public EventRegistration(AutoResetEvent autoResetEvent)
+            public EventRegistration(AutoResetEvent autoResetEvent, TaskCompletionSource<bool> completionSource)
             {
                 AutoResetEvent = autoResetEvent;
+                CompletionSource = completionSource;
             }
             public CancellationTokenRegistration CancellationTokenRegistration { get; set; }
-            public TaskCompletionSource<bool> Task { get; set; }
+            public TaskCompletionSource<bool> CompletionSource { get; }
             public CancellationTokenSource TimeoutTokenSource { get; set; }
             public CancellationTokenRegistration TimeoutTokenRegistration { get; set; }
             public AutoResetEvent AutoResetEvent { get; }
             public void Cancel()
             {
-                Task.TrySetCanceled();
+                CompletionSource.TrySetCanceled();
                 CancellationTokenRegistration.Dispose();
             }
         }
@@ -62,7 +61,7 @@ namespace Daemos.Threading
             {
                 throw new ArgumentException("Timeout cannot be less than zero", nameof(timeout));
             }
-            
+
             if (cancel.IsCancellationRequested)
             {
                 return Task.FromCanceled<bool>(cancel);
@@ -80,8 +79,8 @@ namespace Daemos.Threading
                     return TimedOut;
                 }
 
-                var task = new TaskCompletionSource<bool>();
-                var reg = new EventRegistration(this) {Task = task};
+                var task = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var reg = new EventRegistration(this, task);
 
                 if (cancel.CanBeCanceled)
                 {
@@ -113,22 +112,26 @@ namespace Daemos.Threading
 
         private static void ActionCallback(EventRegistration state, bool isTimeout)
         {
+            bool removed;
             lock (state.AutoResetEvent._taskCompletions)
             {
-                if (state.AutoResetEvent._taskCompletions.Remove(state))
+                removed = state.AutoResetEvent._taskCompletions.Remove(state);
+            }
+
+            if (removed)
+            {
+                if (isTimeout)
                 {
-                    if (isTimeout)
-                    {
-                        state.Task.SetResult(false);
-                    }
-                    else
-                    {
-                        state.Task.SetCanceled();
-                    }
                     state.CancellationTokenRegistration.Dispose();
-                    state.TimeoutTokenRegistration.Dispose();
-                    state.TimeoutTokenSource?.Dispose();
+                    state.CompletionSource.SetResult(false);
                 }
+                else
+                {
+                    state.CompletionSource.SetCanceled();
+                }
+
+                state.TimeoutTokenRegistration.Dispose();
+                state.TimeoutTokenSource?.Dispose();
             }
         }
 
@@ -154,7 +157,7 @@ namespace Daemos.Threading
                 toRelease.TimeoutTokenRegistration.Dispose();
                 toRelease.CancellationTokenRegistration.Dispose();
                 toRelease.TimeoutTokenSource?.Dispose();
-                toRelease.Task.SetResult(true);
+                toRelease.CompletionSource.SetResult(true);
             }
         }
 
@@ -162,7 +165,7 @@ namespace Daemos.Threading
         {
             lock (_taskCompletions)
             {
-                while(_taskCompletions.Count > 0)
+                while (_taskCompletions.Count > 0)
                 {
                     var item = Dequeue();
                     item.TimeoutTokenRegistration.Dispose();

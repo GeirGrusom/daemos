@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Npgsql;
+using NpgsqlTypes;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -9,20 +12,18 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Npgsql;
-using NpgsqlTypes;
 
 namespace Daemos.Postgres
 {
     public class PostgreSqlTransactionStorage : TransactionStorageBase
     {
         private const string Schema = "trans";
-        private static readonly bool LockEnabled = false;
 
         private const string SelectColumns = "id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error";
 
+
         private static readonly byte[] EmptyArray = new byte[0];
+
         private async Task<NpgsqlCommand> InsertTransactionCommandAsync()
         {
             NpgsqlCommand cmd = (await GetConnectionAsync()).CreateCommand();
@@ -95,7 +96,7 @@ RETURNING {SelectColumns};";
             NpgsqlConnection conn = null;
             var result = _threadConnections.GetOrAdd(Thread.CurrentThread, thread => conn = CreateConnection());
 
-            
+
             if (conn != null && conn != result)
             {
                 conn.Dispose();
@@ -128,7 +129,7 @@ RETURNING {SelectColumns};";
                 }
                 catch (SocketException)
                 {
-                    
+
                 }
             }
 
@@ -168,7 +169,7 @@ RETURNING {SelectColumns};";
             using (var trans = conn.BeginTransaction())
             {
                 var query = await QueryAsync();
-                
+
                 string initScript;
                 using (var streamReader = new System.IO.StreamReader(GetType().GetTypeInfo().Assembly.GetManifestResourceStream("Daemos.Postgres.Sql.v000_init.sql")))
                 {
@@ -182,7 +183,7 @@ RETURNING {SelectColumns};";
                 await trans.CommitAsync();
             }
         }
-        private static readonly byte[] EmptyState  = new byte[0];
+        private static readonly byte[] EmptyState = new byte[0];
         public override async Task<byte[]> GetTransactionStateAsync(Guid id, int revision)
         {
             var conn = await GetConnectionAsync();
@@ -208,7 +209,7 @@ RETURNING {SelectColumns};";
                     return EmptyState;
                 }
                 return result;
-            }            
+            }
         }
 
 
@@ -254,7 +255,7 @@ RETURNING {SelectColumns};";
                     p.ParameterName = "id";
                     p.Value = original.Id;
                     headRevCmd.Parameters.Add(p);
-                    headRevCmd.CommandText =  $"select revision from {Schema}.transactions_head where id = @id";
+                    headRevCmd.CommandText = $"select revision from {Schema}.transactions_head where id = @id";
                     headRevCmd.Transaction = trans;
                     lastRev = (int)await headRevCmd.ExecuteScalarAsync();
                 }
@@ -294,7 +295,7 @@ INSERT INTO {Schema}.transactions
     (@Id, @Revision, @Created, @Expires, @Expired, @Payload, @Script, @ParentId, @ParentRev, @State, @Handler, @Error) RETURNING id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, error;
 ";
 
-                
+
                 result = (await (conn).ExecuteReaderAsync(query, delta, Map, trans)).Single();
                 await trans.CommitAsync();
             }
@@ -385,7 +386,7 @@ INSERT INTO {Schema}.transactions
                     checkCmd.Parameters.Add(p);
                     checkCmd.Prepare();
                     var exists = (bool)await checkCmd.ExecuteScalarAsync();
-                    if(exists)
+                    if (exists)
                     {
                         await trans.RollbackAsync();
                         throw new TransactionExistsException(transaction.Id);
@@ -426,14 +427,15 @@ INSERT INTO {Schema}.transactions
 
             OnTransactionCommitted(result);
             return result;
-            
+
         }
 
         public override async Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1)
         {
-            if(revision == -1)
+            if (revision == -1)
             {
-                using (var select = await SelectTransactionCommandAsync()) {
+                using (var select = await SelectTransactionCommandAsync())
+                {
 
                     select.Parameters["id"].Value = id;
 
@@ -465,25 +467,7 @@ INSERT INTO {Schema}.transactions
                 }
             }
         }
-        
-        public override async Task FreeTransactionAsync(Guid id)
-        {
-            if (!LockEnabled)
-                return;
 
-            Console.WriteLine($"Unlocking {id}.");
-            var conn = await GetConnectionAsync();
-
-            using (var cmd = conn.CreateCommand())
-            {
-                GuidHash(id, out int a, out int b);
-                cmd.Parameters.Add("a", NpgsqlDbType.Integer).Value = a;
-                cmd.Parameters.Add("b", NpgsqlDbType.Integer).Value = b;
-                cmd.CommandText = "select pg_advisory_unlock(@a, @b)";
-                await cmd.ExecuteNonQueryAsync();
-            }
-
-        }
 
         public override async Task<IEnumerable<Transaction>> GetChainAsync(Guid id)
         {
@@ -493,14 +477,14 @@ INSERT INTO {Schema}.transactions
                 using (var reader = (NpgsqlDataReader)await selectChain.ExecuteReaderAsync())
                 {
                     var results = new List<Transaction>();
-                    while(reader.Read())
+                    while (reader.Read())
                     {
                         results.Add(Map(reader));
                     }
                     return results;
                 }
             }
-            
+
         }
 
         public override async Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state)
@@ -566,7 +550,7 @@ INSERT INTO {Schema}.transactions
                             }
                         }
                     }
-                    catch(InvalidOperationException)
+                    catch (InvalidOperationException)
                     {
                         failed = true;
                     }
@@ -578,53 +562,6 @@ INSERT INTO {Schema}.transactions
 
         }
 
-        public override async Task<bool> IsTransactionLockedAsync(Guid id)
-        {
-            if (!LockEnabled)
-                return false;
-
-            var conn = await GetConnectionAsync();
-
-            using (var cmd = conn.CreateCommand())
-            {
-                GuidHash(id, out int a, out int b);
-                cmd.Parameters.Add("id1", NpgsqlDbType.Integer).Value = a;
-                cmd.Parameters.Add("id2", NpgsqlDbType.Integer).Value = b;
-
-
-                cmd.CommandText = "select 1 from pg_locks where locktype = 'advisory' and classid = @id1 and objid = @id2";
-                cmd.Prepare();
-
-                return await cmd.ExecuteScalarAsync() != null;
-            }
-
-        }
-
-        public override async Task LockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
-        {
-            if (!LockEnabled)
-                return;
-
-            System.Console.WriteLine($"Force locking {id}.");
-            var conn = await GetConnectionAsync();
-
-            using (var cmd = conn.CreateCommand())
-            {
-                GuidHash(id, out int a, out int b);
-                cmd.Parameters.Add("a", NpgsqlDbType.Integer).Value = a;
-                cmd.Parameters.Add("b", NpgsqlDbType.Integer).Value = b;
-                if (timeout > 0)
-                {
-                    cmd.Parameters.Add("timeout", NpgsqlDbType.Integer).Value = timeout;
-                    cmd.CommandText = "set local statement_timeout = @timeout; select pg_advisory_lock(@a, @b)";
-                }
-                else
-                {
-                    cmd.CommandText = "select pg_advisory_lock(@a, @b)";
-                }
-                await cmd.ExecuteNonQueryAsync();
-            }
-        }
 
         public override async Task<IQueryable<Transaction>> QueryAsync()
         {
@@ -648,35 +585,7 @@ INSERT INTO {Schema}.transactions
             }
         }
 
-        public override async Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
-        {
-            if (!LockEnabled)
-                return true;
 
-            var conn = await GetConnectionAsync();
-
-            using (var cmd = conn.CreateCommand())
-            {
-                GuidHash(id, out int a, out int b);
-                cmd.Parameters.Add("a", NpgsqlDbType.Integer).Value = (long)a;
-                cmd.Parameters.Add("b", NpgsqlDbType.Integer).Value = (long)b;
-
-                cmd.CommandText = @"select pg_try_advisory_lock(@a, @b)";
-
-                cmd.Prepare();
-                
-                var success = (bool)await cmd.ExecuteScalarAsync();
-                if (success)
-                {
-                    Console.WriteLine($"Locked {id}.");
-                }
-                else
-                {
-                    Console.WriteLine($"Lock {id} failed.");
-                }
-                return success;
-            }
-        }
 
         public override void SaveTransactionState(Guid id, int revision, byte[] state)
         {
@@ -691,7 +600,7 @@ INSERT INTO {Schema}.transactions
                 cmd.Parameters["state"].Value = state;
                 cmd.CommandText = $"INSERT INTO {Schema}.transaction_state (id, revision, state) VALUES (@id, @revision, @state)";
                 cmd.ExecuteNonQuery();
-            }            
+            }
         }
 
         public override async Task SaveTransactionStateAsync(Guid id, int revision, byte[] state)

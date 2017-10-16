@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Daemos.Mute.Compilation;
+using Daemos.Scripting;
+using NSubstitute;
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
@@ -6,9 +9,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
-using Daemos.Mute.Compilation;
-using Daemos.Scripting;
-using NSubstitute;
 using Xunit;
 
 namespace Daemos.Tests
@@ -84,7 +84,7 @@ namespace Daemos.Tests
                 {
                     return genericMethod.Invoke(this, new object[] { expression });
                 }
-                catch(TargetInvocationException ex)
+                catch (TargetInvocationException ex)
                 {
                     var dif = ExceptionDispatchInfo.Capture(ex.InnerException);
                     dif.Throw();
@@ -97,7 +97,7 @@ namespace Daemos.Tests
                 var result = Compiler.Compile(code);
                 Assert.False(result.Success);
 
-                return result.Messages;               
+                return result.Messages;
             }
         }
 
@@ -120,7 +120,7 @@ namespace Daemos.Tests
 
             // Assert
             Assert.True(result.Success);
-            
+
         }
 
         [Fact]
@@ -145,7 +145,7 @@ namespace Daemos.Tests
 
         }
 
-        public static readonly object[][] ResultData = 
+        public static readonly object[][] ResultData =
         {
             new object[] {"@2017-01-01Z", new DateTime(2017, 01, 01, 0, 0, 0, DateTimeKind.Utc)},
             new object[] {"@2017-01-01+02:00", new DateTime(2016, 12, 31, 22, 0, 0, DateTimeKind.Utc)},
@@ -179,14 +179,14 @@ namespace Daemos.Tests
         [MemberData(nameof(ResultData))]
         public void Expression_CorrectResult(string expression, object result)
         {
-                // Arrange
-                var service = new Service();
+            // Arrange
+            var service = new Service();
 
-                // Act
-                object res = service.CompileWithResult(expression, result.GetType());
+            // Act
+            object res = service.CompileWithResult(expression, result.GetType());
 
-                // Assert
-                Assert.Equal(result, res);
+            // Assert
+            Assert.Equal(result, res);
         }
 
         [Fact]
@@ -263,7 +263,7 @@ await commit this;
             var service = new Service();
             dynamic payload = new ExpandoObject();
             payload.Foo = "Bar";
-            
+
             var t = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, payload, null, TransactionState.Initialized, null, null, null);
 
             // Act
@@ -413,7 +413,7 @@ await commit this;
             var errors = service.CompileWithErrors("module foo; let a <- !!100;");
 
             // Assert
-            Assert.Equal(errors[0].Message, "The expression '100' is not nullable.");
+            Assert.Equal("The expression '100' is not nullable.", errors[0].Message);
         }
 
         [Fact]

@@ -1,16 +1,16 @@
-﻿using System;
-using System.IO;
-using System.Reflection;
-using System.Runtime.Loader;
-using System.Threading;
-using System.Threading.Tasks;
-using Daemos.Console.Configuration;
+﻿using Daemos.Console.Configuration;
 using Daemos.Mute;
 using Daemos.Postgres;
 using Daemos.Scripting;
 using Daemos.WebApi;
 using Daemos.WebApi.Scripting;
 using Newtonsoft.Json;
+using System;
+using System.IO;
+using System.Reflection;
+using System.Runtime.Loader;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Daemos.Console
 {
@@ -38,7 +38,6 @@ namespace Daemos.Console
         }
 
 
-
         public static async Task<int> MainApp(string[] args)
         {
             var parser = new ConfigurationParser();
@@ -51,9 +50,9 @@ namespace Daemos.Console
                 string contents = File.ReadAllText(SettingsFilename);
                 settings = JsonConvert.DeserializeObject<Settings>(contents);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                switch(ex) 
+                switch (ex)
                 {
                     case FileNotFoundException fex:
                         System.Console.WriteLine($"{SettingsFilename} could not be found.");
@@ -68,7 +67,7 @@ namespace Daemos.Console
                         System.Console.WriteLine($"There was an error loading {SettingsFilename}: {ex.Message}");
                         break;
                 }
-                
+
                 settings = new Settings
                 {
                     DatabaseType = DatabaseType.Memory,
@@ -91,7 +90,7 @@ namespace Daemos.Console
                 System.Console.WriteLine("Initializing a connection to the database provider...");
                 await storage.OpenAsync();
             }
-            catch(System.Net.Sockets.SocketException ex)
+            catch (System.Net.Sockets.SocketException ex)
             {
                 System.Console.WriteLine(ex.Message);
                 return -1;
@@ -123,12 +122,11 @@ namespace Daemos.Console
 
                         var types = asm.ExportedTypes;
 
-                        
+
                     }
                     //var asm = Assembly.LoadFile(mod.FullName);
-                    //HandlerFactory.AddAssembly(asm);
                 }
-                catch (Exception )
+                catch (Exception)
                 {
                     //System.Diagnostics.Trace.TraceError($"Unable to load assembly {mod}: {ex.Message}");
                 }
@@ -149,7 +147,7 @@ namespace Daemos.Console
             _handlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)dependencyResolver.GetService(type, null));
 
             TransactionProcessor processor = new TransactionProcessor(storage, provider, dependencyResolver);
-         
+
             var cancelSource = new CancellationTokenSource();
             _cancel = cancelSource.Token;
             System.Console.CancelKeyPress += async (sender, ev) =>
@@ -161,12 +159,12 @@ namespace Daemos.Console
             while (!cancelSource.IsCancellationRequested)
             {
                 await processor.RunAsync(cancelSource.Token);
-            }            
+            }
 
 
             httpServer.Wait();
 
             return 0;
-        }        
+        }
     }
 }

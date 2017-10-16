@@ -1,8 +1,8 @@
+using NSubstitute;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using NSubstitute;
 using Xunit;
 
 namespace Daemos.Tests
@@ -136,11 +136,11 @@ namespace Daemos.Tests
             await storage.CreateTransactionAsync(transaction);
 
             // Act
-            storage.SaveTransactionState(transaction.Id, transaction.Revision, new byte[] {1, 2, 3});
+            storage.SaveTransactionState(transaction.Id, transaction.Revision, new byte[] { 1, 2, 3 });
             var result = await storage.GetTransactionStateAsync(transaction.Id, transaction.Revision);
 
             // Assert
-            Assert.Equal(new byte[] {1, 2, 3}, result);
+            Assert.Equal(new byte[] { 1, 2, 3 }, result);
         }
 
         [Fact]
@@ -153,10 +153,10 @@ namespace Daemos.Tests
 
             // Act
             var result = await storage.GetTransactionStateAsync(transaction.Id, transaction.Revision);
-            
+
 
             // Assert
-            Assert.Equal(0, result.Length);
+            Assert.Empty(result);
         }
 
         [Fact]
@@ -232,7 +232,7 @@ namespace Daemos.Tests
             Assert.Equal(TransactionState.Authorized, result.State);
         }
 
-   
+
         [Fact]
         public async Task CommitTransactionDelta_RevisionExists_ThrowsTransactionRevisionExistsException()
         {
@@ -344,6 +344,7 @@ namespace Daemos.Tests
             Assert.Equal(new[] { tr1, tr2 }, chain);
         }
 
+        [Fact]
         public async Task CreateTransaction_UsesTimeService_AsCreatedTime()
         {
             // Arrange
@@ -359,6 +360,7 @@ namespace Daemos.Tests
             Assert.Equal(created, tr.Created);
         }
 
+        [Fact]
         public async Task CommitTransactionDelta_UsesTimeService_AsCreatedTime()
         {
             // Arrange

@@ -29,7 +29,8 @@ namespace Daemos.Mute
             typeof(int),
             typeof(long),
             typeof(float),
-            typeof(double)
+            typeof(double),
+            typeof(decimal)
         };
 
         private static bool IsArithmetic(Type t)
