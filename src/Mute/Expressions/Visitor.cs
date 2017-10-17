@@ -131,8 +131,6 @@ namespace Daemos.Mute.Expressions
                 OnVisit((VariableDeclarationExpression)exp);
             else if (exp is CallExpression)
                 OnVisit((CallExpression)exp);
-            else if (exp is RetryExpression)
-                OnVisit((RetryExpression)exp);
             else if (exp is TryExpression)
                 OnVisit((TryExpression)exp);
             else if (exp is CatchExpression)
@@ -174,10 +172,6 @@ namespace Daemos.Mute.Expressions
         public virtual void OnVisit(CommitTransactionExpression exp)
         {
             OnVisit(exp.Transaction);
-        }
-
-        public virtual void OnVisit(RetryExpression retry)
-        {
         }
 
         public virtual void OnVisit(BinaryAddExpression exp)

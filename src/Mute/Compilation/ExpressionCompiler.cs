@@ -39,9 +39,8 @@ namespace Daemos.Mute.Compilation
 
         private readonly Stack<List<VariableDeclarationExpression>> _variables;
 
-        private readonly Dictionary<VariableExpression, VariableInfo> _variableIndices;
 
-        private readonly Stack<Label> _retryLabelStack;
+        private readonly Dictionary<VariableExpression, VariableInfo> _variableIndices;
 
         private List<KeyValuePair<UnaryAwaitExpression, Label>> _awaitEntryPoints;
 
@@ -53,11 +52,7 @@ namespace Daemos.Mute.Compilation
         public ExpressionCompiler()
         {
             _variables = new Stack<List<VariableDeclarationExpression>>();
-
-
-
             _variableIndices = new Dictionary<VariableExpression, VariableInfo>();
-            _retryLabelStack = new Stack<Label>();
         }
 
         private void PushScope()
@@ -614,9 +609,7 @@ namespace Daemos.Mute.Compilation
 
         public override void OnVisit(TryExpression exp)
         {
-            var retryLabel = il.DefineLabel();
-            il.MarkLabel(retryLabel);
-            _retryLabelStack.Push(retryLabel);
+
             if (exp.CatchExpressions.Count != 0 || exp.Finally != null)
             {
                 il.BeginExceptionBlock();
@@ -636,14 +629,7 @@ namespace Daemos.Mute.Compilation
             {
                 il.EndExceptionBlock();
             }
-            _retryLabelStack.Pop();
         }
-
-        public override void OnVisit(RetryExpression exp)
-        {
-            il.Emit(OpCodes.Br, _retryLabelStack.Peek());
-        }
-
 
         private static readonly MethodInfo GetDependencyMethod;
 

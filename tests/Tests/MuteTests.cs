@@ -429,7 +429,7 @@ await commit this;
 
         public interface IExceptionReporter
         {
-            void PutException(Exception ex);
+            void Report(Exception ex);
             void ThrowException();
         }
 
@@ -454,12 +454,18 @@ try
 }
 catch<InvalidOperationException>
 {
-  reporter.PutException(exception);
+  reporter.Report(exception);
 }
 
 ");
 
-            reporter.Received().PutException(Arg.Any<InvalidOperationException>());
+            reporter.Received().Report(Arg.Any<InvalidOperationException>());
+        }
+
+        public interface IRetryReporter
+        {
+            void Report(int count);
+            void Throw();
         }
 
         [Fact]

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -185,7 +186,39 @@ namespace Daemos
             return Task.FromResult((IEnumerable<Transaction>)slot.Chain);
         }
 
-        //private
+        private static IDictionary<string, object> ToDictionary<T>(T value)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+            if (value is IDictionary<string, object> dict)
+            {
+                return dict;
+            }
+            var result = (IDictionary<string, object>)new ExpandoObject();
+            var properties = value.GetType().GetProperties();
+
+            foreach (var property in properties)
+            {
+                object propertyValue = property.GetValue(value);
+                if (property.PropertyType.IsClass)
+                {
+                    if (propertyValue is IDictionary<string, object>)
+                    {
+                        result[property.Name] = propertyValue;
+                    }
+                    else
+                    {
+                        result[property.Name] = ToDictionary(propertyValue);
+                    }
+                    continue;
+
+                }
+                result[property.Name] = propertyValue;
+            }
+            return result;
+        }
 
         public override Task<Transaction> CreateTransactionAsync(Transaction transaction)
         {
@@ -195,7 +228,7 @@ namespace Daemos
 
                 transData.Revision = 1;
                 transData.Created = TimeService.Now();
-                //transData.Payload = transData.Payload.ToDictionary();
+                transData.Payload = ToDictionary(transData.Payload);
                 var insertedTransaction = new Transaction(ref transData, transaction.Storage);
 
                 var slot = new TransactionSlot(insertedTransaction);
@@ -229,6 +262,7 @@ namespace Daemos
 
             var trData = next.Data;
             trData.Created = TimeService.Now();
+            trData.Payload = ToDictionary(trData.Payload);
             next = new Transaction(trData, next.Storage);
 
             if (next.Id != transaction.Id)

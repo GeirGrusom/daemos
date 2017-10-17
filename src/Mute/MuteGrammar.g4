@@ -36,7 +36,6 @@ statement returns [Expression expr]
 	| whileExpression { $expr = $whileExpression.expr; }
 	| ifExpression { $expr = $ifExpression.expr; }
 	| tryExpression { $expr = $tryExpression.expr; }
-	| RETRY ';' { $expr = new RetryExpression($ctx); }
 	| THROW ';'
 	;
 
@@ -387,7 +386,6 @@ TRANSACTION_TYPE: 'transaction';
 DATETIME_TYPE: 'datetime';
 TIMESPAN_TYPE: 'timespan';
 THROW: 'throw';
-RETRY: 'retry';
 NULL: 'null';
 DO: 'do';
 WHILE: 'while';
