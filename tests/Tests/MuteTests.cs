@@ -427,6 +427,41 @@ await commit this;
             var exception = Assert.Throws<NullReferenceException>(() => service.CompileAndRun("module foo; let a <- string?!(null); let b <- !!a;"));
         }
 
+        public interface IExceptionReporter
+        {
+            void PutException(Exception ex);
+            void ThrowException();
+        }
+
+        [Fact]
+        public void Try_CatchesInvalidOperationException()
+        {
+            var service = new Service();
+            var reporter = Substitute.For<IExceptionReporter>();
+            reporter.When(r => r.ThrowException()).Throw(new InvalidOperationException());
+            service.DependencyResolver.GetService<IExceptionReporter>().Returns(reporter);
+            service.Compiler.ImplicitImports.Add(nameof(IExceptionReporter), typeof(IExceptionReporter));
+            service.Compiler.ImplicitImports.Add(nameof(InvalidOperationException), typeof(InvalidOperationException));
+
+            service.CompileAndRun(@"
+module foo;
+
+let reporter <- import IExceptionReporter;
+
+try 
+{
+  reporter.ThrowException();
+}
+catch<InvalidOperationException>
+{
+  reporter.PutException(exception);
+}
+
+");
+
+            reporter.Received().PutException(Arg.Any<InvalidOperationException>());
+        }
+
         [Fact]
         public void NotNull_ExpressionIsNull_ThrowsNullReferenceException()
         {

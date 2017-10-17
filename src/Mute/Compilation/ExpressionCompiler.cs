@@ -1,12 +1,12 @@
-﻿using System;
+﻿using Antlr4.Runtime;
+using Daemos.Mute.Expressions;
+using Daemos.Scripting;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Antlr4.Runtime;
-using Daemos.Mute.Expressions;
-using Daemos.Scripting;
 
 namespace Daemos.Mute.Compilation
 {
@@ -54,7 +54,7 @@ namespace Daemos.Mute.Compilation
         {
             _variables = new Stack<List<VariableDeclarationExpression>>();
 
-            
+
 
             _variableIndices = new Dictionary<VariableExpression, VariableInfo>();
             _retryLabelStack = new Stack<Label>();
@@ -163,8 +163,8 @@ namespace Daemos.Mute.Compilation
             il.MarkLabel(endOfScript);
 
             il.Emit(OpCodes.Ldloc, stageLocal);
-            il.Emit(OpCodes.Ret);            
-            
+            il.Emit(OpCodes.Ret);
+
             return (Func<IStateSerializer, IStateDeserializer, IDependencyResolver, int>)method.CreateDelegate(typeof(Func<IStateSerializer, IStateDeserializer, IDependencyResolver, int>));
         }
 
@@ -379,7 +379,7 @@ namespace Daemos.Mute.Compilation
 
         public override void OnVisit(UnaryConvertExpression exp)
         {
-           
+
             if (exp.Type == exp.Operand.Type)
             {
                 return;
@@ -420,7 +420,7 @@ namespace Daemos.Mute.Compilation
                 }
                 return;
             }
-            if(exp.Type.Equals(DataType.NullString))
+            if (exp.Type.Equals(DataType.NullString))
             {
                 OnVisit(exp.Operand);
                 if (exp.Operand is ConstantExpression ce && ce.Value == null)
@@ -429,7 +429,7 @@ namespace Daemos.Mute.Compilation
                 }
 
                 var finishedLabel = il.DefineLabel();
-                if(exp.Operand.Type.Nullable)
+                if (exp.Operand.Type.Nullable)
                 {
                     var isNullLabel = il.DefineLabel();
                     var local = il.DeclareLocal(exp.Operand.Type.ClrType);
@@ -472,7 +472,7 @@ namespace Daemos.Mute.Compilation
                 }
                 else if (exp.Operand.Type.ClrType == typeof(object))
                 {
-                    il.Emit(OpCodes.Call, typeof(Convert).GetMethod(nameof(Convert.ToInt32), new [] { typeof(object)}));
+                    il.Emit(OpCodes.Call, typeof(Convert).GetMethod(nameof(Convert.ToInt32), new[] { typeof(object) }));
                 }
                 else
                 {
@@ -543,7 +543,7 @@ namespace Daemos.Mute.Compilation
 
                 else
                 {
-                    var ctor = typeof(decimal).GetConstructor(new Type[] {exp.Operand.Type.ClrType});
+                    var ctor = typeof(decimal).GetConstructor(new Type[] { exp.Operand.Type.ClrType });
                     il.Emit(OpCodes.Newobj, ctor);
                 }
             }
@@ -608,9 +608,9 @@ namespace Daemos.Mute.Compilation
 
         private static readonly Dictionary<Type, MethodInfo> SerializeMethods;
 
-        private static readonly MethodInfo SerializeNullMethod = typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.SerializeNull), new[] {typeof(string), typeof(Type)});
+        private static readonly MethodInfo SerializeNullMethod = typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.SerializeNull), new[] { typeof(string), typeof(Type) });
 
-        private static readonly MethodInfo SaveStageMethod = typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.WriteStage),new[] {typeof(int)});
+        private static readonly MethodInfo SaveStageMethod = typeof(IStateSerializer).GetMethod(nameof(IStateSerializer.WriteStage), new[] { typeof(int) });
 
         public override void OnVisit(TryExpression exp)
         {
@@ -624,7 +624,6 @@ namespace Daemos.Mute.Compilation
             OnVisit(exp.Body);
             foreach (var catchExpression in exp.CatchExpressions)
             {
-                il.BeginCatchBlock(catchExpression.Type.ClrType ?? typeof(Exception));
                 OnVisit(catchExpression);
             }
             if (exp.Finally != null)
@@ -663,7 +662,7 @@ namespace Daemos.Mute.Compilation
                     break;
                 }
             }
-            if(!foundLabel)
+            if (!foundLabel)
             {
                 throw new InvalidOperationException("Could not locate the specified stage...");
             }
@@ -674,7 +673,7 @@ namespace Daemos.Mute.Compilation
             var tmpLocal = il.DeclareLocal(exp.Type.ClrType);
             Visit(exp.Operand);
             il.Emit(OpCodes.Stloc, tmpLocal);
-            
+
             // Stores state
             foreach (var item in _variableIndices.Where(x => !x.Value.IsImport).OrderBy(x => x.Value.Index))
             {
@@ -720,7 +719,7 @@ namespace Daemos.Mute.Compilation
             il.Emit(OpCodes.Ldarg_0);
             il.EmitCall(OpCodes.Callvirt, typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose)), null);
 
-            
+
             //il.EmitWriteLine(tmpLocal);
             il.Emit(OpCodes.Ldloc, tmpLocal);
             il.Emit(OpCodes.Brfalse, endOfScript);
@@ -769,7 +768,7 @@ namespace Daemos.Mute.Compilation
                     if (exp.Instance is MemberExpression mex)
                     {
                         OnVisit(mex.Instance);
-                        
+
                     }
                     else
                     {
@@ -863,7 +862,7 @@ namespace Daemos.Mute.Compilation
 
             for (int i = 0; i < parameters.Length; ++i)
             {
-                if(ContainsNamedArgument(parameters[i].Name, namedArguments))
+                if (ContainsNamedArgument(parameters[i].Name, namedArguments))
                     continue;
                 LoadConstantObject(parameters[i].DefaultValue, parameters[i].ParameterType);
                 il.Emit(OpCodes.Stloc, locals[i]);
@@ -884,7 +883,7 @@ namespace Daemos.Mute.Compilation
             int count = 0;
             foreach (var exp in arguments)
             {
-                
+
                 OnVisit(exp);
                 if (parameters[count].ParameterType.IsByRef)
                 {
@@ -916,14 +915,14 @@ namespace Daemos.Mute.Compilation
             }
             else if (value is bool boolv)
             {
-                if(boolv)
+                if (boolv)
                     il.Emit(OpCodes.Ldc_I4_1);
                 else
                     il.Emit(OpCodes.Ldc_I4_0);
             }
             else if (value is byte)
             {
-                il.Emit(OpCodes.Ldc_I4, (byte) value);
+                il.Emit(OpCodes.Ldc_I4, (byte)value);
             }
             else if (value is short)
             {
@@ -947,7 +946,7 @@ namespace Daemos.Mute.Compilation
             }
             else if (value is string)
             {
-                il.Emit(OpCodes.Ldstr, (string) value);
+                il.Emit(OpCodes.Ldstr, (string)value);
             }
             else
             {
@@ -956,7 +955,7 @@ namespace Daemos.Mute.Compilation
             if (expectedType.GetTypeInfo().IsValueType && expectedType.GetTypeInfo().GetGenericTypeDefinition() ==
                 typeof(Nullable<>))
             {
-                var ctor = expectedType.GetConstructor(new[] {expectedType.GetGenericArguments()[0]});
+                var ctor = expectedType.GetConstructor(new[] { expectedType.GetGenericArguments()[0] });
                 il.Emit(OpCodes.Newobj, ctor);
             }
         }
@@ -982,7 +981,7 @@ namespace Daemos.Mute.Compilation
             throw new InvalidOperationException();
         }
 
-        
+
         public override void OnVisit(ConstantExpression exp)
         {
             if (exp.Value == null)
@@ -999,7 +998,7 @@ namespace Daemos.Mute.Compilation
             }
             else if (exp.Type.Equals(DataType.NonNullInt))
             {
-                il.Emit(OpCodes.Ldc_I4,(int)exp.Value);
+                il.Emit(OpCodes.Ldc_I4, (int)exp.Value);
             }
             else if (exp.Type.Equals(DataType.NonNullLong))
             {
@@ -1007,7 +1006,7 @@ namespace Daemos.Mute.Compilation
             }
             else if (exp.Type.Equals(DataType.NonNullFloat))
             {
-                il.Emit(OpCodes.Ldc_R4, (float) exp.Value);
+                il.Emit(OpCodes.Ldc_R4, (float)exp.Value);
             }
             else if (exp.Type.Equals(DataType.NonNullDouble))
             {
@@ -1015,11 +1014,11 @@ namespace Daemos.Mute.Compilation
             }
             else if (exp.Type.Equals(DataType.NonNullString))
             {
-                il.Emit(OpCodes.Ldstr, (string) exp.Value);
+                il.Emit(OpCodes.Ldstr, (string)exp.Value);
             }
             else if (exp.Type.Equals(DataType.NonNullDateTime))
             {
-                var ctor = typeof(DateTime).GetConstructor(new[] {typeof(long), typeof(DateTimeKind)});
+                var ctor = typeof(DateTime).GetConstructor(new[] { typeof(long), typeof(DateTimeKind) });
                 if (ctor == null)
                 {
                     throw new InvalidOperationException();
@@ -1031,7 +1030,7 @@ namespace Daemos.Mute.Compilation
             }
             else if (exp.Type.Equals(DataType.NonNullTransactionState))
             {
-                il.Emit(OpCodes.Ldc_I4, (int) (TransactionState) exp.Value);
+                il.Emit(OpCodes.Ldc_I4, (int)(TransactionState)exp.Value);
             }
             else
             {
@@ -1042,7 +1041,7 @@ namespace Daemos.Mute.Compilation
 
         public override void OnVisit(NotNullExpression exp)
         {
-            
+
             var isNotNull = il.DefineLabel();
             var ctor = typeof(NullReferenceException).GetConstructor(Array.Empty<Type>());
             if (exp.Operand is VariableExpression var)
@@ -1075,8 +1074,8 @@ namespace Daemos.Mute.Compilation
 
         public override void OnVisit(BinaryAssignExpression exp)
         {
-            var variable = _variableIndices[(VariableExpression) exp.Left];
-            
+            var variable = _variableIndices[(VariableExpression)exp.Left];
+
             Visit(exp.Right);
             il.Emit(OpCodes.Stloc, variable.Index);
             il.Emit(OpCodes.Ldloc, variable.Index);
@@ -1085,7 +1084,7 @@ namespace Daemos.Mute.Compilation
         public override void OnVisit(CommitTransactionExpression exp)
         {
             LocalBuilder originalTransaction;
-            var nextTransaction = il.DeclareLocal(typeof(Transaction));            
+            var nextTransaction = il.DeclareLocal(typeof(Transaction));
 
             if (exp.Transaction is WithExpression withExp)
             {
@@ -1096,7 +1095,7 @@ namespace Daemos.Mute.Compilation
                 else
                 {
                     originalTransaction = il.DeclareLocal(typeof(Transaction));
-                    OnVisit(withExp.Left);                    
+                    OnVisit(withExp.Left);
                     il.Emit(OpCodes.Stloc, originalTransaction);
                 }
 
@@ -1105,7 +1104,7 @@ namespace Daemos.Mute.Compilation
             }
             else
             {
-                
+
                 var data = il.DeclareLocal(typeof(TransactionData));
                 if (exp.Transaction is VariableExpression varexp)
                 {
@@ -1114,7 +1113,7 @@ namespace Daemos.Mute.Compilation
                 else
                 {
                     originalTransaction = il.DeclareLocal(typeof(Transaction));
-                    OnVisit(exp.Transaction);                    
+                    OnVisit(exp.Transaction);
                     il.Emit(OpCodes.Stloc, originalTransaction);
                 }
                 il.Emit(OpCodes.Ldloc, originalTransaction);
@@ -1156,10 +1155,10 @@ namespace Daemos.Mute.Compilation
             var result = new Transaction(data, tr.Storage);
             return result;
         }
-        
+
         private LocalBuilder GetLocalForVariableExpression(VariableExpression exp)
         {
-            if(exp.Name == "this")
+            if (exp.Name == "this")
             {
                 return _this;
             }
@@ -1246,7 +1245,7 @@ namespace Daemos.Mute.Compilation
                 if (prop.PropertyType.GetTypeInfo().IsGenericType &&
                     prop.PropertyType.GetTypeInfo().GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
-                    il.Emit(OpCodes.Newobj, prop.PropertyType.GetConstructor(new [] {prop.PropertyType.GetGenericArguments()[0]}));
+                    il.Emit(OpCodes.Newobj, prop.PropertyType.GetConstructor(new[] { prop.PropertyType.GetGenericArguments()[0] }));
                 }
 
                 il.Emit(OpCodes.Call, prop.SetMethod);
@@ -1328,7 +1327,7 @@ namespace Daemos.Mute.Compilation
             {
                 opcode = OpCodes.Ldloc;
             }
-            if(exp.Name == "this")
+            if (exp.Name == "this")
             {
                 local = _this;
             }
@@ -1340,15 +1339,28 @@ namespace Daemos.Mute.Compilation
             {
                 local = _variableIndices[exp].Local;
             }
-            
+
             il.Emit(opcode, local);
         }
 
-        
+
+        public override void OnVisit(CatchExpression exp)
+        {
+            il.BeginCatchBlock(exp.Exception ?? typeof(Exception));
+            if (exp.ExceptionValue != null)
+            {
+                var loc = il.DeclareLocal(exp.ExceptionValue.Type.ClrType);
+                _variableIndices.Add(exp.ExceptionValue, new VariableInfo(loc, false, null));
+                il.Emit(OpCodes.Stloc, loc);
+            }
+
+            OnVisit(exp.Body);
+
+        }
 
         public void VisitVariable(VariableExpression exp, bool refValueType = false)
         {
-            
+
         }
 
         public override void OnVisit(VariableDeclarationExpression exp)
@@ -1357,7 +1369,7 @@ namespace Daemos.Mute.Compilation
             {
                 var imp = exp.Assignment as ImportExpression;
                 RegisterVariable(exp.Variable, imp != null, imp?.Name);
-                
+
                 OnVisit(exp.Assignment);
                 il.Emit(OpCodes.Stloc, _variableIndices[exp.Variable].Index);
                 il.Emit(OpCodes.Ldloc, _variableIndices[exp.Variable].Index);

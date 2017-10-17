@@ -145,9 +145,9 @@ namespace Daemos.Mute.Expressions
                 OnVisit((CommitTransactionExpression)exp);
             else if (exp is ObjectExpression)
                 OnVisit((ObjectExpression)exp);
-            else if(exp is NamedArgument)
+            else if (exp is NamedArgument)
                 OnVisit((NamedArgument)exp);
-            else if(exp is MemberExpression)
+            else if (exp is MemberExpression)
                 OnVisit((MemberExpression)exp);
             else
                 throw new NotImplementedException();
@@ -160,7 +160,7 @@ namespace Daemos.Mute.Expressions
 
         public virtual void OnVisit(ObjectExpression exp)
         {
-            foreach(var mem in exp.Members)
+            foreach (var mem in exp.Members)
             {
                 OnVisit(mem);
             }
@@ -216,6 +216,11 @@ namespace Daemos.Mute.Expressions
         {
             OnVisit(exp.Left);
             OnVisit(exp.Right);
+        }
+
+        public virtual void OnVisit(CatchExpression exp)
+        {
+            OnVisit(exp.Body);
         }
 
         public virtual void OnVisit(BinaryLessExpression exp)
@@ -295,7 +300,7 @@ namespace Daemos.Mute.Expressions
 
         public virtual void OnVisit(VariableExpression exp)
         {
-            
+
         }
 
         public virtual void OnVisit(VariableDeclarationExpression exp)

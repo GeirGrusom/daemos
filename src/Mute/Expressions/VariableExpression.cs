@@ -2,7 +2,7 @@
 
 namespace Daemos.Mute.Expressions
 {
-    public class VariableExpression : Expressions.Expression
+    public class VariableExpression : Expression
     {
         public string Name { get; }
         public bool Mutable { get; }

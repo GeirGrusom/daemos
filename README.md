@@ -86,6 +86,8 @@ functionCall
     ;
 ```
 
+You cannot mix named and unnamed arguments. Either it's all named, or none. Some parameters have optional values which can be omitted.
+
 #### Cast expressions
 
 Cast's are currently done using the cast operator, but will use function call syntax in the future.
@@ -139,12 +141,14 @@ Awaits a committed transaction. This stores the scripts state and exits.
 ```antlr4
 awaitExpression
     : 'await' expression
+	| 'await' variable
+	| 'await' withExpression
     ;
 ```
 
 #### Object expression
 
-Object expressions are general object structure definitions. It more or less follows JSON syntax.
+Object expressions are general object structure definitions. It's loosely similar to JSON.
 
 ```antlr4
 objectExpression
@@ -173,21 +177,21 @@ var failureCount <- 0;
 
 try
 {
-	let result <- communication.Authorize(this.Payload.Amount);
-	await commit this with { Expires: this.Created + timespan(hours: 1, minutes: 0, seconds: 0), State: authorize, Payload: this.Payload with { transactionId: result.TransactionId } };
+    let result <- communication.Authorize(this.Payload.Amount);
+    await commit this with { Expires: this.Created + timespan(hours: 1, minutes: 0, seconds: 0), State: authorize, Payload: this.Payload with { transactionId: result.TransactionId } };
 }
-catch(ex: Exception)
+catch<Exception>
 {
-	failureCount <- failureCount + 1;
-	if(failureCount < 3)
-	{
-		await commit this with { Expires: this.Created + timespan(hours: 24, minutes: 0, seconds: 0, State: fail, Error: ex }
-		retry;
-	}
-	else
-	{
-		rethrow;
-	}
+    failureCount <- failureCount + 1;
+    if(failureCount < 3)
+    {
+        await commit this with { Expires: this.Created + timespan(hours: 24, minutes: 0, seconds: 0, State: fail, Error: ex }
+        retry;
+    }
+    else
+    {
+        rethrow;
+    }
 }
 
 communication.Complete(this.Payload.TransactionId);
@@ -202,6 +206,6 @@ Run the console application using `dotnet`. It requires PostgreSQL server to run
 
 Switch | Shorthand | Description
 -------|------------|------------
---database-type | -d | Selects the database provider. Can be either `postgresql` or `memory`.
---connection-string | -c | Database provider connection string.
---port | -p | Specifies HTTP listening port
+--database-type | -d | Selects the database provider. Can be either `postgresql` or `memory`. The in-memory provider obviously does not persist data and is intended for testing and development purposes.
+--connection-string | -c | Database provider connection string. This is optional and ignored for the in-memory provider.
+--port | -p | Specifies HTTP listening port. This defaults to 5000.

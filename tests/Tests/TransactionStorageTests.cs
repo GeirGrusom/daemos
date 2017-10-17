@@ -78,7 +78,7 @@ namespace Daemos.Tests
         }
 
         [Fact]
-        public async Task QueryFoo()
+        public async Task PayloadQuery_ReturnsCorrectClientFromClientId()
         {
             int clientId = new Random().Next();
             var storage = CreateStorage();

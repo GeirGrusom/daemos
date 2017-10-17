@@ -10,6 +10,8 @@ grammar MuteGrammar;
  */
 
 compileUnit returns [ModuleExpression module]
+	locals [List<VariableExpression> scope]
+	@init { $scope = new List<VariableExpression>(); }
 	: moduleStatement ';' (statements += statement)* EOF { $module = new ModuleExpression($moduleStatement.mod, ($statements).Select(x => x.expr), $ctx); }
 	| moduleStatement ';' EOF { $module = new ModuleExpression($moduleStatement.mod, null, $ctx); }
 	| EOF { $module = null; }
@@ -195,6 +197,8 @@ literalExpression returns [Expression expr]
 	;
 
 whileExpression returns [Expression expr]
+	locals [List<VariableExpression> scope]
+	@init { $scope = new List<VariableExpression>(); }
 	: WHILE '(' expression ')' statementBody { $expr = While($expression.expr, $statementBody.expr, $ctx); }
 	| DO statementBody WHILE '(' expression ')' { $expr = DoWhile($expression.expr, $statementBody.expr, $ctx); }
 	;
@@ -204,6 +208,8 @@ singleQuotedString returns [string value]: SINGLE_QUOTED_STRING { $value = Unesc
 
 
 tryExpression returns [Expression expr]
+	locals [List<VariableExpression> scope]
+	@init { $scope = new List<VariableExpression>(); }
 	: TRY statementBody { $expr = Try($statementBody.expr, $ctx); }
 	| TRY statementBody (catches += catchExpression)+ { $expr = Try($statementBody.expr, ($catches).Select(x => x.expr), $ctx); }
 	| TRY statementBody finallyExpression { $expr = Try($statementBody.expr, $finallyExpression.expr, $ctx); }
@@ -211,11 +217,19 @@ tryExpression returns [Expression expr]
 	;
 	
 catchExpression returns [CatchExpression expr]
-	: FAILURE statementBody { $expr = Catch($statementBody.expr, $ctx);  }
-	| FAILURE '<' dataType '>' statementBody { $expr = Catch($statementBody.expr, $dataType.type, $ctx); } 
+	locals [List<VariableExpression> scope]
+	@init { $scope = new List<VariableExpression>(); }
+	: catchVariable statementBody { $expr = Catch($statementBody.expr, $catchVariable.variable, $ctx);  }
+	;
+
+catchVariable returns [VariableExpression variable]
+	: FAILURE '<' dataType '>' { AddVariable($variable = new VariableExpression("exception", false, $dataType.type, $ctx), $ctx); }
+	| FAILURE { $variable = null; }
 	;
 
 finallyExpression returns [Expression expr]
+	locals [List<VariableExpression> scope]
+	@init { $scope = new List<VariableExpression>(); }
 	: FINALLY statementBody { $expr = $statementBody.expr; }
 	;
 
@@ -252,14 +266,12 @@ argumentList: (args += argument (',' args += argument)*)?;
 
 argument returns [VariableExpression expr] : IDENTIFIER ':' dataType { $expr = new VariableExpression($IDENTIFIER.text, mutable: false, type: $dataType.type, context: $ctx); };
 
-scopeStart: '{' { PushScope(); };
-
-scopeEnd: '}' { PopScope(); };
-
 nullable returns [bool result]: NULLABLE? { $result = $NULLABLE.text == "?"; };
 
 statementBody returns [BlockExpression expr]
-	: scopeStart (expressions += statement)* scopeEnd { $expr = new BlockExpression(($expressions).Select(x => x.expr), LastPoppedScope, $ctx); } ;
+	locals [List<VariableExpression> scope]
+	@init { $scope = new List<VariableExpression>(); }
+	: '{' (expressions += statement)* '}' { $expr = new BlockExpression(($expressions).Select(x => x.expr), LastPoppedScope, $ctx); } ;
 
 dataType returns [DataType type]
 	: INT_TYPE nullable { $type = new DataType(typeof(int), $nullable.result); }
@@ -273,8 +285,6 @@ dataType returns [DataType type]
 	| TRANSACTION_TYPE nullable { $type = new DataType(typeof(Daemos.Transaction), $nullable.result); }
 	| IDENTIFIER nullable { $type = new DataType(TypeLookup($ctx.GetText()), $nullable.result); }
 	;
-
-
 
 /*
  * Lexer Rules

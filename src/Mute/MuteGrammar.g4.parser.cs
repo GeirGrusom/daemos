@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Antlr4.Runtime;
+using Daemos.Mute.Expressions;
+using Daemos.Scripting;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
-using Antlr4.Runtime;
-using Daemos.Mute.Expressions;
-using Daemos.Scripting;
 
 namespace Daemos.Mute
 {
@@ -71,21 +71,102 @@ namespace Daemos.Mute
             LastPoppedScope = VariableScope.Pop();
         }
 
-        protected VariableExpression Lookup(string variableName, ParserRuleContext context)
+        protected void AddVariableToNearestScope(VariableExpression variable)
         {
-            var variable = VariableScope.SelectMany(x => x).Reverse().FirstOrDefault(x => x.Name == variableName);
-            if (variable == null)
-            {
-                AddSyntaxError($"The variable '{variableName}' is not accessible in this scope.", context);
-            }
-            return variable;
+
         }
 
-        protected VariableExpression AddVariable(VariableExpression expression)
+        protected List<VariableExpression> GetScope(RuleContext context)
         {
-            VariableScope.Peek().Add(expression);
+            List<VariableExpression> LookupRecursive(RuleContext ctx)
+            {
+                if (ctx is WhileExpressionContext wh)
+                {
+                    return wh.scope;
+                }
+                if (ctx is StatementBodyContext sb)
+                {
+                    return sb.scope;
+                }
+                if (ctx is CatchExpressionContext ct)
+                {
+                    return ct.scope;
+                }
+                if (ctx is FinallyExpressionContext fn)
+                {
+                    return fn.scope;
+                }
+                if (ctx is CompileUnitContext pc)
+                {
+                    return pc.scope;
+                }
+                return LookupRecursive(ctx.Parent);
+            }
+
+            return LookupRecursive(context);
+        }
+
+        protected VariableExpression Lookup(string variableName, RuleContext context)
+        {
+            VariableExpression LookupRecursive(RuleContext ctx)
+            {
+                List<VariableExpression> scope;
+                if (ctx is WhileExpressionContext wh)
+                {
+                    scope = wh.scope;
+                }
+                else if (ctx is StatementBodyContext sb)
+                {
+                    scope = sb.scope;
+                }
+                else
+                if (ctx is CatchExpressionContext ct)
+                {
+                    scope = ct.scope;
+                }
+                else
+                if (ctx is FinallyExpressionContext fn)
+                {
+                    scope = fn.scope;
+                }
+                else if (ctx is CompileUnitContext pc)
+                {
+                    scope = pc.scope;
+                }
+                else
+                {
+                    if (ctx.Parent == null)
+                    {
+                        throw new InvalidOperationException("Could not find a root scope.");
+                    }
+                    return LookupRecursive((ParserRuleContext)ctx.Parent);
+                }
+                var result = scope.AsEnumerable().Reverse().FirstOrDefault(c => c.Name == variableName);
+                if (result == null)
+                {
+                    if (ctx.Parent == null)
+                    {
+                        AddSyntaxError($"There is no variable named {variableName} in any accessible scope.", (ParserRuleContext)context);
+                        return null;
+                    }
+                    return LookupRecursive(ctx.Parent);
+                }
+                return result;
+            }
+
+            return LookupRecursive(context);
+        }
+
+
+
+        protected VariableExpression AddVariable(VariableExpression expression, ParserRuleContext context)
+        {
+            var scope = GetScope(context);
+            scope.Add(expression);
             return expression;
         }
+
+
 
         protected Expression And(Expression lhs, Expression rhs, ParserRuleContext context)
         {
@@ -201,7 +282,7 @@ namespace Daemos.Mute
         {
             var res = type.GetMethod(operatorName, new Type[] { type, type });
 
-            if(res == null || !res.IsStatic)
+            if (res == null || !res.IsStatic)
             {
                 AddSyntaxError($"There is no suitably defined '{operatorName}' operator defined for the type {type.Name}.", context);
             }
@@ -251,7 +332,7 @@ namespace Daemos.Mute
                 return null;
             }
 
-            if(lhs.Type != rhs.Type)
+            if (lhs.Type != rhs.Type)
             {
                 AddSyntaxError("Types mismatch. Are you missing a cast?", context);
                 return null;
@@ -301,17 +382,17 @@ namespace Daemos.Mute
                 return null;
             }
 
-            if(lhs.Type != rhs.Type)
+            if (lhs.Type != rhs.Type)
             {
                 AddSyntaxError("Types mismatch. Are you missing a cast?", context);
                 return null;
             }
 
-            if(!IsArithmetic(lhs.Type.ClrType))
+            if (!IsArithmetic(lhs.Type.ClrType))
             {
                 var eqType = typeof(IEquatable<>).MakeGenericType(lhs.Type.ClrType);
 
-                if(lhs.Type.ClrType.GetInterfaces().Contains(eqType))
+                if (lhs.Type.ClrType.GetInterfaces().Contains(eqType))
                 {
                     AddSyntaxError($"There is no defined equality operator for the type {lhs.Type.ClrType.Name}.", context);
                     return null;
@@ -369,7 +450,7 @@ namespace Daemos.Mute
         }
         protected void AddSyntaxWarning(string message, ParserRuleContext context)
         {
-            Messages.Add(new CompilationMessage(message, context.start.Line, context.start.Column, MessageSeverity.Warning ));
+            Messages.Add(new CompilationMessage(message, context.start.Line, context.start.Column, MessageSeverity.Warning));
         }
 
         protected Expression Convert(DataType type, Expression operand, ParserRuleContext context)
@@ -446,7 +527,7 @@ namespace Daemos.Mute
 
             if (instance.Type == DataType.Dynamic)
             {
-                return new CallExpression(typeof(IDictionary<string, object>).GetMethod("get_Item", new [] { typeof(string) }), instance, new Expression[] { new ConstantExpression(DataType.NonNullString, name, context) }, context);
+                return new CallExpression(typeof(IDictionary<string, object>).GetMethod("get_Item", new[] { typeof(string) }), instance, new Expression[] { new ConstantExpression(DataType.NonNullString, name, context) }, context);
             }
 
             var type = instance.Type.ClrType;
@@ -466,7 +547,7 @@ namespace Daemos.Mute
 
             return new MemberExpression(instance, member, context);
         }
-        
+
         protected WithExpression With(Expression lhs, ObjectExpression rhs, ParserRuleContext context)
         {
             if (lhs.Type.ClrType == typeof(Transaction))
@@ -487,12 +568,12 @@ namespace Daemos.Mute
 
         protected ConstantExpression TransactionState(string state, ParserRuleContext ctx)
         {
-            if(state == "commit")
+            if (state == "commit")
             {
                 AddSyntaxError("commit is not a valid transaction state.", ctx);
                 return null;
             }
-            switch(state)
+            switch (state)
             {
                 case "initialize":
                     return new ConstantExpression(Daemos.TransactionState.Initialized, ctx);
@@ -512,11 +593,11 @@ namespace Daemos.Mute
 
         protected Expression NotNull(Expression expr, ParserRuleContext ctx)
         {
-            if(expr == null)
+            if (expr == null)
             {
                 return null;
             }
-            if(!expr.Type.Nullable)
+            if (!expr.Type.Nullable)
             {
                 AddSyntaxError($"The expression '{ctx.GetChild(1).GetText()}' is not nullable.", ctx);
                 return null;
@@ -530,7 +611,7 @@ namespace Daemos.Mute
             {
                 clrType = expr.Type.ClrType;
             }
-            return new UnaryConvertExpression(new DataType(clrType, false),  expr, ctx);
+            return new UnaryConvertExpression(new DataType(clrType, false), expr, ctx);
         }
 
         protected void ValidateTransactionWithExpression(ObjectExpression exp, ParserRuleContext context)
@@ -539,37 +620,37 @@ namespace Daemos.Mute
             {
                 return;
             }
-            foreach(var member in exp.Members)
+            foreach (var member in exp.Members)
             {
-                if(!MutableTransactionProperties.Contains(member.Name))
+                if (!MutableTransactionProperties.Contains(member.Name))
                 {
                     AddSyntaxError($"The property '{member.Name}' either does not exist or is not mutable.", member.Context);
                     continue;
                 }
-                if(member.Name == nameof(Transaction.Payload))
+                if (member.Name == nameof(Transaction.Payload))
                 {
                     ValidatePayloadMembers(member);
                     continue;
                 }
-                if(member.Name == nameof(Transaction.State))
+                if (member.Name == nameof(Transaction.State))
                 {
-                    if(member.Type.Nullable || (member.Type.ClrType != typeof(TransactionState) && member.Type.ClrType != typeof(string)))
+                    if (member.Type.Nullable || (member.Type.ClrType != typeof(TransactionState) && member.Type.ClrType != typeof(string)))
                     {
                         AddSyntaxError($"Expected a transaction state; got {member.Type}.", member.Context);
                     }
                     continue;
                 }
-                if(member.Name == nameof(Transaction.Expires))
+                if (member.Name == nameof(Transaction.Expires))
                 {
-                    if(member.Type.ClrType != typeof(DateTime))
+                    if (member.Type.ClrType != typeof(DateTime))
                     {
                         AddSyntaxError($"Expires must be a datetime.", member.Context);
                     }
                     continue;
                 }
-                if(member.Name == nameof(Transaction.Script))
+                if (member.Name == nameof(Transaction.Script))
                 {
-                    if(member.Type.ClrType != typeof(string))
+                    if (member.Type.ClrType != typeof(string))
                     {
                         AddSyntaxError("Script must be a string.", member.Context);
                     }
@@ -674,9 +755,10 @@ namespace Daemos.Mute
                 if (arguments.Count > parameters.Length)
                     continue;
                 bool failed = false;
-                for(int i = 0; i < arguments.Count; ++i)
+                for (int i = 0; i < arguments.Count; ++i)
                 {
-                    if (arguments[i].Type.ClrType != parameters[i].ParameterType)
+                    //if ( arguments[i].Type.ClrType != parameters[i].ParameterType)
+                    if (!parameters[i].ParameterType.IsAssignableFrom(arguments[i].Type.ClrType))
                     {
                         failed = true;
                         break;
@@ -740,7 +822,7 @@ namespace Daemos.Mute
         }
         protected CallExpression Call(string methodName, List<Expression> arguments, ParserRuleContext context)
         {
-            
+
             if (arguments == null)
             {
                 return null;
@@ -756,7 +838,7 @@ namespace Daemos.Mute
             {
                 method = typeof(Console).GetMethod("WriteLine", arguments.Select(x => x.Type.ClrType).ToArray());
             }
-                
+
             if (UsingTypes.TryGetValue(methodName, out Type typeToConstruct))
             {
                 var ctor = GetConstructorForArguments(typeToConstruct, arguments);
@@ -781,7 +863,7 @@ namespace Daemos.Mute
         protected CallExpression Call(Expression instance, List<Expression> arguments, ParserRuleContext context)
         {
 
-            if (arguments == null|| arguments.Any(x => x == null))
+            if (arguments == null || arguments.Any(x => x == null))
             {
                 return null;
             }
@@ -802,6 +884,7 @@ namespace Daemos.Mute
             if (method == null)
             {
                 AddSyntaxError($"Could not locate a suitable overload of {mem.Member.Name}.", context);
+                return null;
             }
 
 
@@ -921,7 +1004,7 @@ namespace Daemos.Mute
             var ts = offsetType == "+" ? new TimeSpan(offsetHour, offsetMinute, 0) : -new TimeSpan(offsetHour, offsetMinute, 0);
             return new ConstantExpression(DataType.NonNullDateTime, new DateTimeOffset(year, month, day, hour, minute, second, new TimeSpan(offsetHour, offsetMinute, 0)).UtcDateTime, context);
         }
-        
+
         protected ConstantExpression DateTime(int year, int month, int day, int hour, int minute, int second,
             string offsetType, int offsetHour, ParserRuleContext context)
         {
@@ -943,7 +1026,7 @@ namespace Daemos.Mute
             return new ConstantExpression(DataType.NonNullDateTime, new DateTimeOffset(year, month, day, hour, minute, 0, new TimeSpan(offsetHour, offsetMinute, 0)).UtcDateTime, context);
         }
 
-        protected ConstantExpression DateTime(int year, int month, int day, 
+        protected ConstantExpression DateTime(int year, int month, int day,
             string offsetType, int offsetHour, ParserRuleContext context)
         {
             ValidateDate(year, month, day, context);
@@ -953,7 +1036,7 @@ namespace Daemos.Mute
             return new ConstantExpression(DataType.NonNullDateTime, new DateTimeOffset(year, month, day, 0, 0, 0, ts).UtcDateTime, context);
         }
 
-        protected ConstantExpression DateTime(int year, int month, int day, 
+        protected ConstantExpression DateTime(int year, int month, int day,
             string offsetType, int offsetHour, int offsetMinute, ParserRuleContext context)
         {
             ValidateDate(year, month, day, context);
@@ -1080,7 +1163,7 @@ namespace Daemos.Mute
             {
                 type = new DataType(typeof(Nullable<>).MakeGenericType(type.ClrType), true);
             }
-            var variable = AddVariable(new VariableExpression(name, mutable, type, context));
+            var variable = AddVariable(new VariableExpression(name, mutable, type, context), context);
             return new VariableDeclarationExpression(variable, null, context);
         }
 
@@ -1090,7 +1173,7 @@ namespace Daemos.Mute
             {
                 return null;
             }
-            var variable = AddVariable(new VariableExpression(name, mutable, assignment.Type, context));
+            var variable = AddVariable(new VariableExpression(name, mutable, assignment.Type, context), context);
             return new VariableDeclarationExpression(variable, assignment, context);
         }
 
@@ -1128,7 +1211,7 @@ namespace Daemos.Mute
                 return null;
             }
             return new ConditionalExpression(condition, ifValue, elseValue, context);
-        } 
+        }
 
         protected ObjectMember ObjectMember(string name, Expression value, ParserRuleContext context)
         {
@@ -1167,26 +1250,22 @@ namespace Daemos.Mute
             return new WhileExpression(condition, body, true, context);
         }
 
-        protected CatchExpression Catch(Expression body, DataType exception, ParserRuleContext context)
+        protected CatchExpression Catch(BlockExpression body, VariableExpression exception, ParserRuleContext context)
         {
-            if (exception.Nullable)
-            {
-                AddSyntaxWarning($"The exception '{exception.Name}' will never be null.", context);
-            }
-            if (body == null || exception.ClrType == null)
+            if (body == null || exception.Type.ClrType == null)
             {
                 return null;
             }
-            return new CatchExpression(body, exception.ClrType, context);
+            return new CatchExpression(body, exception, context);
         }
 
-        protected CatchExpression Catch(Expression body, ParserRuleContext context)
+        protected CatchExpression Catch(BlockExpression body, ParserRuleContext context)
         {
             if (body == null)
             {
                 return null;
             }
-            return new CatchExpression(body, null, context);
+            return new CatchExpression(body, (Type)null, context);
         }
 
         protected TryExpression Try(Expression body, ParserRuleContext context)
