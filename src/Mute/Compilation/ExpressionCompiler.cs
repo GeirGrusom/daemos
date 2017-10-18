@@ -39,8 +39,9 @@ namespace Daemos.Mute.Compilation
 
         private readonly Stack<List<VariableDeclarationExpression>> _variables;
 
-
         private readonly Dictionary<VariableExpression, VariableInfo> _variableIndices;
+
+        private readonly Stack<Label> _retryLabelStack;
 
         private List<KeyValuePair<UnaryAwaitExpression, Label>> _awaitEntryPoints;
 
@@ -52,7 +53,11 @@ namespace Daemos.Mute.Compilation
         public ExpressionCompiler()
         {
             _variables = new Stack<List<VariableDeclarationExpression>>();
+
+
+
             _variableIndices = new Dictionary<VariableExpression, VariableInfo>();
+            _retryLabelStack = new Stack<Label>();
         }
 
         private void PushScope()
@@ -609,26 +614,38 @@ namespace Daemos.Mute.Compilation
 
         public override void OnVisit(TryExpression exp)
         {
+            var retryLabel = il.DefineLabel();
+
 
             if (exp.CatchExpressions.Count != 0 || exp.Finally != null)
             {
                 il.BeginExceptionBlock();
             }
+
+            _retryLabelStack.Push(retryLabel);
+            il.MarkLabel(retryLabel);
             OnVisit(exp.Body);
             foreach (var catchExpression in exp.CatchExpressions)
             {
+                il.BeginCatchBlock(catchExpression.Exception ?? typeof(Exception));
                 OnVisit(catchExpression);
             }
             if (exp.Finally != null)
             {
                 il.BeginFinallyBlock();
-
                 OnVisit(exp.Finally);
             }
             if (exp.CatchExpressions.Count != 0 || exp.Finally != null)
             {
                 il.EndExceptionBlock();
             }
+
+            _retryLabelStack.Pop();
+        }
+
+        public override void OnVisit(RetryExpression exp)
+        {
+            il.Emit(OpCodes.Leave, _retryLabelStack.Peek());
         }
 
         private static readonly MethodInfo GetDependencyMethod;
@@ -1332,7 +1349,7 @@ namespace Daemos.Mute.Compilation
 
         public override void OnVisit(CatchExpression exp)
         {
-            il.BeginCatchBlock(exp.Exception ?? typeof(Exception));
+
             if (exp.ExceptionValue != null)
             {
                 var loc = il.DeclareLocal(exp.ExceptionValue.Type.ClrType);

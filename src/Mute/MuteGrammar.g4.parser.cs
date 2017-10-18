@@ -1252,7 +1252,8 @@ namespace Daemos.Mute
 
         protected CatchExpression Catch(BlockExpression body, VariableExpression exception, ParserRuleContext context)
         {
-            if (body == null || exception.Type.ClrType == null)
+
+            if (body == null || exception != null && exception.Type.ClrType == null)
             {
                 return null;
             }

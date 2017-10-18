@@ -469,6 +469,40 @@ catch<InvalidOperationException>
         }
 
         [Fact]
+        public void Retry_RetriesOnce()
+        {
+            var service = new Service();
+            var reporter = Substitute.For<IRetryReporter>();
+            reporter.When(r => r.Throw()).Throw<Exception>();
+            service.DependencyResolver.GetService<IRetryReporter>().Returns(reporter);
+            service.Compiler.ImplicitImports.Add(nameof(IRetryReporter), typeof(IRetryReporter));
+            service.Compiler.ImplicitImports.Add(nameof(Exception), typeof(Exception));
+
+            service.CompileAndRun(@"
+module foo;
+
+let reporter <- import IRetryReporter;
+var count <- 0;
+
+try 
+{
+  if(count < 1)
+  {
+    reporter.Throw();
+  }
+}
+catch<Exception>
+{
+  count <- count + 1;
+  retry;
+}
+reporter.Report(count);
+");
+
+            reporter.Received().Report(1);
+        }
+
+        [Fact]
         public void NotNull_ExpressionIsNull_ThrowsNullReferenceException()
         {
             // Arrange

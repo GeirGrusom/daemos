@@ -20,7 +20,7 @@ namespace Daemos.Mute.Expressions
         public CatchExpression(BlockExpression body, VariableExpression exception, ParserRuleContext context) : base(DataType.Void, context)
         {
             ExceptionValue = exception;
-            Exception = exception.Type.ClrType;
+            Exception = exception?.Type.ClrType ?? typeof(Exception);
             Body = body;
         }
     }
