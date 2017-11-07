@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="StateSerializer.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -77,19 +81,19 @@ namespace Daemos.Scripting
         {
             AssertNotDisposed();
             writer.Write(JenkinsHash.GetHashCode(name + typeof(T).Name));
-            if(typeof(T) == typeof(byte))
+            if (typeof(T) == typeof(byte))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write((byte)(object)value);
                 return;
             }
-            if(typeof(T) == typeof(char))
+            if (typeof(T) == typeof(char))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write((char)(object)value);
                 return;
             }
-            if(typeof(T) == typeof(bool))
+            if (typeof(T) == typeof(bool))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write((bool)(object)value);
@@ -107,44 +111,44 @@ namespace Daemos.Scripting
                 writer.Write((int)(object)value);
                 return;
             }
-            if(typeof(T) == typeof(Int64))
+            if (typeof(T) == typeof(Int64))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write((long)(object)value);
                 return;
             }
-            if(typeof(T) == typeof(float))
+            if (typeof(T) == typeof(float))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write((float)(object)value);
                 return;
             }
-            if(typeof(T) == typeof(double))
+            if (typeof(T) == typeof(double))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write((double)(object)value);
                 return;
             }
-            if(typeof(T) == typeof(decimal))
+            if (typeof(T) == typeof(decimal))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write((decimal)(object)value);
                 return;
             }
-            if(typeof(T) == typeof(DateTime))
+            if (typeof(T) == typeof(DateTime))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write(((DateTime)(object)value).Ticks);
                 return;
             }
-            if(typeof(T) == typeof(DateTimeOffset))
+            if (typeof(T) == typeof(DateTimeOffset))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write(((DateTimeOffset)(object)value).Ticks);
                 writer.Write(((DateTimeOffset)(object)value).Offset.Ticks);
                 return;
             }
-            if(typeof(T) == typeof(string))
+            if (typeof(T) == typeof(string))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 var bytes = Encoding.UTF8.GetBytes((string)(object)value);
@@ -152,7 +156,7 @@ namespace Daemos.Scripting
                 writer.Write(bytes, 0, bytes.Length);
                 return;
             }
-            if(typeof(T) == typeof(Type))
+            if (typeof(T) == typeof(Type))
             {
                 writer.Write((byte)SerializationFlags.NotNull);
                 writer.Write(((Type)(object)value).AssemblyQualifiedName);
@@ -163,7 +167,7 @@ namespace Daemos.Scripting
             {
                 Serialize(value);
             }
-            else if(IsProtoBuf<T>())
+            else if (IsProtoBuf<T>())
             {
                 ProtoBuf(value);
             }

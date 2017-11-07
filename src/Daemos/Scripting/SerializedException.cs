@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="SerializedException.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using ProtoBuf;
@@ -35,7 +39,7 @@ namespace Daemos.Scripting
 
             propertySet.ExceptWith(ExceptionProperties);
 
-            foreach(var prop in propertySet)
+            foreach (var prop in propertySet)
             {
                 additionalProperties[prop.Name] = prop.GetValue(ex)?.ToString();
             }

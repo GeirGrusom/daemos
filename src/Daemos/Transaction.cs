@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="Transaction.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 
 namespace Daemos
 {
@@ -21,6 +25,7 @@ namespace Daemos
         }
 
         public Guid Id { get; }
+
         public int Revision { get; }
 
     }
@@ -28,20 +33,30 @@ namespace Daemos
     public struct TransactionData : IEquatable<TransactionData>
     {
         public Guid Id { get; set; }
+
         public int Revision { get; set; }
+
         public DateTime Created { get; set; }
+
         public DateTime? Expires { get; set; }
+
         public DateTime? Expired { get; set; }
+
         public object Payload { get; set; }
+
         public string Script { get; set; }
+
         public TransactionRevision? Parent { get; set; }
+
         public TransactionState State { get; set; }
+
         public string Handler { get; set; }
+
         public object Error { get; set; }
 
         public override bool Equals(object other)
         {
-            if(other is TransactionData data)
+            if (other is TransactionData data)
             {
                 return Equals(data);
             }
@@ -70,11 +85,15 @@ namespace Daemos
     public struct TransactionMutableData
     { 
         public DateTime? Expires { get; set; }
+
         public object Payload { get; set; }
 
         public string Script { get; set; }
+
         public TransactionState State { get; set; }
+
         public string Handler { get; set; }
+
         public object Error { get; set; }
     }
 
@@ -106,24 +125,34 @@ namespace Daemos
         public ITransactionStorage Storage { get; }
 
         public Guid Id => _data.Id;
+
         public int Revision => _data.Revision;
+
         public DateTime Created => _data.Created;
+
         public DateTime? Expires => _data.Expires;
+
         public DateTime? Expired => _data.Expired;
+
         public object Payload => _data.Payload;
+
         public string Script => _data.Script;
+
         public TransactionState State => _data.State;
+
         public TransactionRevision? Parent => _data.Parent;
+
         public object Error => _data.Error;
+
         public string Handler => _data.Handler;
 
         public override bool Equals(object other)
         {
-            if(other is Transaction trans)
+            if (other is Transaction trans)
             {
                 return Equals(trans);
             }
-            if(other is TransactionRevision rev)
+            if (other is TransactionRevision rev)
             {
                 return Equals(rev);
             }

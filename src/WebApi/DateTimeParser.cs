@@ -1,9 +1,12 @@
-﻿using System;
-using System.Globalization;
-using System.Text.RegularExpressions;
+﻿// <copyright file="DateTimeParser.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.WebApi
 {
+    using System;
+    using System.Globalization;
+    using System.Text.RegularExpressions;
 
     internal static class StringExtensions
     {
@@ -15,7 +18,6 @@ namespace Daemos.WebApi
 
     public class DateTimeParser
     {
-
         private static readonly string[] DateFormats =
         {
             "yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'",
@@ -37,7 +39,6 @@ namespace Daemos.WebApi
             }
             if (string.Equals(dateTime, "now", StringComparison.Ordinal))
             {
-
                 result = DateTime.UtcNow;
                 return true;
             }
@@ -53,7 +54,7 @@ namespace Daemos.WebApi
                 result = res;
                 return true;
             }
-            else if(TryParseDuration(dateTime,DateTime.UtcNow, out result))
+            else if (TryParseDuration(dateTime,DateTime.UtcNow, out result))
             {
                 return true;
             }
@@ -62,11 +63,10 @@ namespace Daemos.WebApi
 
         }
 
-        
-
         private static readonly Regex TimeSpanRegex = new Regex("^P([0-9]+Y)?([0-9]+M)?([0-9]+D)?(?:T([0-9]+H)?([0-9]+M)?([0-9]+S)?)?$", RegexOptions.Compiled);
+
         private static bool TryParseDuration(string duration, DateTime start, out DateTime? result)
-        {           
+        {
             if (duration == null)
             {
                 result = null;
@@ -74,10 +74,9 @@ namespace Daemos.WebApi
             }
 
             var match = TimeSpanRegex.Match(duration);
-            if(match.Success)
+            if (match.Success)
             {
-
-                if(match.Groups[1].Success)
+                if (match.Groups[1].Success)
                 {
                     start = start.AddYears(int.Parse(match.Groups[1].Value.GetPeriodValue(), CultureInfo.InvariantCulture));
                 }
@@ -107,7 +106,6 @@ namespace Daemos.WebApi
                 result = start;
                 return true;
             }
-
 
             result = null;
             return false;

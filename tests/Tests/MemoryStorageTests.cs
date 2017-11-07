@@ -1,4 +1,8 @@
-﻿namespace Daemos.Tests
+﻿// <copyright file="MemoryStorageTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Daemos.Tests
 {
     public class MemoryStorageTests : TransactionStorageTests<MemoryStorage>
     {
@@ -11,6 +15,5 @@
         {
             return new MemoryStorage(timeService);
         }
-
     }
 }

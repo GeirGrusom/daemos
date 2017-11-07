@@ -1,9 +1,12 @@
-﻿using System;
-using System.Reflection;
-using Antlr4.Runtime;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
+    using System;
+    using System.Reflection;
+    using Antlr4.Runtime;
+
     public class MemberExpression : Expression
     {
         public Expression Instance { get; }
@@ -26,13 +29,13 @@ namespace Daemos.Mute.Expressions
         public MemberExpression(Expression instance, MemberInfo member, ParserRuleContext context)
             : base(GetResultTypeFromMemberInfo(member), context)
         {
-            Instance = instance;
-            Member = member;
+            this.Instance = instance;
+            this.Member = member;
         }
 
         public override string ToString()
         {
-            return $"{Instance}.{Member.Name}";
+            return $"{this.Instance}.{this.Member.Name}";
         }
     }
 }

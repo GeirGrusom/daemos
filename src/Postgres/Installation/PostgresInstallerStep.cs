@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="PostgresInstallerStep.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Daemos.Installation;
@@ -9,9 +13,11 @@ namespace Daemos.Postgres.Installation
     public class PostgresInstallerStep : IInstallerStep
     {
         public string Name => "PostgreSQL support";
+
         public ICredentialsPrompt CredentialsPrompt { get; }
         
         public string Host { [return: CanBeNull] get; }
+
         public int Port { get; set; }
 
         public PostgresInstallerStep([CanBeNull]string host, int? port, ICredentialsPrompt credentialsPrompt)

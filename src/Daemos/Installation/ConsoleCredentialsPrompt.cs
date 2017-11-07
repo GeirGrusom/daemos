@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="ConsoleCredentialsPrompt.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
@@ -38,7 +42,7 @@ namespace Daemos.Installation
         public static string ReadSecret(IEnumerable<ConsoleKeyInfo> keys)
         {
             var buffer = new StringBuilder();
-            foreach(var key in keys)
+            foreach (var key in keys)
             {
                 if (key.Key == ConsoleKey.Enter)
                 {

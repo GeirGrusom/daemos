@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="SerializedObject.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -27,7 +31,7 @@ namespace Daemos.Scripting
 
             var props = Type.GetProperties().Where(x => x.CanRead).OrderBy(x => x.Name, StringComparer.Ordinal);
 
-            foreach(var prop in props)
+            foreach (var prop in props)
             {
                 Values.Add(prop.Name, prop.GetValue(value).ToString());
             }

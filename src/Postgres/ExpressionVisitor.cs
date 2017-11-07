@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿// <copyright file="ExpressionVisitor.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Text;
 
@@ -23,9 +27,9 @@ namespace Daemos.Postgres
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            if(node.Method.DeclaringType == typeof(System.Linq.Queryable))
+            if (node.Method.DeclaringType == typeof(System.Linq.Queryable))
             {
-                switch(node.Method.Name)
+                switch (node.Method.Name)
                 {
                     case "Where":
                     {
@@ -64,7 +68,7 @@ namespace Daemos.Postgres
 
         public override string ToString()
         {
-            if(count)
+            if (count)
             {
                 return $"SELECT COUNT(*) FROM trans.transactions_head WHERE {predicateVisitor.ToString()};";
             }

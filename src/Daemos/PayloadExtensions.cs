@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="PayloadExtensions.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 
 namespace Daemos
@@ -12,7 +16,7 @@ namespace Daemos
 
         public static object GetPayloadMember(this IDictionary<string, object> payload, string memberName)
         {
-            if(payload.ContainsKey(memberName))
+            if (payload.ContainsKey(memberName))
             {
                 return payload[memberName];
             }
@@ -23,7 +27,7 @@ namespace Daemos
         {
             dynamic value;
 
-            if(payload.TryGetValue(memberName, out value))
+            if (payload.TryGetValue(memberName, out value))
             {
                 return comparer(value);
             }

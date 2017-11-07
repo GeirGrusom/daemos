@@ -1,6 +1,11 @@
-﻿namespace Daemos.Tests
+﻿// <copyright file="TransactionExtensions.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Daemos.Tests
 {
     public delegate void TransactionMutationDelegate(ref TransactionData data);
+
     public static class TransactionExtensions
     {
         public static Transaction With(this Transaction transaction, TransactionMutationDelegate action)

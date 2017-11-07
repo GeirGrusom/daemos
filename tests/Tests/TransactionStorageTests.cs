@@ -1,24 +1,29 @@
-using NSubstitute;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
+// <copyright file="TransactionStorageTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Tests
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using NSubstitute;
+    using Xunit;
+
     public abstract class TransactionStorageTests<T> where T : ITransactionStorage
     {
         protected abstract T CreateStorage();
+
         protected abstract T CreateStorage(ITimeService timeService);
 
         [Fact]
         public async Task CreateTransaction_ReturnsTransactionWithSameId()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
 
             // Act
@@ -32,7 +37,7 @@ namespace Daemos.Tests
         public async Task CreateTransaction_ReturnsTransactionWithSameState()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
 
             // Act
@@ -46,7 +51,7 @@ namespace Daemos.Tests
         public async Task CreateTransaction_TransactionAlreadyExists_ThrowsInvalidOperationException()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
             var committedTransaction = await storage.CreateTransactionAsync(transaction);
 
@@ -57,7 +62,6 @@ namespace Daemos.Tests
             Assert.Equal(transaction.State, committedTransaction.State);
         }
 
-
         [Theory]
         [InlineData(TransactionState.Initialized)]
         [InlineData(TransactionState.Authorized)]
@@ -67,7 +71,7 @@ namespace Daemos.Tests
         public async Task CreateTransaction_ReturnsTransactionWithSameState_StateSpecified(TransactionState state)
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => t.State = state);
 
             // Act
@@ -81,10 +85,9 @@ namespace Daemos.Tests
         public async Task PayloadQuery_ReturnsCorrectClientFromClientId()
         {
             int clientId = new Random().Next();
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var trans = await storage.CreateTransactionAsync(new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null,
                 new { clientId }, null, TransactionState.Initialized, null, null, storage));
-
 
             Expression<Func<Transaction, bool>> exp = x => new JsonValue((IDictionary<string, object>)x.Payload, "payload", "clientId") == clientId;
 
@@ -96,7 +99,7 @@ namespace Daemos.Tests
         public async Task TryLockTransaction_LocksTransaction_ReturnsTrue()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
             await storage.CreateTransactionAsync(transaction);
 
@@ -114,7 +117,7 @@ namespace Daemos.Tests
         public async Task TryLockTransaction_TransactionAldreadyLocked_ReturnsFalse()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
             await storage.CreateTransactionAsync(transaction);
 
@@ -131,7 +134,7 @@ namespace Daemos.Tests
         public async Task IsTransactionLocked_ReturnsTrue_IfTransactionIsLocked()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
             await storage.CreateTransactionAsync(transaction);
 
@@ -148,7 +151,7 @@ namespace Daemos.Tests
         public async Task StoreTransactionState_SameStateReturned()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
             await storage.CreateTransactionAsync(transaction);
 
@@ -164,13 +167,12 @@ namespace Daemos.Tests
         public async Task StoreTransactionState_NoStateDefined_ReturnsEmptyState()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
             await storage.CreateTransactionAsync(transaction);
 
             // Act
             var result = await storage.GetTransactionStateAsync(transaction.Id, transaction.Revision);
-
 
             // Assert
             Assert.Empty(result);
@@ -180,7 +182,7 @@ namespace Daemos.Tests
         public async Task CreateTransaction_RevisionIsIgnored()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => { t.Revision = 2; });
 
             // Act
@@ -194,7 +196,7 @@ namespace Daemos.Tests
         public async Task CreateTransaction_InvokedTransactionCommitted()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => { t.Revision = 2; });
 
             // Act
@@ -208,7 +210,7 @@ namespace Daemos.Tests
         public async Task FetchTransaction_RetrievesCommittedTransaction()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = TransactionFactory.CreateNew(storage);
             var committedTransaction = await storage.CreateTransactionAsync(transaction);
 
@@ -223,7 +225,7 @@ namespace Daemos.Tests
         public async Task FetchTransaction_DoesNotExist_ThrowsTransactionMissingException()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transactionId = Guid.NewGuid();
 
             // Act
@@ -237,7 +239,7 @@ namespace Daemos.Tests
         public async Task CommitTransactionDelta_CreatesDelta()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
             var delta = transaction.With((ref TransactionData t) => { t.State = TransactionState.Authorized; t.Revision = 2; });
 
@@ -249,12 +251,11 @@ namespace Daemos.Tests
             Assert.Equal(TransactionState.Authorized, result.State);
         }
 
-
         [Fact]
         public async Task CommitTransactionDelta_RevisionExists_ThrowsTransactionRevisionExistsException()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
 
             // Act
@@ -272,7 +273,7 @@ namespace Daemos.Tests
         public async Task CommitTransactionDelta_RevisionInvalid_ThrowsArgumentException(int revision)
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var transaction = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
             var delta = transaction.With((ref TransactionData t) => { t.Revision = revision; });
 
@@ -283,14 +284,13 @@ namespace Daemos.Tests
             Assert.Equal("next", ex.ParamName);
         }
 
-
         [Fact]
         public async Task GetExpiringTransactions_RetrivesExpiredTransacions()
         {
             // Arrange
             var timeService = Substitute.For<ITimeService>();
             timeService.Now().Returns(new DateTime(1999, 05, 15));
-            var storage = CreateStorage(timeService);
+            var storage = this.CreateStorage(timeService);
             var trans = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => { t.Expires = new DateTime(1999, 05, 14); });
             trans = await storage.CreateTransactionAsync(trans);
 
@@ -307,7 +307,7 @@ namespace Daemos.Tests
             // Arrange
             var timeService = Substitute.For<ITimeService>();
             timeService.Now().Returns(new DateTime(1995, 05, 15));
-            var storage = CreateStorage(timeService);
+            var storage = this.CreateStorage(timeService);
 
             // Act
             var expiringTransactions = await storage.GetExpiringTransactionsAsync(CancellationToken.None);
@@ -320,7 +320,7 @@ namespace Daemos.Tests
         public async Task TransactionExists_ReturnsTrue()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var trans = TransactionFactory.CreateNew(storage);
             await storage.CreateTransactionAsync(trans);
 
@@ -335,7 +335,7 @@ namespace Daemos.Tests
         public async Task TransactionExists_ReturnsFalse()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
 
             // Act
             var result = await storage.TransactionExistsAsync(Guid.NewGuid());
@@ -348,7 +348,7 @@ namespace Daemos.Tests
         public async Task GetChain_ReturnsChain()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var tr1 = TransactionFactory.CreateNew(storage);
             var tr2 = tr1.With((ref TransactionData tr) => { tr.Revision = 2; });
             tr1 = await storage.CreateTransactionAsync(tr1);
@@ -368,7 +368,7 @@ namespace Daemos.Tests
             var timeService = Substitute.For<ITimeService>();
             var created = new DateTime(1999, 01, 05, 12, 0, 0, DateTimeKind.Utc);
             timeService.Now().Returns(created);
-            var storage = CreateStorage(timeService);
+            var storage = this.CreateStorage(timeService);
 
             // Act
             var tr = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
@@ -385,7 +385,7 @@ namespace Daemos.Tests
             var created = new DateTime(1999, 01, 05, 12, 0, 0, DateTimeKind.Utc);
             var updated = new DateTime(2000, 01, 05, 12, 0, 0, DateTimeKind.Utc);
             timeService.Now().Returns(created, updated);
-            var storage = CreateStorage(timeService);
+            var storage = this.CreateStorage(timeService);
             var tr = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
             var trNext = tr.Data;
             trNext.Revision += 1;
@@ -397,12 +397,11 @@ namespace Daemos.Tests
             Assert.Equal(updated, result.Created);
         }
 
-
         [Fact]
         public async Task Query_GetById_ReturnsTransaction()
         {
             // Arrange
-            var storage = CreateStorage();
+            var storage = this.CreateStorage();
             var tr = TransactionFactory.CreateNew(storage);
             var guid = tr.Id;
             tr = await storage.CreateTransactionAsync(tr);
@@ -421,7 +420,7 @@ namespace Daemos.Tests
             var created = DateTime.UtcNow;
             var timeService = Substitute.For<ITimeService>();
             timeService.Now().Returns(created);
-            var storage = CreateStorage(timeService);
+            var storage = this.CreateStorage(timeService);
             var tr = TransactionFactory.CreateNew(storage);
             var guid = tr.Id;
             tr = await storage.CreateTransactionAsync(tr);

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="JsonValue.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 
 namespace Daemos
@@ -10,6 +14,7 @@ namespace Daemos
         private readonly string _member;
 
         public string MemberOf => _memberOf;
+
         public string Member => _member;
 
         public override int GetHashCode()
@@ -378,6 +383,7 @@ namespace Daemos
         {
             return lhs.Equals(rhs);
         }
+
         public static bool Equals(int rhs, JsonValue lhs)
         {
             return lhs.Equals(rhs);

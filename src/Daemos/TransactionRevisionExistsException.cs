@@ -1,10 +1,15 @@
-﻿using System;
+﻿// <copyright file="TransactionRevisionExistsException.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 
 namespace Daemos
 {
     public sealed class TransactionRevisionExistsException : TransactionException
     {
         public int Revision { get; }
+
         public TransactionRevisionExistsException(Guid transactionId, int revision)
             : base("The specified transaction already exists.", transactionId)
         {

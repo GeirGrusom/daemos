@@ -1,26 +1,30 @@
-﻿using Antlr4.Runtime;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
+    using Antlr4.Runtime;
+
     public class VariableDeclarationExpression : Expression
     {
         public VariableExpression Variable { get; }
+
         public Expression Assignment { get; }
 
         public VariableDeclarationExpression(VariableExpression variable, Expression assignment, ParserRuleContext context)
             : base(variable.Type, context)
         {
-            Variable = variable;
-            Assignment = assignment;
+            this.Variable = variable;
+            this.Assignment = assignment;
         }
 
         public override string ToString()
         {
-            if (Assignment != null)
+            if (this.Assignment != null)
             {
-                return $"{MutableString(Variable.Mutable)} {Variable.Name} <- {Assignment}";
+                return $"{MutableString(this.Variable.Mutable)} {this.Variable.Name} <- {this.Assignment}";
             }
-            return $"{MutableString(Variable.Mutable)} {Variable.Name} : {Variable.Type.Name}";
+            return $"{MutableString(this.Variable.Mutable)} {this.Variable.Name} : {this.Variable.Type.Name}";
         }
 
         private static string MutableString(bool mutable)

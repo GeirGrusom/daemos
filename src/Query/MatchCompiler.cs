@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="MatchCompiler.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Linq.Expressions;
 
 namespace Daemos.Query
@@ -13,7 +17,7 @@ namespace Daemos.Query
 
             var result = parser.compileUnit();
 
-            if(result == null || result.expr == null)
+            if (result == null || result.expr == null)
             {
                 return null;
             }

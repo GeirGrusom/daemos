@@ -1,21 +1,25 @@
-﻿using Daemos.Mute.Compilation;
-using Daemos.Scripting;
-using NSubstitute;
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.ExceptionServices;
-using System.Threading.Tasks;
-using Xunit;
+﻿// <copyright file="MuteTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Tests
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Dynamic;
+    using System.Linq;
+    using System.Reflection;
+    using System.Runtime.ExceptionServices;
+    using System.Threading.Tasks;
+    using Mute.Compilation;
+    using NSubstitute;
+    using Scripting;
+    using Xunit;
+
+    // This warning is disabled in order to keep declared element close to their usage.
+#pragma warning disable SA1201 // Elements must appear in the correct order
     public class MuteTests
     {
-
         public class Service
         {
             public Compiler Compiler { get; }
@@ -34,49 +38,50 @@ namespace Daemos.Tests
             {
                 get
                 {
-                    return transaction;
+                    return this.transaction;
                 }
+
                 set
                 {
-                    transaction = value;
-                    DependencyResolver.GetService<Transaction>().Returns(transaction);
+                    this.transaction = value;
+                    this.DependencyResolver.GetService<Transaction>().Returns(this.transaction);
                 }
             }
 
             public Service()
             {
-                Compiler = new Compiler();
-                StateSerializer = Substitute.For<IStateSerializer>();
-                StateDeserializer = Substitute.For<IStateDeserializer>();
-                DependencyResolver = Substitute.For<IDependencyResolver>();
-                Storage = Substitute.For<ITransactionStorage>();
-                Storage.CommitTransactionDeltaAsync(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => Task.FromResult(x.ArgAt<Transaction>(1)));
-                Storage.CommitTransactionDelta(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => x.ArgAt<Transaction>(1));
-                Transaction = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, null, Storage);
+                this.Compiler = new Compiler();
+                this.StateSerializer = Substitute.For<IStateSerializer>();
+                this.StateDeserializer = Substitute.For<IStateDeserializer>();
+                this.DependencyResolver = Substitute.For<IDependencyResolver>();
+                this.Storage = Substitute.For<ITransactionStorage>();
+                this.Storage.CommitTransactionDeltaAsync(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => Task.FromResult(x.ArgAt<Transaction>(1)));
+                this.Storage.CommitTransactionDelta(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => x.ArgAt<Transaction>(1));
+                this.Transaction = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, null, this.Storage);
             }
 
             public int CompileAndRun(string code)
             {
-                var result = Compiler.Compile(code);
+                var result = this.Compiler.Compile(code);
                 Assert.True(result.Success, string.Join("\r\n", result.Messages.Select(x => x.Message)));
 
-                return result.Result(StateSerializer, StateDeserializer, DependencyResolver);
+                return result.Result(this.StateSerializer, this.StateDeserializer, this.DependencyResolver);
             }
 
             public T CompileWithResult<T>(string expression)
             {
                 var result = default(T);
-                StateSerializer.When(x => x.Serialize<T>("result", Arg.Any<T>())).Do(x => result = x.ArgAt<T>(1));
-                var compilationResult = Compiler.Compile($"module foo; let result <- ${expression}; await commit this;");
+                this.StateSerializer.When(x => x.Serialize<T>("result", Arg.Any<T>())).Do(x => result = x.ArgAt<T>(1));
+                var compilationResult = this.Compiler.Compile($"module foo; let result <- ${expression}; await commit this;");
                 Assert.True(compilationResult.Success, string.Join("\r\n", compilationResult.Messages.Select(x => x.Message)));
-                compilationResult.Result(StateSerializer, StateDeserializer, DependencyResolver);
-                StateSerializer.Received().Serialize<T>("result", Arg.Any<T>());
+                compilationResult.Result(this.StateSerializer, this.StateDeserializer, this.DependencyResolver);
+                this.StateSerializer.Received().Serialize<T>("result", Arg.Any<T>());
                 return result;
             }
 
             public object CompileWithResult(string expression, Type resultType)
             {
-                var method = GetType().GetMethod("CompileWithResult", new[] { typeof(string) });
+                var method = this.GetType().GetMethod("CompileWithResult", new[] { typeof(string) });
 
                 var genericMethod = method.MakeGenericMethod(resultType);
 
@@ -94,7 +99,7 @@ namespace Daemos.Tests
 
             public List<Mute.CompilationMessage> CompileWithErrors(string code)
             {
-                var result = Compiler.Compile(code);
+                var result = this.Compiler.Compile(code);
                 Assert.False(result.Success);
 
                 return result.Messages;
@@ -120,7 +125,6 @@ namespace Daemos.Tests
 
             // Assert
             Assert.True(result.Success);
-
         }
 
         [Fact]
@@ -142,15 +146,14 @@ namespace Daemos.Tests
 
             // Assert
             Assert.True(result.Success);
-
         }
 
         public static readonly object[][] ResultData =
         {
-            new object[] {"@2017-01-01Z", new DateTime(2017, 01, 01, 0, 0, 0, DateTimeKind.Utc)},
-            new object[] {"@2017-01-01+02:00", new DateTime(2016, 12, 31, 22, 0, 0, DateTimeKind.Utc)},
-            new object[] {"timespan(hours: 2, minutes: 4, seconds: 8)", new TimeSpan(2, 4, 8)},
-            new object[] {"@2017-01-01Z + timespan(hours: 2, minutes: 4, seconds: 8)", new DateTime(2017, 01, 01, 2, 4, 8, DateTimeKind.Utc) }
+            new object[] { "@2017-01-01Z", new DateTime(2017, 01, 01, 0, 0, 0, DateTimeKind.Utc) },
+            new object[] { "@2017-01-01+02:00", new DateTime(2016, 12, 31, 22, 0, 0, DateTimeKind.Utc) },
+            new object[] { "timespan(hours: 2, minutes: 4, seconds: 8)", new TimeSpan(2, 4, 8) },
+            new object[] { "@2017-01-01Z + timespan(hours: 2, minutes: 4, seconds: 8)", new DateTime(2017, 01, 01, 2, 4, 8, DateTimeKind.Utc) }
         };
 
         [Theory]
@@ -223,6 +226,13 @@ await commit this with { Script: ""Foo"" };
         }
 
         [Fact]
+        public async Task Await_InCatch_Ok()
+        {
+            // Arrange
+            var service = new Service();
+        }
+
+        [Fact]
         public async Task Commit_CommitsTransaction()
         {
             // Arrange
@@ -283,25 +293,6 @@ await commit this;
             Assert.True(res);
         }
 
-        [Fact]
-        public void DynMeth()
-        {
-
-            var d = new DynamicMethod("Test", typeof(bool), null);
-
-            var emit = d.GetILGenerator();
-
-            emit.Emit(OpCodes.Ldc_I4_1);
-            emit.Emit(OpCodes.Ldc_I4_1);
-            emit.Emit(OpCodes.Cgt);
-            emit.Emit(OpCodes.Not);
-            emit.Emit(OpCodes.Ret);
-
-            var func = (Func<bool>)d.CreateDelegate(typeof(Func<bool>));
-
-
-        }
-
         public class Foobar
         {
             public int GetFoo(int? a = 1)
@@ -309,7 +300,6 @@ await commit this;
                 return a.GetValueOrDefault();
             }
 
-            //[return: NotNull]
             public string GetString()
             {
                 return "Hello World!";
@@ -343,7 +333,6 @@ await commit this;
 
             Assert.Equal("Hello World!", result);
         }
-
 
         [Fact]
         public void Constructor_NamedArguments_Ok()
@@ -430,6 +419,7 @@ await commit this;
         public interface IExceptionReporter
         {
             void Report(Exception ex);
+
             void ThrowException();
         }
 
@@ -465,6 +455,7 @@ catch<InvalidOperationException>
         public interface IRetryReporter
         {
             void Report(int count);
+
             void Throw();
         }
 
@@ -512,6 +503,5 @@ reporter.Report(count);
             // Assert
             var exception = Assert.Throws<NullReferenceException>(() => service.CompileAndRun("module foo; let a <- !!string?!(null);"));
         }
-
     }
 }

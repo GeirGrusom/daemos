@@ -1,7 +1,10 @@
-﻿using Antlr4.Runtime;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
+    using Antlr4.Runtime;
+
     public class UnaryConvertExpression : UnaryExpression
     {
         public UnaryConvertExpression(DataType resultType, Expression operand, ParserRuleContext context)
@@ -11,7 +14,7 @@ namespace Daemos.Mute.Expressions
 
         public override string ToString()
         {
-            return $" {Type.Name}!({Operand})";
+            return $" {this.Type.Name}!({this.Operand})";
         }
     }
 }

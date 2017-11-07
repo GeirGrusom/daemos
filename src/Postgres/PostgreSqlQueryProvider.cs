@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="PostgreSqlQueryProvider.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -66,6 +70,7 @@ namespace Daemos.Postgres
             return LookupDictionary[input];
 
         }
+
         public TResult Execute<TResult>(Expression expression)
         {
             Type tr = typeof(TResult);
@@ -77,7 +82,7 @@ namespace Daemos.Postgres
             {
                 cmd.CommandText = exp;
                 int id = 0;
-                foreach(var param in visitor.Parameters)
+                foreach (var param in visitor.Parameters)
                 {
                     var p = new NpgsqlParameter("p" + (++id), param)
                     {
@@ -91,12 +96,12 @@ namespace Daemos.Postgres
                 using (var reader = cmd.ExecuteReader())
                 {
 
-                    if(tr.GenericTypeArguments.Length == 0)
+                    if (tr.GenericTypeArguments.Length == 0)
                     {
                         // This is probably a scalar.
                         reader.Read();
                         object value = reader.GetValue(0);
-                        if(value is DBNull)
+                        if (value is DBNull)
                         {
                             return default(TResult);
                         }

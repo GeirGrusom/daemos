@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="InstallDatabaseSchemaTask.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Text;
@@ -16,6 +20,7 @@ namespace Daemos.Postgres.Installation
         private NpgsqlConnectionStringBuilder _connectionStringBuilder;
 
         public string ClientConnectionString { get; private set; }
+
         public InstallDatabaseSchemaTask(NpgsqlConnection connection, ICredentialsPrompt prompt) : base(connection)
         {
             _connectionStringBuilder = new NpgsqlConnectionStringBuilder(connection.ConnectionString);

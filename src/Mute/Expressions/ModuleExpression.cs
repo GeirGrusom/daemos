@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Antlr4.Runtime;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
-    public class ModuleExpression : Expression 
+    using System.Collections.Generic;
+    using System.Linq;
+    using Antlr4.Runtime;
+
+    public class ModuleExpression : Expression
     {
         public string Name { get; }
 
@@ -13,13 +16,13 @@ namespace Daemos.Mute.Expressions
         public ModuleExpression(string name, IEnumerable<Expression> statements, ParserRuleContext context)
             : base(DataType.Void, context)
         {
-            Name = name;
-            Body = new BlockExpression(statements, statements.OfType<VariableExpression>(), context);
+            this.Name = name;
+            this.Body = new BlockExpression(statements, statements.OfType<VariableExpression>(), context);
         }
 
         public override string ToString()
         {
-            return $"module {Name};\n\n {Body}";
+            return $"module {this.Name};\n\n {this.Body}";
         }
     }
 }

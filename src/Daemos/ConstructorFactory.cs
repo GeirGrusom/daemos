@@ -1,12 +1,24 @@
-﻿using System;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
+﻿// <copyright file="ConstructorFactory.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos
 {
+    using System;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Reflection;
+
+    /// <summary>
+    /// Implements a code generated constructor factory
+    /// </summary>
     public class ConstructorFactory
     {
+        /// <summary>
+        /// Creates a factory that creates an instance of T
+        /// </summary>
+        /// <typeparam name="T">Type of instance to return</typeparam>
+        /// <returns>Returns a factory method for the specified type that takes in a dependency resolver</returns>
         public Func<IDependencyResolver, T> Create<T>()
              where T : class
         {
@@ -31,25 +43,26 @@ namespace Daemos
             var arguments = new Expression[parameters.Length];
             var resolveMethod = typeof(IDependencyResolver).GetMethod("GetService", new Type[1] { typeof(string) });
 
-
-            for(int i = 0; i < parameters.Length; ++i)
+            for (int i = 0; i < parameters.Length; ++i)
             {
                 if (parameters[i].ParameterType.GetTypeInfo().IsClass || parameters[i].ParameterType.GetTypeInfo().IsInterface)
                 {
                     var resolveMethodType = resolveMethod.MakeGenericMethod(parameters[i].ParameterType);
                     var argVar = Expression.Variable(parameters[i].ParameterType);
-                    arguments[i] = Expression.Block(parameters[i].ParameterType, new[] { argVar },
+                    arguments[i] = Expression.Block(
+                        parameters[i].ParameterType,
+                        new[] { argVar },
                         Expression.Assign(argVar, Expression.Call(dependencyResolverArgument, resolveMethodType, Expression.Constant(null, typeof(string)))),
                         Expression.IfThen(Expression.Equal(argVar, Expression.Constant(null, parameters[i].ParameterType)), Expression.Throw(Expression.New(typeof(DependencyFailedException).GetConstructor(new[] { typeof(Type) }), Expression.Constant(parameters[i].ParameterType)))),
-                        argVar
-                        );
+                        argVar);
                 }
                 else
                 {
-                    if(!parameters[i].HasDefaultValue)
+                    if (!parameters[i].HasDefaultValue)
                     {
                         throw new DependencyFailedException(parameters[i].ParameterType);
                     }
+
                     arguments[i] = Expression.Constant(parameters[i].DefaultValue);
                 }
             }

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="PredicateQueryVisitor.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -9,6 +13,7 @@ namespace Daemos.Postgres
     public class PredicateQueryVisitor : ExpressionVisitor
     {
         private readonly StringBuilder builder;
+
         public List<object> Parameters { get; }
 
         private DateTime now;
@@ -149,7 +154,7 @@ namespace Daemos.Postgres
         protected override Expression VisitConstant(ConstantExpression node)
         {
             builder.Append(":p" + (Parameters.Count + 1) + "");
-            if(node.Value == null)
+            if (node.Value == null)
             {
                 Parameters.Add(DBNull.Value);
             }
@@ -180,11 +185,11 @@ namespace Daemos.Postgres
         protected override Expression VisitNewArray(NewArrayExpression node)
         {
             builder.Append("(");
-            for(int i = 0; i < node.Expressions.Count; ++i)
+            for (int i = 0; i < node.Expressions.Count; ++i)
             {
                 Visit(node.Expressions[i]);
 
-                if(i < node.Expressions.Count - 1)
+                if (i < node.Expressions.Count - 1)
                 {
                     builder.Append(", ");
                 }
@@ -208,11 +213,11 @@ namespace Daemos.Postgres
             {
                 throw new NotImplementedException();
             }
-            if(exp.Member is FieldInfo fi)
+            if (exp.Member is FieldInfo fi)
             {
                 return fi.GetValue(baseObj);
             }
-            if(exp.Member is PropertyInfo pi)
+            if (exp.Member is PropertyInfo pi)
             {
                 return pi.GetValue(baseObj);
             }
@@ -286,7 +291,7 @@ namespace Daemos.Postgres
 
             var requiresParens = GetExpressionPresedense(node.Left) < GetExpressionPresedense(node.Right);
 
-            if(requiresParens)
+            if (requiresParens)
                 builder.Append("(");
 
             if (node.Left.Type == typeof(JsonValue))
@@ -299,7 +304,7 @@ namespace Daemos.Postgres
                 {
                     builder.Append("::numeric");
                 }
-                else if(node.Right.Type == typeof(bool))
+                else if (node.Right.Type == typeof(bool))
                 {
                     builder.Append("::bool");
                 }

@@ -1,4 +1,8 @@
-﻿namespace Daemos.Console
+﻿// <copyright file="IEngineVersion.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Daemos.Console
 {
     public interface IEchoService
     {

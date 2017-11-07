@@ -1,20 +1,24 @@
-﻿using System;
-using System.Globalization;
-using Antlr4.Runtime;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
+    using System;
+    using System.Globalization;
+    using Antlr4.Runtime;
+
     public class ConstantExpression : Expression
     {
         public object Value { get; }
+
         public ConstantExpression(object value, ParserRuleContext context) : base(DataType.FromClrType(value?.GetType() ?? typeof(object)), context)
         {
-            Value = value;
+            this.Value = value;
         }
 
         public ConstantExpression(DataType type, object value, ParserRuleContext context) : base(type, context)
         {
-            Value = value;
+            this.Value = value;
         }
 
         public static readonly ConstantExpression TrueExpression = new ConstantExpression(DataType.NonNullBool, true, ParserRuleContext.EmptyContext);
@@ -24,11 +28,11 @@ namespace Daemos.Mute.Expressions
 
         public override string ToString()
         {
-            if (Value is IFormattable formattable)
+            if (this.Value is IFormattable formattable)
             {
                 return formattable.ToString(null, CultureInfo.InvariantCulture);
             }
-            return Value.ToString();
+            return this.Value.ToString();
         }
     }
 }

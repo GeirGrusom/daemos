@@ -1,4 +1,8 @@
-﻿using System.Linq.Expressions;
+﻿// <copyright file="TransactQueryParser.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System.Linq.Expressions;
 using System.Reflection;
 
 using static System.Linq.Expressions.Expression;
@@ -8,6 +12,7 @@ namespace Daemos.Query
     public partial class TransactQueryParser
     {
         public ParameterExpression Transaction { get; } = Expression.Parameter(typeof(Transaction));
+
         public static MemberExpression GetPropertyCI(Expression owner, string name)
         {
             return Expression.Property(owner, owner.Type.GetProperty(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.GetProperty | System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public));

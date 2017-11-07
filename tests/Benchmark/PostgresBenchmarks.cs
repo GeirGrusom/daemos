@@ -1,29 +1,27 @@
-﻿using System;
-using System.Threading.Tasks;
-using BenchmarkDotNet.Attributes;
-using Daemos.Postgres;
+﻿// <copyright file="PostgresBenchmarks.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Benchmark
 {
+    using System;
+    using System.Threading.Tasks;
+    using BenchmarkDotNet.Attributes;
+    using Daemos.Postgres;
+
     public class PostgresBenchmarks
     {
-
         private PostgreSqlTransactionStorage storage;
-
-        private PostgreSqlTransactionStorage CreateStorage()
-        {
-            return new PostgreSqlTransactionStorage("User ID=transact_test;Password=qwerty12345;Host=localhost;Port=5432;Database=transact;Pooling = true;");
-        }
 
         public PostgresBenchmarks()
         {
-            storage = CreateStorage();
+            this.storage = this.CreateStorage();
         }
 
         [Benchmark]
         public async Task CommitTransaction()
         {
-            await storage.CreateTransactionAsync(new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, null, storage));
+            await this.storage.CreateTransactionAsync(new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, null, this.storage));
         }
 
         [GlobalCleanup]
@@ -39,6 +37,10 @@ namespace Daemos.Benchmark
                 }
             }
         }
-        
+
+        private PostgreSqlTransactionStorage CreateStorage()
+        {
+            return new PostgreSqlTransactionStorage("User ID=transact_test;Password=qwerty12345;Host=localhost;Port=5432;Database=transact;Pooling = true;");
+        }
     }
 }

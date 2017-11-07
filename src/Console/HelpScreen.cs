@@ -1,4 +1,8 @@
-﻿namespace Daemos.Console
+﻿// <copyright file="HelpScreen.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Daemos.Console
 {
     public class HelpScreen
     {
@@ -16,6 +20,7 @@ transact.exe
 Note that --connection-string is not required for in-memory sessions.
 The default database is memory.
 ";
+
         public void Show()
         {
             System.Console.WriteLine(HelpMessage);

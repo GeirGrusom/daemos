@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="TransactionHandler.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Threading.Tasks;
 
 namespace Daemos
@@ -6,8 +10,11 @@ namespace Daemos
     public interface ITransactionHandler
     {
         Task Cancel(Transaction transaction);
+
         Task Authorize(Transaction transaction);
+
         Task Complete(Transaction transaction);
+
         Task Fail(Transaction transaction);
     }
 
@@ -35,6 +42,7 @@ namespace Daemos
     public abstract class TransactionHandler : ITransactionHandler
     {
         public ITransactionStorage Storage { get; }
+
         public ITransactionHandlerFactory Factory { get; }
 
         protected TransactionHandler(ITransactionHandlerFactory factory, ITransactionStorage storage)

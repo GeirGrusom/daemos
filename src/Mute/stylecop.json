@@ -1,0 +1,15 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
+  "settings": {
+
+    "documentationRules": {
+      "copyrightText": "This file is licensed under the MIT open source license\r\nhttps://opensource.org/licenses/MIT",
+      "documentExposedElements": false,
+      "documentInterfaces": false,
+      "documentInternalElements": false,
+      "documentPrivateElements": false,
+      "documentPrivateFields": false,
+      "xmlHeader": false
+    }
+  }
+}

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="CompilationFailedException.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,7 +11,9 @@ namespace Daemos.Scripting
     public class CompilationError
     {
         public int Line { get; }
+
         public int Column { get; }
+
         public string Message { get; }
 
         public CompilationError(int line, int column, string message)
@@ -17,6 +23,7 @@ namespace Daemos.Scripting
             Message = message;
         }
     }
+
     public class CompilationFailedException : Exception
     {
         public IReadOnlyList<CompilationError> Errors { get; }

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="SelectDatabaseTask.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,7 +14,9 @@ namespace Daemos.Postgres.Installation
     public class SelectDatabaseTask : ITask
     {
         public string Host { get; }
+
         public int Port { get; }
+
         public SelectDatabaseTask(string host, int port, ICredentialsPrompt credentialsPrompt)
         {
             Host = host;
@@ -19,7 +25,9 @@ namespace Daemos.Postgres.Installation
         }
 
         public ICredentialsPrompt CredentialsPrompt { get; }
+
         public string ConnectionString { get; private set; }
+
         public Task Install()
         {
             string host;

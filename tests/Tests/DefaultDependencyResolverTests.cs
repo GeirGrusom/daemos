@@ -1,25 +1,31 @@
-﻿using System;
-using Xunit;
+﻿// <copyright file="DefaultDependencyResolverTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+#pragma warning disable SA1201 // Elements must appear in the correct order
 
 namespace Daemos.Tests
 {
+    using System;
+    using Xunit;
+
     public class DefaultDependencyResolverTests
     {
         public sealed class Instance : IDisposable
         {
             public void Dispose()
             {
-
             }
         }
 
         public sealed class TypeWithDependency
         {
-            public IDisposable Dependency { get; }
             public TypeWithDependency(IDisposable dependency)
             {
-                Dependency = dependency;
+                this.Dependency = dependency;
             }
+
+            public IDisposable Dependency { get; }
         }
 
         [Fact]

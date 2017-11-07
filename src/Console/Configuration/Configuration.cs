@@ -1,12 +1,18 @@
-﻿using System;
+﻿// <copyright file="Configuration.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Console.Configuration
 {
+    using System;
+
     public class Settings
     {
         public string ConnectionString { get; set; }
+
         public DatabaseType DatabaseType { get; set; }
-        public ListenSettings Listening { get; set; }   
+
+        public ListenSettings Listening { get; set; }
 
         public bool Install { get; set; }
     }
@@ -14,14 +20,18 @@ namespace Daemos.Console.Configuration
     public class ListenSettings
     {
         public bool WebSocketEnabled { get; set; }
+
         public int? HttpPort { get; set; }
+
         public Scheme Scheme { get; set; }
+
         public string Host { get; set; }
+
         public string Path { get; set; }
 
         private int GetDefaultPort()
         {
-            if (Scheme == Scheme.Http)
+            if (this.Scheme == Scheme.Http)
             {
                 return 80;
             }
@@ -30,7 +40,7 @@ namespace Daemos.Console.Configuration
 
         public string BuildUri()
         {
-            var path = $"{Scheme.ToString().ToLower()}://{Host}:{HttpPort ?? GetDefaultPort()}/{Path}";
+            var path = $"{this.Scheme.ToString().ToLower()}://{this.Host}:{this.HttpPort ?? this.GetDefaultPort()}/{this.Path}";
             return path;
         }
     }

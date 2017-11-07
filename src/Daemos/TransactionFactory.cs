@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="TransactionFactory.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
@@ -100,9 +104,13 @@ namespace Daemos
     public struct NewChildTransactionData
     {
         public Guid Id { get; set; }
+
         public DateTime? Expires { get; set; }
+
         public object Payload { get; set; }
+
         public string Script { get; set; }
+
         public object Error { get; set; }
     }
 
@@ -169,16 +177,27 @@ namespace Daemos
     public interface ITransactionStorage
     {
         Task LockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = Timeout.Infinite);
+
         Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = Timeout.Infinite);
+
         Task FreeTransactionAsync(Guid id);
+
         Task<bool> IsTransactionLockedAsync(Guid id);
+
         Task<bool> TransactionExistsAsync(Guid id);
+
         Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1);
+
         Task<Transaction> CreateTransactionAsync([NotNull] Transaction transaction);
+
         Task<Transaction> CommitTransactionDeltaAsync([NotNull] Transaction original, [NotNull] Transaction next);
+
         Transaction CommitTransactionDelta([NotNull] Transaction original, [NotNull] Transaction next);
+
         Task<List<Transaction>> GetExpiringTransactionsAsync(CancellationToken cancel);
+
         Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state);
+
         Task OpenAsync();
 
         event EventHandler<TransactionCommittedEventArgs> TransactionCommitted;
@@ -186,6 +205,7 @@ namespace Daemos
         Task<byte[]> GetTransactionStateAsync(Guid id, int revision);
 
         Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout = Timeout.Infinite);
+
         Task<IEnumerable<Transaction>> GetChainAsync(Guid id);
 
         Task<IQueryable<Transaction>> QueryAsync();
@@ -208,6 +228,7 @@ namespace Daemos
         private EmptyPayload()
         {
         }
+
         public static EmptyPayload Instance { get; } = new EmptyPayload();
     }
 
@@ -229,7 +250,7 @@ namespace Daemos
                 throw new TimeoutException("Could not get a lock on the transaction.");
             }
 
-            if(nextRevision != trans.Revision + 1)
+            if (nextRevision != trans.Revision + 1)
             {
                 await trans.Free();
                 throw new TransactionConflictException(id, nextRevision);

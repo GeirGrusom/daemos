@@ -1,13 +1,16 @@
-﻿using Daemos.Scripting;
-using System;
-using System.Collections.Generic;
-using Xunit;
+﻿// <copyright file="StateSerializerTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Tests
 {
+    using System;
+    using System.Collections.Generic;
+    using Daemos.Scripting;
+    using Xunit;
+
     public class StateSerializerTests
     {
-
         public static readonly IEnumerable<object[]> AcceptedValues = new[]
         {
             new object[] { (byte)10},
@@ -45,9 +48,10 @@ namespace Daemos.Tests
         public class CustomData
         {
             public string Value { get; }
+
             public CustomData(string value)
             {
-                Value = value;
+                this.Value = value;
             }
         }
 

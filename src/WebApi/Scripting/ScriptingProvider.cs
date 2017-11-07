@@ -1,13 +1,17 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Daemos.Scripting;
+﻿// <copyright file="ScriptingProvider.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.WebApi.Scripting
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text.RegularExpressions;
+    using System.Threading.Tasks;
+    using Daemos.Scripting;
+
     public class ScriptingProvider : IScriptRunner, IDisposable
     {
         private static readonly Regex LanguageTest = new Regex("#(?:lang=(?<Language>[^:&]+?):)|(?<Reference>ref=)", RegexOptions.Compiled);
@@ -22,21 +26,21 @@ namespace Daemos.WebApi.Scripting
 
         public ScriptingProvider(ITransactionStorage storage)
         {
-            _transactionCommittedEventHandler = OnTransactionCommitted;
-            _runners = new ConcurrentDictionary<string, IScriptRunner>(StringComparer.OrdinalIgnoreCase);
-            _compiled = new ConcurrentDictionary<string, Action<IDependencyResolver>>(StringComparer.OrdinalIgnoreCase);
+            this._transactionCommittedEventHandler = this.OnTransactionCommitted;
+            this._runners = new ConcurrentDictionary<string, IScriptRunner>(StringComparer.OrdinalIgnoreCase);
+            this._compiled = new ConcurrentDictionary<string, Action<IDependencyResolver>>(StringComparer.OrdinalIgnoreCase);
 
-            _storage = storage;
+            this._storage = storage;
         }
 
         public void AddLanguageRunner(string language, IScriptRunner runner)
         {
-            _runners.AddOrUpdate(language, l => runner, (l, r) => runner);
+            this._runners.AddOrUpdate(language, l => runner, (l, r) => runner);
         }
 
         public void RegisterLanguageProvider(string language, IScriptRunner runner)
         {
-            _runners.TryAdd(language, runner);
+            this._runners.TryAdd(language, runner);
         }
 
         public void Run(string code, IDependencyResolver resolver)
@@ -48,17 +52,17 @@ namespace Daemos.WebApi.Scripting
                 {
                     string language = m.Groups["Language"].Value;
                     string script = code.Substring(m.Length);
-                    RunScript(language, script, resolver);
+                    this.RunScript(language, script, resolver);
                     return;
                 }
                 if (m.Groups["Reference"].Success)
                 {
                     string reference = code.Substring(m.Length).Trim();
-                    RunReference(reference, resolver);
+                    this.RunReference(reference, resolver);
                     return;
                 }
             }
-            RunScript("Mute", code, resolver);
+            this.RunScript("Mute", code, resolver);
         }
 
         private async void OnTransactionCommitted(object sender, TransactionCommittedEventArgs e)
@@ -79,7 +83,6 @@ namespace Daemos.WebApi.Scripting
 
         private async Task ProcessScriptTransaction(Transaction tr)
         {
-
             try
             {
                 var payload = (IDictionary<string, object>) tr.Payload;
@@ -91,24 +94,24 @@ namespace Daemos.WebApi.Scripting
                     string language = (string) payload["language"];
                     string code = (string) payload["code"];
 
-                    RegisterScript(name, language, code);
+                    this.RegisterScript(name, language, code);
                 }
-                else if(tr.State == TransactionState.Cancelled)
+                else if (tr.State == TransactionState.Cancelled)
                 {
-                    RemoveReference(name);
+                    this.RemoveReference(name);
                 }
             }
             catch (Exception ex)
             {
-                await _storage.CommitTransactionDeltaAsync(tr,
+                await this._storage.CommitTransactionDeltaAsync(tr,
                     new Transaction(tr.Id, tr.Revision + 1, DateTime.UtcNow, null, null, tr.Payload, tr.Script,
-                        TransactionState.Failed, tr.Parent, ex, _storage));
+                        TransactionState.Failed, tr.Parent, ex, this._storage));
             }
         }
 
         public async Task Initialize()
         {
-            var query = await _storage.QueryAsync();
+            var query = await this._storage.QueryAsync();
             var scripts = query.Where(
                     tr => new JsonValue((IDictionary<string, object>) tr.Payload, "Payload", "@internal") == "script" && tr.State == TransactionState.Authorized)
                 .ToArray();
@@ -118,17 +121,17 @@ namespace Daemos.WebApi.Scripting
                 await ProcessScriptTransaction(script);
             }
 
-            _storage.TransactionCommitted += _transactionCommittedEventHandler;
+            this._storage.TransactionCommitted += this._transactionCommittedEventHandler;
         }
 
         public Action<IDependencyResolver> Compile(string code)
         {
-            return new Action<IDependencyResolver>(tr => Run(code, tr));
+            return new Action<IDependencyResolver>(tr => this.Run(code, tr));
         }
 
         public void RunScript(string language, string script, IDependencyResolver resolver)
         {
-            if (!_runners.TryGetValue(language, out IScriptRunner runner))
+            if (!this._runners.TryGetValue(language, out IScriptRunner runner))
             {
                 throw new ArgumentException($"Could not locate a language runner named {language}.", nameof(language));
             }
@@ -139,7 +142,7 @@ namespace Daemos.WebApi.Scripting
 
         public void RunReference(string reference, IDependencyResolver resolver)
         {
-            if (!_compiled.TryGetValue(reference, out Action<IDependencyResolver> result))
+            if (!this._compiled.TryGetValue(reference, out Action<IDependencyResolver> result))
             {
                 throw new ArgumentException($"Could not locate a script with name {reference}.", nameof(reference));
             }
@@ -149,25 +152,23 @@ namespace Daemos.WebApi.Scripting
 
         public void RegisterScript(string reference, string language, string script)
         {
-            if (!_runners.TryGetValue(language, out IScriptRunner runner))
+            if (!this._runners.TryGetValue(language, out IScriptRunner runner))
             {
                 throw new ArgumentException($"Could not locate a language runner name {language}.");
             }
 
-
             var func = runner.Compile(script);
 
-            _compiled.GetOrAdd(reference, r => func);
+            this._compiled.GetOrAdd(reference, r => func);
         }
 
         public void RemoveReference(string reference)
         {
-            _compiled.TryRemove(reference, out Action<IDependencyResolver> res);
+            this._compiled.TryRemove(reference, out Action<IDependencyResolver> res);
         }
 
         public void Dispose()
         {
-            
         }
     }
 }

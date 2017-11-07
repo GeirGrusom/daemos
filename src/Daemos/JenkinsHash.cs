@@ -1,4 +1,8 @@
-﻿namespace Daemos
+﻿// <copyright file="JenkinsHash.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Daemos
 {
     public static class JenkinsHash
     {

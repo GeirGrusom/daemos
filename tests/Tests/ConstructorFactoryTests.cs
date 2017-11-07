@@ -1,27 +1,32 @@
-﻿using System;
-using NSubstitute;
-using Xunit;
+﻿// <copyright file="ConstructorFactoryTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Tests
 {
+    using System;
+    using NSubstitute;
+    using Xunit;
+
     public class ConstructorFactoryTests
     {
         public class Service
         {
             public ConstructorFactory Factory { get; }
+
             public IDependencyResolver DependencyResolver { get; }
 
             public Service()
             {
-                Factory = new ConstructorFactory();
-                DependencyResolver = Substitute.For<IDependencyResolver>();
+                this.Factory = new ConstructorFactory();
+                this.DependencyResolver = Substitute.For<IDependencyResolver>();
             }
 
             public T Create<T>()
                 where T : class
             {
-                var ctor = Factory.Create<T>();
-                return ctor(DependencyResolver);
+                var ctor = this.Factory.Create<T>();
+                return ctor(this.DependencyResolver);
             }
         }
 
@@ -32,9 +37,10 @@ namespace Daemos.Tests
         public class ClassWithSingleArgument<TArgument>
         {
             public TArgument Argument { get; }
+
             public ClassWithSingleArgument(TArgument argument)
             {
-                Argument = argument;
+                this.Argument = argument;
             }
         }
 
@@ -57,7 +63,7 @@ namespace Daemos.Tests
 
             public ClassWithDefaultParameters(int parameter = 1)
             {
-                Parameter = parameter;
+                this.Parameter = parameter;
             }
         }
 

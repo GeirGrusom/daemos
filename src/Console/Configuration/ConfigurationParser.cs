@@ -1,8 +1,12 @@
-﻿using System;
-using System.Globalization;
+﻿// <copyright file="ConfigurationParser.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Console.Configuration
 {
+    using System;
+    using System.Globalization;
+
     public class ConfigurationParser
     {
         public Settings Parse(Settings settings, string[] args)

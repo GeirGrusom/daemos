@@ -1,30 +1,36 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using Daemos.Scripting;
-using NSubstitute;
-using Xunit;
+﻿// <copyright file="TransactionProcessorTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Tests
 {
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Daemos.Scripting;
+    using NSubstitute;
+    using Xunit;
+
     public class TransactionProcessorTests
     {
-
         public class Service
         {
             public ITransactionStorage Storage { get; }
+
             public IScriptRunner ScriptRunner { get; }
+
             public TransactionProcessor Processor { get; }
+
             public IContainer Container { get; }
 
             public Service()
             {
-                Storage = Substitute.For<ITransactionStorage>();
-                ScriptRunner = Substitute.For<IScriptRunner>();
-                Container = Substitute.For<IContainer>();
-                Container.CreateProxy().Returns(Container);
-                Processor = new TransactionProcessor(Storage, ScriptRunner, Container);
+                this.Storage = Substitute.For<ITransactionStorage>();
+                this.ScriptRunner = Substitute.For<IScriptRunner>();
+                this.Container = Substitute.For<IContainer>();
+                this.Container.CreateProxy().Returns(this.Container);
+                this.Processor = new TransactionProcessor(this.Storage, this.ScriptRunner, this.Container);
             }
 
             [DebuggerStepThrough]
@@ -32,7 +38,7 @@ namespace Daemos.Tests
             {
                 var cancellation = new CancellationTokenSource();
                 cancellation.CancelAfter(100);
-                return Processor.RunAsync(cancellation.Token);
+                return this.Processor.RunAsync(cancellation.Token);
             }
         }
 

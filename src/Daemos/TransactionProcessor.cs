@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="TransactionProcessor.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Daemos.Scripting;
@@ -9,6 +13,7 @@ namespace Daemos
     {
 
         public ITransactionStorage Storage { get; }
+
         public IScriptRunner ScriptRunner { get; }
 
         public IContainer Container { get; }

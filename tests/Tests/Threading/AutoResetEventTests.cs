@@ -1,15 +1,20 @@
-﻿using System;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
-using AutoResetEvent = Daemos.Threading.AutoResetEvent;
+﻿// <copyright file="AutoResetEventTests.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Tests.Threading
 {
+    using System;
+    using System.Diagnostics;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Xunit;
+    using AutoResetEvent = Daemos.Threading.AutoResetEvent;
+
+#pragma warning disable SA1202 // Elements must be ordered by access
+
     public class AutoResetEventTests
     {
-
         private static void Timeout(Action @event, int ms)
         {
             var timer = new Timer(o => @event(), null, ms, System.Threading.Timeout.Infinite);
@@ -19,7 +24,6 @@ namespace Daemos.Tests.Threading
         public async Task WaitOne_ReleasesOnce_ReturnsTrue()
         {
             var ev = new AutoResetEvent(false);
-
 
             var stp = Stopwatch.StartNew();
             Timeout(() => ev.Set(), 10);

@@ -1,60 +1,72 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+﻿// <copyright file="AutoResetEvent.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Threading
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
+
     // Based on Stephen Toub's "Building Async Coordination Primitives, Part 2: AsyncAutoResetEvent"
     // https://blogs.msdn.microsoft.com/pfxteam/2012/02/11/building-async-coordination-primitives-part-2-asyncautoresetevent/
 
+    /// <summary>
+    /// Implements an AutoResetEvent with cancellation and timeout support.
+    /// </summary>
     public sealed class AutoResetEvent : IDisposable, IAwaitableEvent
     {
         private static readonly Task<bool> Completed = Task.FromResult(true);
         private static readonly Task<bool> TimedOut = Task.FromResult(false);
-        private readonly List<EventRegistration> _taskCompletions;
-        private bool _signalled;
+        private readonly List<EventRegistration> taskCompletions;
+        private bool signalled;
 
-        private class EventRegistration
-        {
-            public EventRegistration(AutoResetEvent autoResetEvent, TaskCompletionSource<bool> completionSource)
-            {
-                AutoResetEvent = autoResetEvent;
-                CompletionSource = completionSource;
-            }
-            public CancellationTokenRegistration CancellationTokenRegistration { get; set; }
-            public TaskCompletionSource<bool> CompletionSource { get; }
-            public CancellationTokenSource TimeoutTokenSource { get; set; }
-            public CancellationTokenRegistration TimeoutTokenRegistration { get; set; }
-            public AutoResetEvent AutoResetEvent { get; }
-            public void Cancel()
-            {
-                CompletionSource.TrySetCanceled();
-                CancellationTokenRegistration.Dispose();
-            }
-        }
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AutoResetEvent"/> class.
+        /// </summary>
+        /// <param name="signalled">Indicates whether the AutoResetEvent starts in a signalled state</param>
         public AutoResetEvent(bool signalled)
         {
-            _signalled = signalled;
-            _taskCompletions = new List<EventRegistration>();
+            this.signalled = signalled;
+            this.taskCompletions = new List<EventRegistration>();
         }
 
+        /// <summary>
+        /// Waits for signal or until task is cancelled
+        /// </summary>
+        /// <param name="cancel">Cancel token used to cancel waiting</param>
+        /// <returns>True if the AutoResetEvent was signalled, otherwise false.</returns>
         public Task<bool> WaitOne(CancellationToken cancel)
         {
-            return WaitOne(Timeout.Infinite, cancel);
+            return this.WaitOne(Timeout.Infinite, cancel);
         }
 
+        /// <summary>
+        /// Waits for signal or until timeout
+        /// </summary>
+        /// <param name="timeout">Signal timeout in milliseconds</param>
+        /// <returns>True of the AutoResetEvent was signalled, otherwise false.</returns>
         public Task<bool> WaitOne(int timeout)
         {
-            return WaitOne(timeout, CancellationToken.None);
+            return this.WaitOne(timeout, CancellationToken.None);
         }
 
+        /// <summary>
+        /// Wait for signal
+        /// </summary>
+        /// <returns>Returns true</returns>
         public Task<bool> WaitOne()
         {
-            return WaitOne(Timeout.Infinite, CancellationToken.None);
+            return this.WaitOne(Timeout.Infinite, CancellationToken.None);
         }
 
+        /// <summary>
+        /// Waits for signal, timeout or task cancellation. Whichever comes first.
+        /// </summary>
+        /// <param name="timeout">Signal timeout in milliseconds</param>
+        /// <param name="cancel">Cancellation token</param>
+        /// <returns>True if the AutoResetEvent was signalled, otherwise false.</returns>
         public Task<bool> WaitOne(int timeout, CancellationToken cancel)
         {
             if (timeout < 0 && timeout != Timeout.Infinite)
@@ -67,13 +79,14 @@ namespace Daemos.Threading
                 return Task.FromCanceled<bool>(cancel);
             }
 
-            lock (_taskCompletions)
+            lock (this.taskCompletions)
             {
-                if (_signalled)
+                if (this.signalled)
                 {
-                    _signalled = false;
+                    this.signalled = false;
                     return Completed;
                 }
+
                 if (timeout == 0)
                 {
                     return TimedOut;
@@ -94,9 +107,54 @@ namespace Daemos.Threading
                     reg.TimeoutTokenRegistration = reg.TimeoutTokenSource.Token.Register(OnTimeoutCallback, reg, useSynchronizationContext: true);
                 }
 
-                _taskCompletions.Add(reg);
+                this.taskCompletions.Add(reg);
 
                 return task.Task;
+            }
+        }
+
+        /// <summary>
+        /// Signals he AutoResetEvent
+        /// </summary>
+        public void Set()
+        {
+            EventRegistration toRelease = null;
+            lock (this.taskCompletions)
+            {
+                if (this.taskCompletions.Count > 0)
+                {
+                    toRelease = this.Dequeue();
+                }
+                else if (!this.signalled)
+                {
+                    this.signalled = true;
+                }
+            }
+
+            if (toRelease != null)
+            {
+                toRelease.TimeoutTokenRegistration.Dispose();
+                toRelease.CancellationTokenRegistration.Dispose();
+                toRelease.TimeoutTokenSource?.Dispose();
+                toRelease.CompletionSource.SetResult(true);
+            }
+        }
+
+        /// <summary>
+        /// Disposes the AutoResetEvent. This clears up any waiting WaitOne requests.
+        /// </summary>
+        public void Dispose()
+        {
+            lock (this.taskCompletions)
+            {
+                while (this.taskCompletions.Count > 0)
+                {
+                    var item = this.Dequeue();
+                    item.TimeoutTokenRegistration.Dispose();
+                    item.CancellationTokenRegistration.Dispose();
+                    item.TimeoutTokenSource?.Dispose();
+                    item.Cancel();
+                }
             }
         }
 
@@ -113,9 +171,9 @@ namespace Daemos.Threading
         private static void ActionCallback(EventRegistration state, bool isTimeout)
         {
             bool removed;
-            lock (state.AutoResetEvent._taskCompletions)
+            lock (state.AutoResetEvent.taskCompletions)
             {
-                removed = state.AutoResetEvent._taskCompletions.Remove(state);
+                removed = state.AutoResetEvent.taskCompletions.Remove(state);
             }
 
             if (removed)
@@ -137,42 +195,33 @@ namespace Daemos.Threading
 
         private EventRegistration Dequeue()
         {
-            var result = _taskCompletions[_taskCompletions.Count - 1];
-            _taskCompletions.Remove(result);
+            var result = this.taskCompletions[this.taskCompletions.Count - 1];
+            this.taskCompletions.Remove(result);
             return result;
         }
 
-        public void Set()
+        private class EventRegistration
         {
-            EventRegistration toRelease = null;
-            lock (_taskCompletions)
+            public EventRegistration(AutoResetEvent autoResetEvent, TaskCompletionSource<bool> completionSource)
             {
-                if (_taskCompletions.Count > 0)
-                    toRelease = Dequeue();
-                else if (!_signalled)
-                    _signalled = true;
+                this.AutoResetEvent = autoResetEvent;
+                this.CompletionSource = completionSource;
             }
-            if (toRelease != null)
-            {
-                toRelease.TimeoutTokenRegistration.Dispose();
-                toRelease.CancellationTokenRegistration.Dispose();
-                toRelease.TimeoutTokenSource?.Dispose();
-                toRelease.CompletionSource.SetResult(true);
-            }
-        }
 
-        public void Dispose()
-        {
-            lock (_taskCompletions)
+            public CancellationTokenRegistration CancellationTokenRegistration { get; set; }
+
+            public TaskCompletionSource<bool> CompletionSource { get; }
+
+            public CancellationTokenSource TimeoutTokenSource { get; set; }
+
+            public CancellationTokenRegistration TimeoutTokenRegistration { get; set; }
+
+            public AutoResetEvent AutoResetEvent { get; }
+
+            public void Cancel()
             {
-                while (_taskCompletions.Count > 0)
-                {
-                    var item = Dequeue();
-                    item.TimeoutTokenRegistration.Dispose();
-                    item.CancellationTokenRegistration.Dispose();
-                    item.TimeoutTokenSource?.Dispose();
-                    item.Cancel();
-                }
+                this.CompletionSource.TrySetCanceled();
+                this.CancellationTokenRegistration.Dispose();
             }
         }
     }

@@ -1,4 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿// <copyright file="PostgreSqlTransactionStorage.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using Newtonsoft.Json;
 using Npgsql;
 using NpgsqlTypes;
 using System;
@@ -91,6 +95,7 @@ RETURNING {SelectColumns};";
         private readonly ConcurrentDictionary<Thread, NpgsqlConnection> _threadConnections = new ConcurrentDictionary<Thread, NpgsqlConnection>();
 
         private readonly ConcurrentDictionary<Thread, PostgreSqlQueryProvider> _queryProviders = new ConcurrentDictionary<Thread, PostgreSqlQueryProvider>();
+
         private async Task<NpgsqlConnection> GetConnectionAsync()
         {
             NpgsqlConnection conn = null;
@@ -183,7 +188,9 @@ RETURNING {SelectColumns};";
                 await trans.CommitAsync();
             }
         }
+
         private static readonly byte[] EmptyState = new byte[0];
+
         public override async Task<byte[]> GetTransactionStateAsync(Guid id, int revision)
         {
             var conn = await GetConnectionAsync();

@@ -1,69 +1,109 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Daemos.WebApi.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿// <copyright file="TransactionChainController.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.WebApi.Controllers
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Daemos.WebApi.Models;
+    using Microsoft.AspNetCore.Mvc;
+
+    /// <summary>
+    /// This controller handles chains (transaction revisions)
+    /// </summary>
     [Route("transactions/{id:guid}/chain")]
     public sealed class TransactionChainController : Controller
     {
-        private readonly ITransactionStorage _storage;
+        private readonly ITransactionStorage storage;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TransactionChainController"/> class.
+        /// </summary>
+        /// <param name="storage">Storage engine used by controller</param>
         public TransactionChainController(ITransactionStorage storage)
         {
-            _storage = storage;
+            this.storage = storage;
         }
 
+        /// <summary>
+        /// Get a transaction with all revisions
+        /// </summary>
+        /// <param name="id">Transaction ID</param>
+        /// <returns>List of transaction revisions</returns>
         [ProducesResponseType(typeof(TransactionResult[]), 200)]
+        [ProducesResponseType(404)]
         [HttpGet]
         public async Task<IActionResult> Get(Guid id)
         {
-            await _storage.LockTransactionAsync(id);
+            if (!await this.storage.TransactionExistsAsync(id))
+            {
+                return this.NotFound();
+            }
+
+            await this.storage.LockTransactionAsync(id);
             try
             {
-                var transactions = await _storage.GetChainAsync(id);
+                var transactions = await this.storage.GetChainAsync(id);
 
-                return Json(transactions.Select(TransactionMapper.ToTransactionResult));
+                return this.Json(transactions.Select(TransactionMapper.ToTransactionResult));
             }
             finally
             {
-                await _storage.FreeTransactionAsync(id);
+                await this.storage.FreeTransactionAsync(id);
             }
         }
 
+        /// <summary>
+        /// Gets a transaction at the specified revision
+        /// </summary>
+        /// <param name="id">Transaction ID</param>
+        /// <param name="revision">Revision number</param>
+        /// <returns>Transaction for the specified revision</returns>
         [ProducesResponseType(typeof(TransactionResult), 200)]
         [HttpGet("{revision:min(0)}", Name = "TransactionGetRevision")]
         public async Task<IActionResult> Get(Guid id, [FromRoute] int revision)
         {
             try
             {
-                await _storage.LockTransactionAsync(id);
+                await this.storage.LockTransactionAsync(id);
             }
             catch (TransactionMissingException)
             {
-                return NotFound();
+                return this.NotFound();
             }
+
             try
             {
-                var transaction = await _storage.FetchTransactionAsync(id, revision);
+                var transaction = await this.storage.FetchTransactionAsync(id, revision);
 
-                return Json(transaction.ToTransactionResult());
+                if (transaction == null)
+                {
+                    return this.NotFound();
+                }
 
+                return this.Json(transaction.ToTransactionResult());
             }
             finally
             {
-                await _storage.FreeTransactionAsync(id);
+                await this.storage.FreeTransactionAsync(id);
             }
         }
 
+        /// <summary>
+        /// Creates a new transaction at the specified revision
+        /// </summary>
+        /// <param name="id">Transaction ID</param>
+        /// <param name="revision">Revision. Omitting this field assumes newest available revision</param>
+        /// <param name="model">Transaction data</param>
+        /// <returns>Returns the created transaction</returns>
         [ProducesResponseType(typeof(TransactionResult), 201)]
         [HttpPost("{revision:min(0)?}", Name = "TransactionPost")]
         public async Task<IActionResult> Post(Guid id, [FromRoute] int? revision, [FromBody] IDictionary<string, object> model)
         {
-            var factory = new TransactionFactory(_storage);
+            var factory = new TransactionFactory(this.storage);
 
             Transaction trans;
             if (revision != null)
@@ -82,28 +122,33 @@ namespace Daemos.WebApi.Controllers
                 if (model.ContainsKey("expires"))
                 {
                     if (model["expires"] == null)
+                    {
                         expires = null;
+                    }
                     else
                     {
                         if (model["expires"] is DateTime)
+                        {
                             expires = (DateTime)model["expires"];
+                        }
                         else if (!DateTimeParser.TryParseDateTime(model["expires"] as string, out expires))
                         {
-                            
-                            return BadRequest("The specified expiration date could not be parsed as standard ISO UTC time.");
+                            return this.BadRequest("The specified expiration date could not be parsed as standard ISO UTC time.");
                         }
                     }
                 }
                 else
+                {
                     expires = trans.Expires;
+                }
 
                 TransactionState state;
 
                 if (model.ContainsKey("state"))
                 {
-                    if (!Enum.TryParse((string) model["state"], false, out state))
+                    if (!Enum.TryParse((string)model["state"], false, out state))
                     {
-                        return BadRequest("Could not parse transaction state.");
+                        return this.BadRequest("Could not parse transaction state.");
                     }
                 }
                 else
@@ -125,7 +170,7 @@ namespace Daemos.WebApi.Controllers
                 await trans.Free();
             }
 
-            return Created(Url.RouteUrl("TransactionGet", new { id = result.Id }), result.ToTransactionResult());
+            return this.Created(this.Url.RouteUrl("TransactionGet", new { id = result.Id }), result.ToTransactionResult());
         }
     }
 }

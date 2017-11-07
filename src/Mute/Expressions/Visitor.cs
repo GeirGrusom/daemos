@@ -1,49 +1,52 @@
-﻿using System;
-using System.Diagnostics;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
+    using System;
+    using System.Diagnostics;
+
     public class Visitor
     {
         [DebuggerStepThrough]
         public void Visit(Expression expression)
         {
-            OnVisit(expression);
+            this.OnVisit(expression);
         }
 
         [DebuggerStepThrough]
         public virtual void OnVisit(BinaryExpression exp)
         {
             if (exp is BinaryAddExpression)
-                OnVisit((BinaryAddExpression)exp);
+                this.OnVisit((BinaryAddExpression)exp);
             else if (exp is BinarySubtractExpression)
-                OnVisit((BinarySubtractExpression)exp);
+                this.OnVisit((BinarySubtractExpression)exp);
             else if (exp is BinaryMultiplyExpression)
-                OnVisit((BinaryMultiplyExpression)exp);
+                this.OnVisit((BinaryMultiplyExpression)exp);
             else if (exp is BinaryDivideExpression)
-                OnVisit((BinaryDivideExpression)exp);
+                this.OnVisit((BinaryDivideExpression)exp);
             else if (exp is BinaryEqualExpression)
-                OnVisit((BinaryEqualExpression)exp);
+                this.OnVisit((BinaryEqualExpression)exp);
             else if (exp is BinaryNotEqualExpression)
-                OnVisit((BinaryNotEqualExpression)exp);
+                this.OnVisit((BinaryNotEqualExpression)exp);
             else if (exp is BinaryAssignExpression)
-                OnVisit((BinaryAssignExpression)exp);
+                this.OnVisit((BinaryAssignExpression)exp);
             else if (exp is BinaryGreaterExpression)
-                OnVisit((BinaryGreaterExpression)exp);
+                this.OnVisit((BinaryGreaterExpression)exp);
             else if (exp is BinaryGreaterOrEqualExpression)
-                OnVisit((BinaryGreaterOrEqualExpression)exp);
+                this.OnVisit((BinaryGreaterOrEqualExpression)exp);
             else if (exp is BinaryLessExpression)
-                OnVisit((BinaryLessExpression)exp);
+                this.OnVisit((BinaryLessExpression)exp);
             else if (exp is BinaryLessOrEqualExpression)
-                OnVisit((BinaryLessOrEqualExpression)exp);
+                this.OnVisit((BinaryLessOrEqualExpression)exp);
             else if (exp is BinaryAndExpression)
-                OnVisit((BinaryAndExpression)exp);
+                this.OnVisit((BinaryAndExpression)exp);
             else if (exp is BinaryOrExpression)
-                OnVisit((BinaryOrExpression)exp);
+                this.OnVisit((BinaryOrExpression)exp);
             else if (exp is BinaryXorExpression)
-                OnVisit((BinaryXorExpression)exp);
+                this.OnVisit((BinaryXorExpression)exp);
             else if (exp is WithExpression)
-                OnVisit((WithExpression)exp);
+                this.OnVisit((WithExpression)exp);
             else
                 throw new NotImplementedException($"The binary operator '{exp.GetType().Name}' is not implemented.");
         }
@@ -52,59 +55,59 @@ namespace Daemos.Mute.Expressions
         public virtual void OnVisit(UnaryExpression exp)
         {
             if (exp is UnarySubtractExpression unarySubtractExpression)
-                OnVisit(unarySubtractExpression);
+                this.OnVisit(unarySubtractExpression);
             else if (exp is UnaryAwaitExpression unaryAwaitExpression)
-                OnVisit(unaryAwaitExpression);
+                this.OnVisit(unaryAwaitExpression);
             else if (exp is UnaryNotExpression unaryNotExpression)
-                OnVisit(unaryNotExpression);
+                this.OnVisit(unaryNotExpression);
             else if (exp is UnaryConvertExpression unaryConvertExpression)
-                OnVisit(unaryConvertExpression);
+                this.OnVisit(unaryConvertExpression);
             else if (exp is NotNullExpression notNullExpression)
-                OnVisit(notNullExpression);
+                this.OnVisit(notNullExpression);
             else
                 throw new NotImplementedException($"The unary type '{exp.GetType().Name}' is not implemented.");
         }
 
         public virtual void OnVisit(BinaryAndExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(BinaryOrExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(BinaryXorExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(TryExpression exp)
         {
-            OnVisit(exp.Body);
+            this.OnVisit(exp.Body);
             foreach (var c in exp.CatchExpressions)
             {
-                OnVisit(c);
+                this.OnVisit(c);
             }
-            OnVisit(exp.Finally);
+            this.OnVisit(exp.Finally);
         }
 
         public virtual void OnVisit(CallExpression exp)
         {
-            OnVisit(exp.Instance);
+            this.OnVisit(exp.Instance);
             foreach (var arg in exp.Arguments)
             {
-                OnVisit(arg);
+                this.OnVisit(arg);
             }
         }
 
         public virtual void OnVisit(MemberExpression exp)
         {
-            OnVisit(exp.Instance);
+            this.OnVisit(exp.Instance);
         }
 
         [DebuggerStepThrough]
@@ -116,64 +119,64 @@ namespace Daemos.Mute.Expressions
             }
 
             if (exp is BinaryExpression)
-                OnVisit((BinaryExpression)exp);
+                this.OnVisit((BinaryExpression)exp);
             else if (exp is UnaryExpression)
-                OnVisit((UnaryExpression)exp);
+                this.OnVisit((UnaryExpression)exp);
             else if (exp is ModuleExpression)
-                OnVisit((ModuleExpression)exp);
+                this.OnVisit((ModuleExpression)exp);
             else if (exp is ConstantExpression)
-                OnVisit((ConstantExpression)exp);
+                this.OnVisit((ConstantExpression)exp);
             else if (exp is VariableExpression)
-                OnVisit((VariableExpression)exp);
+                this.OnVisit((VariableExpression)exp);
             else if (exp is BlockExpression)
-                OnVisit((BlockExpression)exp);
+                this.OnVisit((BlockExpression)exp);
             else if (exp is VariableDeclarationExpression)
-                OnVisit((VariableDeclarationExpression)exp);
+                this.OnVisit((VariableDeclarationExpression)exp);
             else if (exp is CallExpression)
-                OnVisit((CallExpression)exp);
+                this.OnVisit((CallExpression)exp);
             else if (exp is RetryExpression)
-                OnVisit((RetryExpression)exp);
+                this.OnVisit((RetryExpression)exp);
             else if (exp is TryExpression)
-                OnVisit((TryExpression)exp);
+                this.OnVisit((TryExpression)exp);
             else if (exp is CatchExpression)
-                OnVisit((CatchExpression)exp);
+                this.OnVisit((CatchExpression)exp);
             else if (exp is ConditionalExpression)
-                OnVisit((ConditionalExpression)exp);
+                this.OnVisit((ConditionalExpression)exp);
             else if (exp is ImportExpression)
-                OnVisit((ImportExpression)exp);
+                this.OnVisit((ImportExpression)exp);
             else if (exp is CommitTransactionExpression)
-                OnVisit((CommitTransactionExpression)exp);
+                this.OnVisit((CommitTransactionExpression)exp);
             else if (exp is ObjectExpression)
-                OnVisit((ObjectExpression)exp);
+                this.OnVisit((ObjectExpression)exp);
             else if (exp is NamedArgument)
-                OnVisit((NamedArgument)exp);
+                this.OnVisit((NamedArgument)exp);
             else if (exp is MemberExpression)
-                OnVisit((MemberExpression)exp);
+                this.OnVisit((MemberExpression)exp);
             else
                 throw new NotImplementedException();
         }
 
         public virtual void OnVisit(NamedArgument exp)
         {
-            OnVisit(exp.Value);
+            this.OnVisit(exp.Value);
         }
 
         public virtual void OnVisit(ObjectExpression exp)
         {
             foreach (var mem in exp.Members)
             {
-                OnVisit(mem);
+                this.OnVisit(mem);
             }
         }
 
         public virtual void OnVisit(ObjectMember exp)
         {
-            OnVisit(exp.Value);
+            this.OnVisit(exp.Value);
         }
 
         public virtual void OnVisit(CommitTransactionExpression exp)
         {
-            OnVisit(exp.Transaction);
+            this.OnVisit(exp.Transaction);
         }
 
         public virtual void OnVisit(RetryExpression retry)
@@ -182,103 +185,107 @@ namespace Daemos.Mute.Expressions
 
         public virtual void OnVisit(BinaryAddExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(NotNullExpression exp)
         {
-            OnVisit(exp.Operand);
+            this.OnVisit(exp.Operand);
         }
 
         public virtual void OnVisit(ConditionalExpression exp)
         {
-            OnVisit(exp.Condition);
-            OnVisit(exp.IfValue);
+            this.OnVisit(exp.Condition);
+            this.OnVisit(exp.IfValue);
             if (exp.ElseValue != null)
             {
-                OnVisit(exp.ElseValue);
+                this.OnVisit(exp.ElseValue);
             }
         }
 
         public virtual void OnVisit(BinarySubtractExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(BinaryGreaterExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
+
         public virtual void OnVisit(BinaryGreaterOrEqualExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(CatchExpression exp)
         {
-            OnVisit(exp.Body);
+            this.OnVisit(exp.Body);
         }
 
         public virtual void OnVisit(BinaryLessExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
+
         public virtual void OnVisit(BinaryLessOrEqualExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(BinaryMultiplyExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(BinaryDivideExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(BinaryEqualExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(BinaryNotEqualExpression exp)
         {
-            OnVisit(exp.Left);
-            OnVisit(exp.Right);
+            this.OnVisit(exp.Left);
+            this.OnVisit(exp.Right);
         }
 
         public virtual void OnVisit(UnaryAddExpression exp)
         {
-            Visit(exp.Operand);
+            this.Visit(exp.Operand);
         }
+
         public virtual void OnVisit(UnarySubtractExpression exp)
         {
-            Visit(exp.Operand);
+            this.Visit(exp.Operand);
         }
+
         public virtual void OnVisit(UnaryNotExpression exp)
         {
-            Visit(exp.Operand);
+            this.Visit(exp.Operand);
         }
 
         public virtual void OnVisit(UnaryAwaitExpression exp)
         {
-            Visit(exp.Operand);
+            this.Visit(exp.Operand);
         }
 
         public virtual void OnVisit(UnaryConvertExpression exp)
         {
-            Visit(exp.Operand);
+            this.Visit(exp.Operand);
         }
 
         public virtual void OnVisit(ConstantExpression exp)
@@ -287,49 +294,47 @@ namespace Daemos.Mute.Expressions
 
         public virtual void OnVisit(ModuleExpression exp)
         {
-            Visit(exp.Body);
+            this.Visit(exp.Body);
         }
 
         public virtual void OnVisit(BlockExpression exp)
         {
             foreach (var item in exp.Body)
             {
-                Visit(item);
+                this.Visit(item);
             }
         }
 
         public virtual void OnVisit(VariableExpression exp)
         {
-
         }
 
         public virtual void OnVisit(VariableDeclarationExpression exp)
         {
-            Visit(exp.Variable);
-            Visit(exp.Assignment);
+            this.Visit(exp.Variable);
+            this.Visit(exp.Assignment);
         }
 
         public virtual void OnVisit(WhileExpression exp)
         {
-            Visit(exp.Condition);
-            Visit(exp.Contents);
+            this.Visit(exp.Condition);
+            this.Visit(exp.Contents);
         }
 
         public virtual void OnVisit(BinaryAssignExpression exp)
         {
-            Visit(exp.Left);
-            Visit(exp.Right);
+            this.Visit(exp.Left);
+            this.Visit(exp.Right);
         }
 
         public virtual void OnVisit(ImportExpression exp)
         {
-
         }
 
         public virtual void OnVisit(WithExpression exp)
         {
-            Visit(exp.Left);
-            Visit(exp.Right);
+            this.Visit(exp.Left);
+            this.Visit(exp.Right);
         }
     }
 }

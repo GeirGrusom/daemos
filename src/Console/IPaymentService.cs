@@ -1,27 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using Daemos.Scripting;
+﻿// <copyright file="IPaymentService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Console
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+    using Daemos.Scripting;
+
     public class InitializeResult : ISerializable
     {
         public InitializeResult(int transactionId)
         {
-            TransactionId = transactionId;
+            this.TransactionId = transactionId;
         }
 
         public InitializeResult(IStateDeserializer deserializer)
         {
-            TransactionId = deserializer.Deserialize<int>(nameof(TransactionId));
+            this.TransactionId = deserializer.Deserialize<int>(nameof(this.TransactionId));
         }
 
         public int TransactionId { get; }
+
         public void Serialize(IStateSerializer serializer)
         {
-            serializer.Serialize(nameof(TransactionId), TransactionId);
+            serializer.Serialize(nameof(this.TransactionId), this.TransactionId);
         }
     }
 
@@ -29,18 +34,19 @@ namespace Daemos.Console
     {
         public AuthorizeResult(decimal amount)
         {
-            Amount = amount;
+            this.Amount = amount;
         }
 
         public AuthorizeResult(IStateDeserializer deserializer)
         {
-            Amount = deserializer.Deserialize<decimal>(nameof(Amount));
+            this.Amount = deserializer.Deserialize<decimal>(nameof(this.Amount));
         }
 
         public decimal Amount { get; }
+
         public void Serialize(IStateSerializer serializer)
         {
-            serializer.Serialize(nameof(Amount), Amount);
+            serializer.Serialize(nameof(this.Amount), this.Amount);
         }
     }
 
@@ -48,22 +54,24 @@ namespace Daemos.Console
     {
         public CaptureResult(decimal capturedAmount, decimal remainingAmount)
         {
-            CapturedAmount = capturedAmount;
-            RemainingAmount = remainingAmount;
+            this.CapturedAmount = capturedAmount;
+            this.RemainingAmount = remainingAmount;
         }
 
         public CaptureResult(IStateDeserializer deserializer)
         {
-            CapturedAmount = deserializer.Deserialize<decimal>(nameof(CapturedAmount));
-            RemainingAmount = deserializer.Deserialize<decimal>(nameof(RemainingAmount));
+            this.CapturedAmount = deserializer.Deserialize<decimal>(nameof(this.CapturedAmount));
+            this.RemainingAmount = deserializer.Deserialize<decimal>(nameof(this.RemainingAmount));
         }
 
         public decimal CapturedAmount { get; }
+
         public decimal RemainingAmount { get; }
+
         public void Serialize(IStateSerializer serializer)
         {
-            serializer.Serialize(nameof(CapturedAmount), CapturedAmount);
-            serializer.Serialize(nameof(RemainingAmount), RemainingAmount);
+            serializer.Serialize(nameof(this.CapturedAmount), this.CapturedAmount);
+            serializer.Serialize(nameof(this.RemainingAmount), this.RemainingAmount);
         }
     }
 
@@ -71,7 +79,7 @@ namespace Daemos.Console
     {
         public CompleteResult(int transactionId)
         {
-            TransactionId = transactionId;
+            this.TransactionId = transactionId;
         }
 
         public int TransactionId { get; }
@@ -80,8 +88,11 @@ namespace Daemos.Console
     public interface IPaymentService
     {
         InitializeResult Initialize(int merchantId);
+
         AuthorizeResult Authorize(int transactionId, decimal maxAmount);
+
         CaptureResult Capture(int transactionId, decimal amount);
+
         CompleteResult Complete(int transactionId);
     }
 
@@ -90,16 +101,19 @@ namespace Daemos.Console
         private class TransactionInfo
         {
             public decimal AuthorizedAmount { get; set; }
+
             public int MerchantId { get; }
+
             public TransactionInfo(int merchantId)
             {
-                MerchantId = merchantId;
+                this.MerchantId = merchantId;
             }
 
-            
         }
+
         private static readonly Random RandomGenerator = new Random();
         private static readonly Dictionary<int, TransactionInfo> _transactions = new Dictionary<int, TransactionInfo>();
+
         public InitializeResult Initialize(int merchantId)
         {
             var transactionId = RandomGenerator.Next();

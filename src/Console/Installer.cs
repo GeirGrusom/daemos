@@ -1,23 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Daemos.Console.Configuration;
-using Daemos.Installation;
-using Daemos.Postgres.Installation;
-using Npgsql;
+﻿// <copyright file="Installer.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Console
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Daemos.Console.Configuration;
+    using Daemos.Installation;
+    using Daemos.Postgres.Installation;
+    using Npgsql;
+
     public class Installer
     {
         public async Task Run(Settings settings)
         {
             var completedTasks = new Stack<ITask>();
             var connbuilder = new NpgsqlConnectionStringBuilder(settings?.ConnectionString);
-
-            
 
             var postgresStep = new PostgresInstallerStep(connbuilder.Host, connbuilder.Port, new ConsoleCredentialsPrompt());
             foreach (var step in postgresStep.GetStepTasks())

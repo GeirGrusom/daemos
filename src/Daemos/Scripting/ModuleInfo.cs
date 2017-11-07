@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="ModuleInfo.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 
 namespace Daemos.Scripting
 {
@@ -12,6 +16,7 @@ namespace Daemos.Scripting
             Type = type;
         }
     }
+
     public interface IModuleInfo
     {
         void OnInitializeRegister(IDependencyRegister register);

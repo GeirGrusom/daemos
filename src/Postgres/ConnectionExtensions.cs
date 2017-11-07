@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="ConnectionExtensions.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -58,7 +62,7 @@ namespace Daemos.Postgres
             
             var add = typeof(NpgsqlParameterCollection).GetMethod("Add", new [] { typeof(NpgsqlParameter) });
             var toString = typeof(object).GetMethod("ToString");
-            foreach(var prop in type.GetProperties())
+            foreach (var prop in type.GetProperties())
             {
                 var sqlType = GetSqlTypeForType(prop.PropertyType);
                 Expression propVal = Expression.Property(parameters, prop);

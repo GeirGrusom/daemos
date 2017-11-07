@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="PostgresTaskBase.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Text;
@@ -11,6 +15,7 @@ namespace Daemos.Postgres.Installation
     public abstract class PostgresTaskBase : ITask, IDisposable
     {
         public NpgsqlConnection Connection { get; }
+
         public NpgsqlTransaction Transaction { get; }
 
         protected PostgresTaskBase(NpgsqlConnection connection)

@@ -1,4 +1,8 @@
-﻿namespace Daemos.WebApi.Models
+﻿// <copyright file="TransactionMapper.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+namespace Daemos.WebApi.Models
 {
     internal static class TransactionMapper
     {

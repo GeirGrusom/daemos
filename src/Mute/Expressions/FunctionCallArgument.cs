@@ -1,29 +1,33 @@
-﻿namespace Daemos.Mute.Expressions
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
+
+namespace Daemos.Mute.Expressions
 {
     public struct FunctionCallArgument
     {
         public string Name { get; }
+
         public Expression Value { get; }
 
         public FunctionCallArgument(string name, Expression value)
         {
-            Name = name;
-            Value = value;
+            this.Name = name;
+            this.Value = value;
         }
 
         public FunctionCallArgument(Expression value)
         {
-            Name = null;
-            Value = value;
+            this.Name = null;
+            this.Value = value;
         }
 
         public override string ToString()
         {
-            if (Name != null)
+            if (this.Name != null)
             {
-                return $"{Name}: {Value}";
+                return $"{this.Name}: {this.Value}";
             }
-            return Value.ToString();
+            return this.Value.ToString();
         }
     }
 }

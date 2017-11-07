@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="Migration.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +14,7 @@ namespace Daemos.Postgres
     public class MigrationItem
     {
         public string Name { get; }
+
         public Stream Script { get; }
 
         public ulong HashCode { get; }
@@ -21,6 +26,7 @@ namespace Daemos.Postgres
             this.HashCode = hashCode;
         }
     }
+
     public class Migration
     {
         private readonly NpgsqlConnection connection;

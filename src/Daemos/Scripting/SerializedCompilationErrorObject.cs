@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿// <copyright file="SerializedCompilationErrorObject.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Daemos.Scripting
@@ -12,6 +16,7 @@ namespace Daemos.Scripting
         }
 
         public string Message { get; }
+
         public List<CompilationError> Errors { get; }
 
         public static SerializedCompilationError FromException(CompilationFailedException ex)

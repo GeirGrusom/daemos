@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="TransactionStorageBase.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,12 +50,19 @@ namespace Daemos
         }
 
         public abstract Task InitializeAsync();
+
         public abstract Task<Transaction> CommitTransactionDeltaAsync(Transaction original, Transaction next);
+
         public abstract Transaction CommitTransactionDelta(Transaction original, Transaction next);
+
         public abstract Task<Transaction> CreateTransactionAsync(Transaction transaction);
+
         public abstract Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1);
+
         public abstract void SaveTransactionState(Guid id, int revision, byte[] state);
+
         public abstract Task SaveTransactionStateAsync(Guid id, int revision, byte[] state);
+
         public virtual Task FreeTransactionAsync(Guid id)
         {
             if (_rowLock.TryGetValue(id, out var sem))
@@ -60,8 +71,11 @@ namespace Daemos
             }
             return Task.CompletedTask;
         }
+
         public abstract Task<IEnumerable<Transaction>> GetChainAsync(Guid id);
+
         public abstract Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state);
+
         public virtual async Task<bool> IsTransactionLockedAsync(Guid id)
         {
             if (_rowLock.TryGetValue(id, out var sem))
@@ -126,6 +140,7 @@ namespace Daemos
 
 
         public abstract Task<IQueryable<Transaction>> QueryAsync();
+
         public abstract Task<bool> TransactionExistsAsync(Guid id);
 
         public virtual async Task<bool> TryLockTransactionAsync(Guid id, LockFlags flags = LockFlags.None, int timeout = -1)
@@ -155,6 +170,7 @@ namespace Daemos
         }
 
         public abstract Task OpenAsync();
+
         public abstract Task<byte[]> GetTransactionStateAsync(Guid id, int revision);
 
         public virtual async Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout)
@@ -179,7 +195,9 @@ namespace Daemos
 
             return result;
         }
+
         private readonly List<Transaction> Empty = new List<Transaction>(0);
+
         public async Task<List<Transaction>> GetExpiringTransactionsAsync(CancellationToken cancel)
         {
             if (await WaitForExpiringTransactions(cancel))

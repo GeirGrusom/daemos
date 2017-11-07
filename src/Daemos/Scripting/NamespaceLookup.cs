@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="NamespaceLookup.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,6 +59,7 @@ namespace Daemos.Scripting
     public class ImportedNamespace : IEnumerable<KeyValuePair<string, Type>>
     {
         public string Namespace { get; }
+
         private readonly Dictionary<string, Type> _types;
 
         public ImportedNamespace([NotNull] string @namespace)

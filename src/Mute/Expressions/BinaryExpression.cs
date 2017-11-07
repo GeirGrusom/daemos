@@ -1,261 +1,189 @@
-﻿using System.Reflection;
-using Antlr4.Runtime;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
+    using System.Reflection;
+    using Antlr4.Runtime;
+
+    /// <summary>
+    /// Lists all binary operators
+    /// </summary>
     public enum BinaryOperator
     {
+        /// <summary>
+        /// Node is an add expression
+        /// </summary>
         Add,
+
+        /// <summary>
+        /// Node is a subtract expression
+        /// </summary>
         Subtract,
+
+        /// <summary>
+        /// Node is a multiply expression
+        /// </summary>
         Multiply,
+
+        /// <summary>
+        /// Node is a divide expression
+        /// </summary>
         Divide,
+
+        /// <summary>
+        /// Node is a remainder expression
+        /// </summary>
         Remainder,
+
+        /// <summary>
+        /// Node is an equal expression
+        /// </summary>
         Equal,
+
+        /// <summary>
+        /// Node is a not equal expression
+        /// </summary>
         NotEqual,
+
+        /// <summary>
+        /// Node is a greater than expression
+        /// </summary>
         GreaterThan,
+
+        /// <summary>
+        /// Node is a less than or equal expression
+        /// </summary>
         GreaterThanOrEqual,
+
+        /// <summary>
+        /// Node is a less than expression
+        /// </summary>
         LessThan,
+
+        /// <summary>
+        /// Node is a less than or equal expression
+        /// </summary>
         LessThanOrEqual,
+
+        /// <summary>
+        /// Node is a logical and expression
+        /// </summary>
         And,
+
+        /// <summary>
+        /// Node is a logical or expression
+        /// </summary>
         Or,
+
+        /// <summary>
+        /// Node is a logical exclusive or expression
+        /// </summary>
         ExclusiveOr,
+
+        /// <summary>
+        /// Node is an assignment expression
+        /// </summary>
         Assign,
+
+        /// <summary>
+        /// Node is a with expression
+        /// </summary>
         With
     }
 
+    /// <summary>
+    /// This class is the super class of all binary operators (operators with exactly two arguments)
+    /// </summary>
     public class BinaryExpression : Expression
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryExpression"/> class.
+        /// </summary>
+        /// <param name="left">Left hand expression</param>
+        /// <param name="right">Right hand expression</param>
+        /// <param name="operator">Operator used by this binary expressionb</param>
+        /// <param name="context">Parser rule context this expression was made from</param>
+        protected BinaryExpression(Expression left, Expression right, BinaryOperator @operator, ParserRuleContext context)
+            : this(left, right, @operator, null, context)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryExpression"/> class.
+        /// </summary>
+        /// <param name="left">Left hand expression</param>
+        /// <param name="right">Right hand expression</param>
+        /// <param name="operator">Operator used by this binary expression</param>
+        /// <param name="method">Method used when this operator is invoked</param>
+        /// <param name="context">Parser rule context this expression was made from</param>
+        protected BinaryExpression(Expression left, Expression right, BinaryOperator @operator, MethodInfo method, ParserRuleContext context)
+            : base(left.Type, context)
+        {
+            this.Method = method;
+            this.Operator = @operator;
+            this.Left = left;
+            this.Right = right;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryExpression"/> class.
+        /// </summary>
+        /// <param name="left">Left hand expression</param>
+        /// <param name="right">Right hand expression</param>
+        /// <param name="resultType">Operator result data type</param>
+        /// <param name="operator">Operator used by this binary expression</param>
+        /// <param name="method">Method used when this operator is invoked</param>
+        /// <param name="context">Parser rule context this expression was made from</param>
+        protected BinaryExpression(Expression left, Expression right, DataType resultType, BinaryOperator @operator, MethodInfo method, ParserRuleContext context)
+            : base(resultType, context)
+        {
+            this.Method = method;
+            this.Operator = @operator;
+            this.Left = left;
+            this.Right = right;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BinaryExpression"/> class.
+        /// </summary>
+        /// <param name="left">Left hand expression</param>
+        /// <param name="right">Right hand expression</param>
+        /// <param name="resultType">Operator result data type</param>
+        /// <param name="operator">Operator used by this binary expression</param>
+        /// <param name="context">Parser rule context this expression was made from</param>
+        protected BinaryExpression(Expression left, Expression right, DataType resultType, BinaryOperator @operator, ParserRuleContext context)
+            : this(left, right, resultType, @operator, null, context)
+        {
+            this.Method = null;
+            this.Operator = @operator;
+            this.Left = left;
+            this.Right = right;
+        }
+
+        /// <summary>
+        /// Gets the left hand expression
+        /// </summary>
         public Expression Left { get; }
+
+        /// <summary>
+        /// Gets the right hand expression
+        /// </summary>
         public Expression Right { get; }
+
+        /// <summary>
+        /// Gets the operator type
+        /// </summary>
         public BinaryOperator Operator { get; }
 
+#pragma warning disable SA1134 // Attributes must not share line
+        /// <summary>
+        /// Gets the method
+        /// </summary>
+        /// <remarks>
+        /// This value can be null
+        /// </remarks>
         public MethodInfo Method { [return: CanBeNull]get; }
-
-        protected BinaryExpression(Expression left, Expression right, BinaryOperator @operator, ParserRuleContext context) : this(left, right, @operator, null, context)
-        {
-        }
-
-        protected BinaryExpression(Expression left, Expression right, BinaryOperator @operator, MethodInfo method, ParserRuleContext context) : base(left.Type, context)
-        {
-            Method = method;
-            Operator = @operator;
-            Left = left;
-            Right = right;
-        }
-
-        protected BinaryExpression(Expression left, Expression right, DataType resultType, BinaryOperator @operator, MethodInfo method, ParserRuleContext context) : base(resultType, context)
-        {
-            Method = method;
-            Operator = @operator;
-            Left = left;
-            Right = right;
-        }
-
-        protected BinaryExpression(Expression left, Expression right, DataType resultType, BinaryOperator @operator, ParserRuleContext context) : this(left, right, resultType, @operator, null, context)
-        {
-            Method = null;
-            Operator = @operator;
-            Left = left;
-            Right = right;
-        }
-
-    }
-
-    public sealed class BinaryAddExpression : BinaryExpression
-    {
-        public BinaryAddExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, BinaryOperator.Add, context)
-        {
-        }
-
-        public BinaryAddExpression(Expression left, Expression right, MethodInfo meth, ParserRuleContext context) : base(left, right, BinaryOperator.Add, meth, context)
-        {
-        }
-
-
-        public override string ToString()
-        {
-            return $"{Left} + {Right}";
-        }
-    }
-
-    public sealed class BinarySubtractExpression : BinaryExpression
-    {
-        public BinarySubtractExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, BinaryOperator.Subtract, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} - {Right}";
-        }
-
-    }
-
-    public sealed class BinaryMultiplyExpression : BinaryExpression
-    {
-        public BinaryMultiplyExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, BinaryOperator.Multiply, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} * {Right}";
-        }
-
-    }
-
-    public sealed class BinaryDivideExpression : BinaryExpression
-    {
-        public BinaryDivideExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, BinaryOperator.Divide, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} / {Right}";
-        }
-
-    }
-
-    public sealed class BinaryRemainderExpression : BinaryExpression
-    {
-        public BinaryRemainderExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, BinaryOperator.Remainder, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} % {Right}";
-        }
-
-    }
-
-    public sealed class BinaryEqualExpression : BinaryExpression
-    {
-        public BinaryEqualExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, DataType.NonNullBool, BinaryOperator.Equal, context)
-        {
-        }
-
-        public BinaryEqualExpression(Expression left, Expression right, MethodInfo method, ParserRuleContext context) : base(left, right, DataType.NonNullBool, BinaryOperator.Equal, method, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} = {Right}";
-        }
-    }
-
-    public sealed class BinaryNotEqualExpression : BinaryExpression
-    {
-        public BinaryNotEqualExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, DataType.NonNullBool, BinaryOperator.NotEqual, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} != {Right}";
-        }
-    }
-
-    public sealed class BinaryGreaterExpression : BinaryExpression
-    {
-        public BinaryGreaterExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, DataType.NonNullBool, BinaryOperator.GreaterThan, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} > {Right}";
-        }
-
-    }
-    public sealed class BinaryGreaterOrEqualExpression : BinaryExpression
-    {
-        public BinaryGreaterOrEqualExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, DataType.NonNullBool, BinaryOperator.GreaterThanOrEqual, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} >= {Right}";
-        }
-
-    }
-
-    public sealed class BinaryLessExpression : BinaryExpression
-    {
-        public BinaryLessExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, DataType.NonNullBool, BinaryOperator.LessThan, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} < {Right}";
-        }
-
-    }
-    public sealed class BinaryLessOrEqualExpression : BinaryExpression
-    {
-        public BinaryLessOrEqualExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, DataType.NonNullBool, BinaryOperator.LessThanOrEqual, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} <= {Right}";
-        }
-
-    }
-
-    public sealed class BinaryAndExpression : BinaryExpression
-    {
-        public BinaryAndExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, BinaryOperator.And, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} and {Right}";
-        }
-
-    }
-
-    public sealed class BinaryOrExpression : BinaryExpression
-    {
-        public BinaryOrExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, BinaryOperator.Or, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} or {Right}";
-        }
-
-    }
-
-    public sealed class BinaryXorExpression : BinaryExpression
-    {
-        public BinaryXorExpression(Expression left, Expression right, ParserRuleContext context) : base(left, right, BinaryOperator.ExclusiveOr, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} xor {Right}";
-        }
-    }
-
-    public sealed class BinaryAssignExpression : BinaryExpression
-    {
-        public BinaryAssignExpression(VariableExpression left, Expression right, ParserRuleContext context )
-            : base(left, right, BinaryOperator.Assign, context)
-        {
-        }
-
-        public override string ToString()
-        {
-            return $"{Left} <- {Right}";
-        }
+#pragma warning restore SA1134 // Attributes must not share line
     }
 }

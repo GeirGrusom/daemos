@@ -1,19 +1,23 @@
-﻿using Daemos.Console.Configuration;
-using Daemos.Mute;
-using Daemos.Postgres;
-using Daemos.Scripting;
-using Daemos.WebApi;
-using Daemos.WebApi.Scripting;
-using Newtonsoft.Json;
-using System;
-using System.IO;
-using System.Reflection;
-using System.Runtime.Loader;
-using System.Threading;
-using System.Threading.Tasks;
+﻿// <copyright file="Program.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Console
 {
+    using System;
+    using System.IO;
+    using System.Reflection;
+    using System.Runtime.Loader;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Daemos.Console.Configuration;
+    using Daemos.Mute;
+    using Daemos.Postgres;
+    using Daemos.Scripting;
+    using Daemos.WebApi;
+    using Daemos.WebApi.Scripting;
+    using Newtonsoft.Json;
+
     public class Program
     {
         private static CancellationToken _cancel;
@@ -36,7 +40,6 @@ namespace Daemos.Console
                     throw new NotSupportedException("Storage mode not supported.");
             }
         }
-
 
         public static async Task<int> MainApp(string[] args)
         {
@@ -96,8 +99,6 @@ namespace Daemos.Console
                 return -1;
             }
 
-
-
             var httpServer = new HttpServer(settings.Listening.BuildUri(), storage);
 
             var location = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
@@ -122,7 +123,6 @@ namespace Daemos.Console
 
                         var types = asm.ExportedTypes;
 
-
                     }
                     //var asm = Assembly.LoadFile(mod.FullName);
                 }
@@ -135,7 +135,6 @@ namespace Daemos.Console
             ScriptingProvider provider = new ScriptingProvider(storage);
             provider.RegisterLanguageProvider("mute", muteScriptRunner);
             dependencyResolver.Register<IScriptRunner>(provider, null);
-
 
             var listeningThread = new Thread(async () => await httpServer.Start(provider))
             {
@@ -155,12 +154,10 @@ namespace Daemos.Console
                 await httpServer.Stop();
             };
 
-
             while (!cancelSource.IsCancellationRequested)
             {
                 await processor.RunAsync(cancelSource.Token);
             }
-
 
             httpServer.Wait();
 

@@ -1,7 +1,10 @@
-﻿using Antlr4.Runtime;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
+    using Antlr4.Runtime;
+
     public class ConditionalExpression : Expression
     {
         public Expression Condition { get; }
@@ -13,9 +16,9 @@ namespace Daemos.Mute.Expressions
         public ConditionalExpression(Expression condition, Expression ifValue, Expression elseValue, ParserRuleContext context)
             : base(ifValue.Type == elseValue?.Type ? ifValue.Type : DataType.Void, context)
         {
-            Condition = condition;
-            IfValue = ifValue;
-            ElseValue = elseValue;
+            this.Condition = condition;
+            this.IfValue = ifValue;
+            this.ElseValue = elseValue;
         }
     }
 }

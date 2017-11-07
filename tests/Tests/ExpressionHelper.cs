@@ -1,8 +1,12 @@
-﻿using Antlr4.Runtime;
-using Daemos.Mute.Expressions;
+﻿// <copyright file="ExpressionHelper.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace Daemos.Tests
 {
+    using Antlr4.Runtime;
+    using Daemos.Mute.Expressions;
+
     public static class ExpressionHelper
     {
         public static BinaryAddExpression Add(Expression lhs, Expression rhs)
@@ -39,10 +43,12 @@ namespace Daemos.Tests
         {
             return new BinaryLessExpression(lhs, rhs, ParserRuleContext.EmptyContext);
         }
+
         public static BinaryLessOrEqualExpression LessOrEqual(Expression lhs, Expression rhs)
         {
             return new BinaryLessOrEqualExpression(lhs, rhs, ParserRuleContext.EmptyContext);
         }
+
         public static ConstantExpression Constant(object value)
         {
             return new ConstantExpression(value, ParserRuleContext.EmptyContext);

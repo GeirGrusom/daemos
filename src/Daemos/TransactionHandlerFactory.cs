@@ -1,3 +1,7 @@
+// <copyright file="TransactionHandlerFactory.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,13 +43,14 @@ namespace Daemos
             }
 
             public string Name { get; }
+
             public Type Type { get; }
         }
 
         private static TypeEntry? FilterType(Type input)
         {
             var interfaces = input.GetInterfaces();
-            if (!interfaces.Contains(typeof (ITransactionHandler)))
+            if (!interfaces.Contains(typeof(ITransactionHandler)))
                 return null;
             var attr = input.GetTypeInfo().GetCustomAttribute<HandlerNameAttribute>();
             var name = attr?.Name ?? input.Name;

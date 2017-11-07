@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="StateDeserializer.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -58,27 +62,27 @@ namespace Daemos.Scripting
                 return (T) (object) null;
             }
 
-            if(flags == SerializationFlags.BinaryFormatter)
+            if (flags == SerializationFlags.BinaryFormatter)
             {
                 throw new NotSupportedException();
             }
 
-            if(flags == SerializationFlags.Serializable)
+            if (flags == SerializationFlags.Serializable)
             {
                 var ctor = typeof(T).GetConstructor(new[] { typeof(IStateDeserializer) });
-                if(ctor == null)
+                if (ctor == null)
                 {
                     throw new InvalidOperationException("The type implements ISerializable but does not contain a proper constructor. Serializable types requires a public constructor with IStateDeserializer argument.");
                 }
                 return (T)ctor.Invoke(new object[] { this });
             }
 
-            if(flags == SerializationFlags.ProtoBuf)
+            if (flags == SerializationFlags.ProtoBuf)
             {
                 return ProtoBuf.Serializer.Deserialize<T>(UnderlyingStream);
             }
 
-            if(typeof(T) == typeof(Type))
+            if (typeof(T) == typeof(Type))
             {
                 return (T)(object)Type.GetType(reader.ReadString(), true);
             }
@@ -86,15 +90,15 @@ namespace Daemos.Scripting
             {
                 return (T)(object)reader.ReadBoolean();
             }
-            if(typeof(T) == typeof(byte) || typeof(T) == typeof(byte?))
+            if (typeof(T) == typeof(byte) || typeof(T) == typeof(byte?))
             {
                 return (T)(object)reader.ReadByte();
             }
-            if(typeof(T) == typeof(char) || typeof(T) == typeof(char?))
+            if (typeof(T) == typeof(char) || typeof(T) == typeof(char?))
             {
                 return (T)(object)reader.ReadChar();
             }
-            if(typeof(T) == typeof(short) || typeof(T) == typeof(short?))
+            if (typeof(T) == typeof(short) || typeof(T) == typeof(short?))
             {
                 return (T)(object)reader.ReadInt16();
             }
@@ -128,7 +132,7 @@ namespace Daemos.Scripting
             {
                 return (T)(object)new DateTime(reader.ReadInt64(), DateTimeKind.Utc);
             }
-            if(typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTime?))
+            if (typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTime?))
             {
                 var ticks = reader.ReadInt64();
                 var offsetTicks = reader.ReadInt64();

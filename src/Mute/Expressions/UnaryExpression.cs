@@ -1,7 +1,10 @@
-﻿using Antlr4.Runtime;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
+    using Antlr4.Runtime;
+
     public enum UnaryOperator
     {
         Add,
@@ -16,6 +19,7 @@ namespace Daemos.Mute.Expressions
         NotNull,
         TimeSpan
     }
+
     public class UnaryExpression : Expression
     {
         public Expression Operand { get; }
@@ -24,14 +28,14 @@ namespace Daemos.Mute.Expressions
 
         protected UnaryExpression(DataType type, Expression operand, UnaryOperator @operator, ParserRuleContext context) : base(type, context)
         {
-            Operand = operand;
-            Operator = @operator;
+            this.Operand = operand;
+            this.Operator = @operator;
         }
 
         protected UnaryExpression(Expression operand, UnaryOperator @operator, ParserRuleContext context) : base(operand?.Type ?? DataType.Void, context)
         {
-            Operand = operand;
-            Operator = @operator;
+            this.Operand = operand;
+            this.Operator = @operator;
         }
     }
 
@@ -43,7 +47,7 @@ namespace Daemos.Mute.Expressions
 
         public override string ToString()
         {
-            return $" + {Operand}";
+            return $" + {this.Operand}";
         }
     }
 
@@ -55,7 +59,7 @@ namespace Daemos.Mute.Expressions
 
         public override string ToString()
         {
-            return $" - {Operand}";
+            return $" - {this.Operand}";
         }
     }
 
@@ -67,7 +71,7 @@ namespace Daemos.Mute.Expressions
 
         public override string ToString()
         {
-            return $" await {Operand}";
+            return $" await {this.Operand}";
         }
     }
 
@@ -79,7 +83,7 @@ namespace Daemos.Mute.Expressions
 
         public override string ToString()
         {
-            return $" not {Operand}";
+            return $" not {this.Operand}";
         }
     }
 }

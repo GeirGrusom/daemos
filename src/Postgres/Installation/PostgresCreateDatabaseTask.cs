@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="PostgresCreateDatabaseTask.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Net;
@@ -12,6 +16,7 @@ namespace Daemos.Postgres.Installation
     public sealed class PostgresCreateDatabaseTask : ITask
     {
         public NpgsqlConnection Connection { get; }
+
         public PostgresCreateDatabaseTask(NpgsqlConnection connection)
         {
             Connection = connection;

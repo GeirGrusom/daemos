@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="MemoryStorage.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -15,7 +19,9 @@ namespace Daemos
         {
 
             public List<Transaction> Chain { get; }
+
             public Transaction Head { get; internal set; }
+
             public SemaphoreSlim Lock { get; }
 
             public TransactionSlot()
@@ -53,6 +59,7 @@ namespace Daemos
         private sealed class ReverseDateTimeComparer : IComparer<DateTime>
         {
             public static ReverseDateTimeComparer Instance { get; } = new ReverseDateTimeComparer();
+
             public int Compare(DateTime x, DateTime y)
             {
                 var result = y.CompareTo(x);
@@ -68,6 +75,7 @@ namespace Daemos
         private readonly ConcurrentDictionary<TransactionRevision, byte[]> _transactionStates;
         private readonly SortedList<DateTime, TransactionSlot> _transactionsByExpiriation = new SortedList<DateTime, TransactionSlot>(ReverseDateTimeComparer.Instance);
         private readonly ManualResetEventSlim _expiringEvent;
+
         public MemoryStorage()
         {
             _transactionStates = new ConcurrentDictionary<TransactionRevision, byte[]>();
@@ -297,6 +305,7 @@ namespace Daemos
         }
 
         private static readonly List<Transaction> EmptyTransactionList = new List<Transaction>();
+
         protected override Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel)
         {
             var now = TimeService.Now();

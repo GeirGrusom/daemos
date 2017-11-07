@@ -1,26 +1,32 @@
-﻿using Antlr4.Runtime;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Mute.Expressions
 {
+    using Antlr4.Runtime;
+
     public class WhileExpression : Expression
     {
         public Expression Condition { get; }
+
         public BlockExpression Contents { get; }
+
         public bool DoWhile { get; }
+
         public WhileExpression(Expression condition, BlockExpression contents, bool doWhile, ParserRuleContext context) : base(DataType.Void, context)
         {
-            Condition = condition;
-            Contents = contents;
-            DoWhile = doWhile;
+            this.Condition = condition;
+            this.Contents = contents;
+            this.DoWhile = doWhile;
         }
 
         public override string ToString()
         {
-            if (DoWhile)
+            if (this.DoWhile)
             {
-                return $"do {Contents} while({Condition})";
+                return $"do {this.Contents} while({this.Condition})";
             }
-            return $" while({Condition}) {{ {Contents} }}";
+            return $" while({this.Condition}) {{ {this.Contents} }}";
         }
     }
 }
