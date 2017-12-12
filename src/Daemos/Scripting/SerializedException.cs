@@ -1,14 +1,13 @@
-﻿// <copyright file="SerializedException.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using ProtoBuf;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Scripting
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Reflection;
+    using ProtoBuf;
+
     [ProtoContract]
     public class SerializedException
     {

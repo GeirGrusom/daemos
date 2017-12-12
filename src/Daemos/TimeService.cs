@@ -1,11 +1,10 @@
-﻿// <copyright file="TimeService.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos
 {
+    using System;
+
     public interface ITimeService
     {
         DateTime Now();
@@ -18,13 +17,13 @@ namespace Daemos
 
     public sealed class ConstantTimeService : ITimeService
     {
-        private readonly DateTime _now;
+        private readonly DateTime now;
 
         public ConstantTimeService(DateTime value)
         {
-            _now = value;
+            this.now = value;
         }
 
-        public DateTime Now() => _now;
+        public DateTime Now() => this.now;
     }
 }

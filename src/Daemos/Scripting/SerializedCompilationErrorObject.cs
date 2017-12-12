@@ -1,18 +1,17 @@
-﻿// <copyright file="SerializedCompilationErrorObject.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System.Collections.Generic;
-using System.Linq;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Scripting
 {
+    using System.Collections.Generic;
+    using System.Linq;
+
     public class SerializedCompilationError
     {
         public SerializedCompilationError(string message, IEnumerable<CompilationError> errors)
         {
-            Message = message;
-            Errors = errors.ToList();
+            this.Message = message;
+            this.Errors = errors.ToList();
         }
 
         public string Message { get; }

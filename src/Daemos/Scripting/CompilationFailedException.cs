@@ -1,13 +1,12 @@
-﻿// <copyright file="CompilationFailedException.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Scripting
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     public class CompilationError
     {
         public int Line { get; }
@@ -18,9 +17,9 @@ namespace Daemos.Scripting
 
         public CompilationError(int line, int column, string message)
         {
-            Line = line;
-            Column = column;
-            Message = message;
+            this.Line = line;
+            this.Column = column;
+            this.Message = message;
         }
     }
 
@@ -31,7 +30,7 @@ namespace Daemos.Scripting
         public CompilationFailedException(string message, IEnumerable<CompilationError> errors)
             : base(message)
         {
-            Errors = errors.ToList().AsReadOnly();
+            this.Errors = errors.ToList().AsReadOnly();
         }
     }
 }

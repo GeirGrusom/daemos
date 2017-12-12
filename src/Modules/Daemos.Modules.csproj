@@ -20,4 +20,7 @@
     <ProjectReference Include="..\Daemos\Daemos.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AdditionalFiles Include="..\stylecop.json" />
+  </ItemGroup>
 </Project>

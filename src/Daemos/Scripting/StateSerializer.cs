@@ -1,14 +1,6 @@
-﻿// <copyright file="StateSerializer.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
-using System;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using ProtoBuf;
 #if USE_BINARYFORMATTER
 //using System.Runtime.Serialization;
 //using System.Runtime.Serialization.Formatters.Binary;
@@ -16,160 +8,210 @@ using ProtoBuf;
 
 namespace Daemos.Scripting
 {
+    using System;
+    using System.IO;
+    using System.IO.Compression;
+    using System.Linq;
+    using System.Reflection;
+    using System.Text;
+    using ProtoBuf;
 
+    /// <summary>
+    /// Serializes script state
+    /// </summary>
     public sealed class StateSerializer : IDisposable, IStateSerializer
     {
+        private static MethodInfo serializeGenericMethod = typeof(StateSerializer).GetMethods().Single(x => x.IsGenericMethodDefinition && x.Name == "Serialize");
+
         private readonly BinaryWriter writer;
         private readonly MemoryStream memoryStream;
         private readonly GZipStream gzipStream;
-        private bool _disposed;
+        private bool disposed;
 
-        public System.IO.Stream UnderlyingStream => gzipStream;
-
-        public void Dispose()
-        {
-            writer.Dispose();
-            gzipStream.Dispose();
-            memoryStream.Dispose();
-            _disposed = true;
-        }
-
-        public byte[] GetState() => memoryStream.ToArray();
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StateSerializer"/> class.
+        /// </summary>
         public StateSerializer()
         {
-            memoryStream = new MemoryStream();
-            gzipStream = new GZipStream(memoryStream, CompressionMode.Compress);
-            writer = new BinaryWriter(gzipStream, Encoding.UTF8);
+            this.memoryStream = new MemoryStream();
+            this.gzipStream = new GZipStream(this.memoryStream, CompressionMode.Compress);
+            this.writer = new BinaryWriter(this.gzipStream, Encoding.UTF8);
         }
 
-        private void AssertNotDisposed()
+        /// <summary>
+        /// Gets the underlying stream for this StateSerializer.
+        /// </summary>
+        public System.IO.Stream UnderlyingStream => this.gzipStream;
+
+        /// <summary>
+        /// Disposes this instance and the underlying streams.
+        /// </summary>
+        public void Dispose()
         {
-            if (_disposed)
-            {
-                throw new InvalidOperationException("The serializer has been disposed.");
-            }
+            this.writer.Dispose();
+            this.gzipStream.Dispose();
+            this.memoryStream.Dispose();
+            this.disposed = true;
         }
 
+        /// <summary>
+        /// Gets the state serialized to this instance.
+        /// </summary>
+        /// <returns>State serialized as a byte array</returns>
+        public byte[] GetState() => this.memoryStream.ToArray();
+
+        /// <summary>
+        /// Writes the script stage to the state
+        /// </summary>
+        /// <param name="stage">Stage to write</param>
         public void WriteStage(int stage)
         {
-            AssertNotDisposed();
-            writer.Write(stage);
+            this.AssertNotDisposed();
+            this.writer.Write(stage);
         }
 
+        /// <summary>
+        /// Writes the stage as end of script
+        /// </summary>
         public void WriteEndStage()
         {
-            AssertNotDisposed();
-            writer.Write(-1);
+            this.AssertNotDisposed();
+            this.writer.Write(-1);
         }
 
+        /// <summary>
+        /// Serializes null for the specified variable of the specified type.
+        /// </summary>
+        /// <param name="name">Name of the variable to serialize</param>
+        /// <param name="type">Type to serialize for</param>
         public void SerializeNull(string name, Type type)
         {
-            AssertNotDisposed();
-            writer.Write(JenkinsHash.GetHashCode(name + type.Name));
-            writer.Write(false);
+            this.AssertNotDisposed();
+            this.writer.Write(JenkinsHash.GetHashCode(name + type.Name));
+            this.writer.Write(false);
         }
 
-        private static MethodInfo SerializeGenericMethod = typeof(StateSerializer).GetMethods().Single(x => x.IsGenericMethodDefinition && x.Name == "Serialize");
-
+        /// <summary>
+        /// Serializes a value for the specified variable.
+        /// </summary>
+        /// <param name="name">Name of the variable to serialize.</param>
+        /// <param name="value">Value to serialize.</param>
         public void Serialize(string name, object value)
         {
-            SerializeGenericMethod.MakeGenericMethod(value.GetType()).Invoke(this, new object[] { name, value });
+            serializeGenericMethod.MakeGenericMethod(value.GetType()).Invoke(this, new object[] { name, value });
         }
 
+        /// <summary>
+        /// Serializes a value for the specified variable.
+        /// </summary>
+        /// <typeparam name="T">Type of variable to serialize</typeparam>
+        /// <param name="name">Name of variable</param>
+        /// <param name="value">Value to serialize</param>
         public void Serialize<T>(string name, T value)
         {
-            AssertNotDisposed();
-            writer.Write(JenkinsHash.GetHashCode(name + typeof(T).Name));
+            this.AssertNotDisposed();
+            this.writer.Write(JenkinsHash.GetHashCode(name + typeof(T).Name));
             if (typeof(T) == typeof(byte))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write((byte)(object)value);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((byte)(object)value);
                 return;
             }
+
             if (typeof(T) == typeof(char))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write((char)(object)value);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((char)(object)value);
                 return;
             }
+
             if (typeof(T) == typeof(bool))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write((bool)(object)value);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((bool)(object)value);
                 return;
             }
-            if (typeof(T) == typeof(Int16))
+
+            if (typeof(T) == typeof(short))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write((short)(object)value);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((short)(object)value);
                 return;
             }
-            if (typeof(T) == typeof(Int32))
+
+            if (typeof(T) == typeof(int))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write((int)(object)value);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((int)(object)value);
                 return;
             }
-            if (typeof(T) == typeof(Int64))
+
+            if (typeof(T) == typeof(long))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write((long)(object)value);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((long)(object)value);
                 return;
             }
+
             if (typeof(T) == typeof(float))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write((float)(object)value);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((float)(object)value);
                 return;
             }
+
             if (typeof(T) == typeof(double))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write((double)(object)value);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((double)(object)value);
                 return;
             }
+
             if (typeof(T) == typeof(decimal))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write((decimal)(object)value);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((decimal)(object)value);
                 return;
             }
+
             if (typeof(T) == typeof(DateTime))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write(((DateTime)(object)value).Ticks);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write(((DateTime)(object)value).Ticks);
                 return;
             }
+
             if (typeof(T) == typeof(DateTimeOffset))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write(((DateTimeOffset)(object)value).Ticks);
-                writer.Write(((DateTimeOffset)(object)value).Offset.Ticks);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write(((DateTimeOffset)(object)value).Ticks);
+                this.writer.Write(((DateTimeOffset)(object)value).Offset.Ticks);
                 return;
             }
+
             if (typeof(T) == typeof(string))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write((byte)SerializationFlags.NotNull);
                 var bytes = Encoding.UTF8.GetBytes((string)(object)value);
-                writer.Write(bytes.Length);
-                writer.Write(bytes, 0, bytes.Length);
+                this.writer.Write(bytes.Length);
+                this.writer.Write(bytes, 0, bytes.Length);
                 return;
             }
+
             if (typeof(T) == typeof(Type))
             {
-                writer.Write((byte)SerializationFlags.NotNull);
-                writer.Write(((Type)(object)value).AssemblyQualifiedName);
+                this.writer.Write((byte)SerializationFlags.NotNull);
+                this.writer.Write(((Type)(object)value).AssemblyQualifiedName);
                 return;
             }
 
             if (IsSerializable<T>())
             {
-                Serialize(value);
+                this.Serialize(value);
             }
             else if (IsProtoBuf<T>())
             {
-                ProtoBuf(value);
+                this.ProtoBuf(value);
             }
             else
             {
@@ -190,17 +232,25 @@ namespace Daemos.Scripting
             return typeof(T).GetTypeInfo().GetCustomAttribute<ProtoContractAttribute>() != null;
         }
 
+        private void AssertNotDisposed()
+        {
+            if (this.disposed)
+            {
+                throw new InvalidOperationException("The serializer has been disposed.");
+            }
+        }
+
         private void Serialize<T>(T value)
         {
-            writer.Write((byte)SerializationFlags.Serializable);
+            this.writer.Write((byte)SerializationFlags.Serializable);
             var interf = (ISerializable)value;
             interf.Serialize(this);
         }
 
         private void ProtoBuf<T>(T value)
         {
-            writer.Write((byte)SerializationFlags.ProtoBuf);
-            Serializer.Serialize<T>(UnderlyingStream, value);
+            this.writer.Write((byte)SerializationFlags.ProtoBuf);
+            Serializer.Serialize<T>(this.UnderlyingStream, value);
         }
     }
 }

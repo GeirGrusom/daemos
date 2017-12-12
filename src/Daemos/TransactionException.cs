@@ -1,11 +1,10 @@
-﻿// <copyright file="TransactionException.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos
 {
+    using System;
+
     public class TransactionException : Exception
     {
         public Guid TransactionId { get; }
@@ -13,13 +12,13 @@ namespace Daemos
         public TransactionException(string message, Guid transactionId)
             : base(message)
         {
-            TransactionId = transactionId;
+            this.TransactionId = transactionId;
         }
 
         public TransactionException(string message, Guid transactionId, Exception innerException)
     :       base(message, innerException)
         {
-            TransactionId = transactionId;
+            this.TransactionId = transactionId;
         }
     }
 }

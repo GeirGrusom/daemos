@@ -108,11 +108,11 @@ namespace Daemos.WebApi.Controllers
             Transaction trans;
             if (revision != null)
             {
-                trans = await factory.ContinueTransaction(id, (int)revision, -1);
+                trans = await factory.ContinueTransactionAsync(id, (int)revision, -1);
             }
             else
             {
-                trans = await factory.ContinueTransaction(id);
+                trans = await factory.ContinueTransactionAsync(id);
             }
 
             Transaction result;

@@ -19,7 +19,7 @@ compileUnit returns [ModuleExpression module]
 
 
 moduleStatement  returns [string mod]
-	: MODULE IDENTIFIER { $mod = $IDENTIFIER.text; PushScope(); }
+	: MODULE IDENTIFIER { $mod = $IDENTIFIER.text; }
 	;
 
 primaryExpression returns [Expression expr]
@@ -271,7 +271,7 @@ nullable returns [bool result]: NULLABLE? { $result = $NULLABLE.text == "?"; };
 statementBody returns [BlockExpression expr]
 	locals [List<VariableExpression> scope]
 	@init { $scope = new List<VariableExpression>(); }
-	: '{' (expressions += statement)* '}' { $expr = new BlockExpression(($expressions).Select(x => x.expr), LastPoppedScope, $ctx); } ;
+	: '{' (expressions += statement)* '}' { $expr = new BlockExpression(($expressions).Select(x => x.expr), null, $ctx); } ;
 
 dataType returns [DataType type]
 	: INT_TYPE nullable { $type = new DataType(typeof(int), $nullable.result); }

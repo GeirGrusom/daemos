@@ -1,4 +1,7 @@
-﻿namespace Daemos.Logging
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
+
+namespace Daemos.Logging
 {
     using System;
 

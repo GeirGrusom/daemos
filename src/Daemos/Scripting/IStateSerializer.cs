@@ -1,11 +1,10 @@
-﻿// <copyright file="IStateSerializer.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Scripting
 {
+    using System;
+
     public interface IStateSerializer : IDisposable
     {
         byte[] GetState();

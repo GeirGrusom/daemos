@@ -1,15 +1,14 @@
-﻿// <copyright file="SerializedObject.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using ProtoBuf;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Scripting
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using ProtoBuf;
+
     [ProtoContract]
     public sealed class SerializedObject
     {
@@ -21,19 +20,19 @@ namespace Daemos.Scripting
 
         public SerializedObject()
         {
-            Values = new Dictionary<string, string>();
+            this.Values = new Dictionary<string, string>();
         }
 
         public SerializedObject(object value)
         {
-            Type = value.GetType();
-            Values = new Dictionary<string, string>();
+            this.Type = value.GetType();
+            this.Values = new Dictionary<string, string>();
 
-            var props = Type.GetProperties().Where(x => x.CanRead).OrderBy(x => x.Name, StringComparer.Ordinal);
+            var props = this.Type.GetProperties().Where(x => x.CanRead).OrderBy(x => x.Name, StringComparer.Ordinal);
 
             foreach (var prop in props)
             {
-                Values.Add(prop.Name, prop.GetValue(value).ToString());
+                this.Values.Add(prop.Name, prop.GetValue(value).ToString());
             }
         }
     }

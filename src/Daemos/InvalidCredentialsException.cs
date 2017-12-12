@@ -1,13 +1,12 @@
-﻿// <copyright file="InvalidCredentialsException.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+
     public sealed class InvalidCredentialsException : Exception
     {
         public InvalidCredentialsException()

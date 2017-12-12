@@ -1,4 +1,7 @@
-﻿namespace Daemos.Logging
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
+
+namespace Daemos.Logging
 {
     using System;
     using System.Collections.Generic;
@@ -28,16 +31,21 @@
             this.cancellationToken.Register(this.CancellationRequested);
             this.thread = new Thread(this.LogLoop);
             this.logEvents = new System.Collections.Concurrent.ConcurrentQueue<LogObject>();
+            this.autoResetEvent = new AutoResetEvent(false);
+        }
+
+        /// <summary>
+        /// Enqueues a Log event for processing
+        /// </summary>
+        /// <param name="obj">Log event to enqueue</param>
+        public void Add(LogObject obj)
+        {
+            this.logEvents.Enqueue(obj);
         }
 
         private void CancellationRequested()
         {
             this.autoResetEvent.Set();
-        }
-
-        public void Add(LogObject obj)
-        {
-            this.logEvents.Enqueue(obj);
         }
 
         private void LogLoop()
@@ -49,11 +57,6 @@
                 if (this.cancellationToken.IsCancellationRequested)
                 {
                     break;
-                }
-
-                while (this.logEvents.TryDequeue(out var result))
-                {
-                    
                 }
             }
         }

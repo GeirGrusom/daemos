@@ -1,6 +1,5 @@
-﻿// <copyright file="JenkinsHash.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos
 {
@@ -16,6 +15,7 @@ namespace Daemos
                 hash += hash << 10;
                 hash ^= hash >> 6;
             }
+
             hash += hash << 3;
             hash ^= hash >> 11;
             hash += hash << 15;

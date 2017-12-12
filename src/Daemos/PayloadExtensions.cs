@@ -1,12 +1,11 @@
-﻿// <copyright file="PayloadExtensions.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
-using System.Collections.Generic;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos
 {
+    using System;
+    using System.Collections.Generic;
+
     public static class PayloadExtensions
     {
         public static object PayloadContains(this IDictionary<string, object> payload, string memberName, object value)
@@ -20,6 +19,7 @@ namespace Daemos
             {
                 return payload[memberName];
             }
+
             return float.NaN; // Not equal to anything including itself.
         }
 
@@ -32,7 +32,7 @@ namespace Daemos
                 return comparer(value);
             }
 
-            return false;            
+            return false;
         }
     }
 }

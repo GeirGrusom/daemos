@@ -1,216 +1,247 @@
-﻿// <copyright file="JsonValue.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
-using System.Collections.Generic;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos
 {
+    using System;
+    using System.Collections.Generic;
+
     public struct JsonValue : IComparable<int>, IComparable<float>, IComparable<long>, IComparable<double>, IEquatable<int>, IEquatable<float>, IEquatable<string>, IEquatable<long>, IEquatable<double>, IEquatable<bool>
     {
-        private readonly IDictionary<string, object> _owner;
-        private readonly string _memberOf;
-        private readonly string _member;
+        private readonly IDictionary<string, object> owner;
+        private readonly string memberOf;
+        private readonly string member;
 
-        public string MemberOf => _memberOf;
+        public string MemberOf => this.memberOf;
 
-        public string Member => _member;
+        public string Member => this.member;
 
         public override int GetHashCode()
         {
-            return GetValue().GetHashCode();
+            return this.GetValue().GetHashCode();
         }
 
         public override bool Equals(object obj)
         {
             if (obj is JsonValue)
             {
-                return Equals(GetValue(), ((JsonValue)obj).GetValue());
+                return Equals(this.GetValue(), ((JsonValue)obj).GetValue());
             }
-            return Equals(GetValue(), obj);
+
+            return Equals(this.GetValue(), obj);
         }
 
         public JsonValue(IDictionary<string, object> owner, string memberOf, string member)
         {
-            _owner = owner;
-            _memberOf = memberOf;
-            _member = member;
+            this.owner = owner;
+            this.memberOf = memberOf;
+            this.member = member;
         }
 
         public override string ToString()
         {
-            return $"{_memberOf}[{_member}]";
+            return $"{this.memberOf}[{this.member}]";
         }
 
         private object GetValue()
         {
-            if (!_owner.TryGetValue(_member, out var result))
+            if (!this.owner.TryGetValue(this.member, out var result))
+            {
                 return float.NaN;
+            }
+
             return result;
         }
 
         public int CompareTo(int other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
 
             if (local is int)
             {
                 return ((int)local).CompareTo(other);
             }
+
             if (local is long)
             {
                 return ((long)local).CompareTo(other);
             }
+
             if (local is float)
             {
                 return ((float)local).CompareTo(other);
             }
+
             if (local is double)
             {
                 return ((double)local).CompareTo(other);
             }
+
             return -1;
         }
 
         public int CompareTo(long other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
 
             if (local is int)
             {
                 return ((long)(int)local).CompareTo(other);
             }
+
             if (local is long)
             {
                 return ((long)local).CompareTo(other);
             }
+
             if (local is float)
             {
                 return ((float)local).CompareTo(other);
             }
+
             if (local is double)
             {
                 return ((double)local).CompareTo(other);
             }
+
             return -1;
         }
 
         public int CompareTo(float other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
 
             if (local is int)
             {
                 return ((int)local).CompareTo((int)other);
             }
+
             if (local is long)
             {
                 return ((long)local).CompareTo((long)other);
             }
+
             if (local is float)
             {
                 return ((float)local).CompareTo(other);
             }
+
             if (local is double)
             {
                 return ((double)local).CompareTo(other);
             }
+
             return -1;
         }
 
         public int CompareTo(double other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
 
             if (local is int)
             {
                 return ((int)local).CompareTo((int)other);
             }
+
             if (local is long)
             {
                 return ((long)local).CompareTo((long)other);
             }
+
             if (local is float)
             {
                 return ((double)(float)local).CompareTo(other);
             }
+
             if (local is double)
             {
                 return ((double)local).CompareTo(other);
             }
+
             return -1;
         }
 
         public bool Equals(string other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
             if (local is string)
             {
                 return (string)local == other;
             }
+
             return false;
         }
 
         public bool Equals(float other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
             if (local is float)
             {
                 return (float)local == other;
             }
+
             if (local is double)
             {
                 return (double)local == other;
             }
+
             if (local is int)
             {
                 return (int)local == other;
             }
+
             if (local is long)
             {
                 return (long)local == other;
             }
+
             return false;
         }
 
         public bool Equals(double other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
             if (local is float)
             {
                 return (float)local == other;
             }
+
             if (local is double)
             {
                 return (double)local == other;
             }
+
             if (local is int)
             {
                 return (int)local == other;
             }
+
             if (local is long)
             {
                 return (long)local == other;
             }
+
             return false;
         }
 
         public bool Equals(int other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
             if (local is float)
             {
                 return (float)local == other;
             }
+
             if (local is double)
             {
                 return (double)local == other;
             }
+
             if (local is int)
             {
                 return (int)local == other;
             }
+
             if (local is long)
             {
                 return (long)local == other;
@@ -221,19 +252,22 @@ namespace Daemos
 
         public bool Equals(long other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
             if (local is float)
             {
                 return (float)local == other;
             }
+
             if (local is double)
             {
                 return (double)local == other;
             }
+
             if (local is int)
             {
                 return (int)local == other;
             }
+
             if (local is long)
             {
                 return (long)local == other;
@@ -244,19 +278,18 @@ namespace Daemos
 
         public bool Equals(bool other)
         {
-            object local = GetValue();
+            object local = this.GetValue();
             if (local is bool)
             {
                 return (bool)local == other;
             }
+
             return false;
         }
-
 
         public static bool operator ==(JsonValue json, int value)
         {
             return json.Equals(value);
-
         }
 
         public static bool operator !=(JsonValue json, int value)
@@ -267,7 +300,6 @@ namespace Daemos
         public static bool operator ==(JsonValue json, long value)
         {
             return json.Equals(value);
-
         }
 
         public static bool operator !=(JsonValue json, long value)
@@ -288,7 +320,6 @@ namespace Daemos
         public static bool operator ==(JsonValue json, float value)
         {
             return json.Equals(value);
-
         }
 
         public static bool operator !=(JsonValue json, float value)
@@ -299,7 +330,6 @@ namespace Daemos
         public static bool operator ==(JsonValue json, double value)
         {
             return json.Equals(value);
-
         }
 
         public static bool operator !=(JsonValue json, double value)
@@ -408,6 +438,5 @@ namespace Daemos
         {
             return lhs.Equals(rhs);
         }
-
     }
 }

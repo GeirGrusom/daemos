@@ -90,7 +90,7 @@ namespace Daemos.WebApi.Controllers
             Transaction trans;
             try
             {
-                trans = await factory.ContinueTransaction(id, revision);
+                trans = await factory.ContinueTransactionAsync(id, revision);
             }
             catch (TransactionConflictException)
             {

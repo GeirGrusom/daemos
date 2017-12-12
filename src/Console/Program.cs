@@ -21,7 +21,6 @@ namespace Daemos.Console
     public class Program
     {
         private static CancellationToken _cancel;
-        private static TransactionHandlerFactory _handlerFactory;
 
         public static int Main(string[] args)
         {
@@ -119,16 +118,11 @@ namespace Daemos.Console
                     {
                         var asm = AssemblyLoadContext.Default.LoadFromStream(fs);
 
-                        _handlerFactory.AddAssembly(asm);
-
                         var types = asm.ExportedTypes;
-
                     }
-                    //var asm = Assembly.LoadFile(mod.FullName);
                 }
                 catch (Exception)
                 {
-                    //System.Diagnostics.Trace.TraceError($"Unable to load assembly {mod}: {ex.Message}");
                 }
             }
 
@@ -143,7 +137,6 @@ namespace Daemos.Console
 
             listeningThread.Start();
 
-            _handlerFactory = new TransactionHandlerFactory(type => (ITransactionHandler)dependencyResolver.GetService(type, null));
 
             TransactionProcessor processor = new TransactionProcessor(storage, provider, dependencyResolver);
 

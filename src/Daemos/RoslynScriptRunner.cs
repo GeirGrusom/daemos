@@ -1,11 +1,10 @@
-﻿// <copyright file="RoslynScriptRunner.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos
 {
+    using System;
+
     public class ScriptGlobals
     {
         public DateTime? Expires { get; set; }
@@ -28,14 +27,14 @@ namespace Daemos
 
         public ScriptGlobals(Transaction transaction, ITransactionHandler handler)
         {
-            Now = DateTime.UtcNow;
-            Today = new DateTime(Now.Year, Now.Month, Now.Day);
-            Tomorrow = Today.AddDays(1);
-            Handler = handler;
-            Expires = null;
-            Script = null;
-            State = transaction.State;
-            Payload = transaction.Payload ?? new System.Dynamic.ExpandoObject();
+            this.Now = DateTime.UtcNow;
+            this.Today = new DateTime(this.Now.Year, this.Now.Month, this.Now.Day);
+            this.Tomorrow = this.Today.AddDays(1);
+            this.Handler = handler;
+            this.Expires = null;
+            this.Script = null;
+            this.State = transaction.State;
+            this.Payload = transaction.Payload ?? new System.Dynamic.ExpandoObject();
         }
     }
 }

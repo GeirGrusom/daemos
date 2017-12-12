@@ -1,11 +1,15 @@
-﻿namespace Daemos.Logging
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
+
+namespace Daemos.Logging
 {
     using System;
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// Logger abstraction interface
+    /// Defines a Logger interface
     /// </summary>
+    /// <typeparam name="T">Subject type</typeparam>
     public interface ILogger<T>
     {
         /// <summary>

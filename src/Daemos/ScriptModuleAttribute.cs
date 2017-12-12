@@ -1,11 +1,10 @@
-﻿// <copyright file="ScriptModuleAttribute.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos
 {
+    using System;
+
     [AttributeUsage(AttributeTargets.Class)]
     public sealed class ModuleAttribute : Attribute
     {
@@ -17,7 +16,7 @@ namespace Daemos
 
         public ModuleAttribute(string name = null)
         {
-            Name = name;
+            this.Name = name;
         }
     }
 
@@ -29,15 +28,14 @@ namespace Daemos
         public int? State { get; }
 
         public ScriptAttribute()
-            :this(null)
+            : this(null)
         {
-            
         }
 
         public ScriptAttribute(string name = null, int? state = null)
         {
-            Name = name;
-            State = state;
+            this.Name = name;
+            this.State = state;
         }
     }
 }

@@ -1,13 +1,9 @@
-﻿// <copyright file="JsonComparisons.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos
 {
     public static class JsonComparisons
     {
-        
-
-
     }
 }

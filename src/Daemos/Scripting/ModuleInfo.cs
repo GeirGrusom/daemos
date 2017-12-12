@@ -1,11 +1,10 @@
-﻿// <copyright file="ModuleInfo.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
-using System;
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Scripting
 {
+    using System;
+
     [AttributeUsage(AttributeTargets.Assembly)]
     public sealed class ModuleInfoAttribute : Attribute
     {
@@ -13,7 +12,7 @@ namespace Daemos.Scripting
 
         public ModuleInfoAttribute(Type type)
         {
-            Type = type;
+            this.Type = type;
         }
     }
 
