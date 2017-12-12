@@ -461,29 +461,7 @@ namespace Daemos.Mute.Compilation
                     return;
                 }
 
-                var isNotNull = this.il.DefineLabel();
-                var ctor = typeof(NullReferenceException).GetConstructor(Array.Empty<Type>());
-                if (exp.Operand is VariableExpression var)
-                {
-                    this.OnVisit(var);
-                    this.il.Emit(OpCodes.Brtrue_S, isNotNull);
-                    this.il.Emit(OpCodes.Newobj, ctor);
-                    this.il.Emit(OpCodes.Throw);
-                    this.il.MarkLabel(isNotNull);
-                    this.OnVisit(var);
-                }
-                else
-                {
-                    var tmp = this.il.DeclareLocal(exp.Type.ClrType);
-                    this.Visit(exp.Operand);
-                    this.il.Emit(OpCodes.Stloc, tmp);
-                    this.il.Emit(OpCodes.Ldloc, tmp);
-                    this.il.Emit(OpCodes.Brtrue_S, isNotNull);
-                    this.il.Emit(OpCodes.Newobj, ctor);
-                    this.il.Emit(OpCodes.Throw);
-                    this.il.MarkLabel(isNotNull);
-                    this.il.Emit(OpCodes.Ldloc, tmp);
-                }
+                this.OnVisitNotNullUnaryExpression(exp);
 
                 return;
             }
@@ -936,6 +914,15 @@ namespace Daemos.Mute.Compilation
 
         /// <inheritdoc/>
         public override void OnVisit(NotNullExpression exp)
+        {
+            this.OnVisitNotNullUnaryExpression(exp);
+        }
+
+        /// <summary>
+        /// Performs a null check for a unary expression
+        /// </summary>
+        /// <param name="exp">Expression to null check</param>
+        public void OnVisitNotNullUnaryExpression(UnaryExpression exp)
         {
             var isNotNull = this.il.DefineLabel();
             var ctor = typeof(NullReferenceException).GetConstructor(Array.Empty<Type>());
