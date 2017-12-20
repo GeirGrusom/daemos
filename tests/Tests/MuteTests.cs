@@ -57,7 +57,7 @@ namespace Daemos.Tests
                 this.Storage = Substitute.For<ITransactionStorage>();
                 this.Storage.CommitTransactionDeltaAsync(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => Task.FromResult(x.ArgAt<Transaction>(1)));
                 this.Storage.CommitTransactionDelta(Arg.Any<Transaction>(), Arg.Any<Transaction>()).Returns(x => x.ArgAt<Transaction>(1));
-                this.Transaction = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, null, this.Storage);
+                this.Transaction = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionStatus.Initialized, null, null, this.Storage);
             }
 
             public int CompileAndRun(string code)
@@ -257,7 +257,7 @@ await commit this;
         {
             // Arrange
             var service = new Service();
-            var t = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, null, null);
+            var t = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionStatus.Initialized, null, null, null);
 
             // Act
             var result = service.CompileWithResult<Transaction>("this with { Script: \"Foo\" }");
@@ -274,7 +274,7 @@ await commit this;
             dynamic payload = new ExpandoObject();
             payload.Foo = "Bar";
 
-            var t = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, payload, null, TransactionState.Initialized, null, null, null);
+            var t = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, payload, null, TransactionStatus.Initialized, null, null, null);
 
             // Act
             var result = service.CompileWithResult<Transaction>("this with { Payload: { Status: 'OK' } }");

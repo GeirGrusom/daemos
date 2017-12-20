@@ -1,6 +1,5 @@
-﻿// <copyright file="Migration.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
@@ -48,10 +47,10 @@ namespace Daemos.Postgres
 
         public IEnumerable<MigrationItem> RetrieveScripts(string prefix)
         {
-            var asm = GetType().GetTypeInfo().Assembly;
+            var asm = this.GetType().GetTypeInfo().Assembly;
             var resources = asm.GetManifestResourceNames()
                 .Where(x => x.StartsWith(prefix))
-                .Select(x => new MigrationItem(TrimStart(x, prefix), asm.GetManifestResourceStream(x), GenerateHashCode(asm.GetManifestResourceStream(x))))
+                .Select(x => new MigrationItem(this.TrimStart(x, prefix), asm.GetManifestResourceStream(x), this.GenerateHashCode(asm.GetManifestResourceStream(x))))
                 .OrderBy(x => x.Name)
                 .ToArray();
 
@@ -77,7 +76,9 @@ namespace Daemos.Postgres
                 for (int i = 0; i < readCount; i++)
                 {
                     if (buffer[readCount] <= ' ') // Ignore non-printing characters. 
+                    {
                         continue;
+                    }
 
                     hash = hash ^ buffer[readCount];
                     hash *= fnvPrime;

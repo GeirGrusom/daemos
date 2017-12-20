@@ -54,7 +54,7 @@ namespace Daemos.WebApi.Controllers
         [HttpPost("complete", Name = "CompleteTransaction")]
         public Task<IActionResult> Complete(Guid id, [FromRoute] int revision, [FromQuery] int wait = BlockTimeMs)
         {
-            return this.Process(id, revision, "Complete", TransactionState.Completed, wait);
+            return this.Process(id, revision, "Complete", TransactionStatus.Completed, wait);
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace Daemos.WebApi.Controllers
         [HttpPost("authorize", Name = "AuthorizeTransaction")]
         public Task<IActionResult> Authorize(Guid id, [FromRoute] int revision, [FromQuery] int wait = BlockTimeMs)
         {
-            return this.Process(id, revision, "Authorize", TransactionState.Authorized, wait);
+            return this.Process(id, revision, "Authorize", TransactionStatus.Authorized, wait);
         }
 
         /// <summary>
@@ -81,10 +81,10 @@ namespace Daemos.WebApi.Controllers
         [HttpPost("cancel", Name = "CancelTransaction")]
         public Task<IActionResult> Cancel(Guid id, [FromRoute] int revision, [FromQuery] int wait = BlockTimeMs)
         {
-            return this.Process(id, revision, "Cancel", TransactionState.Cancelled, wait);
+            return this.Process(id, revision, "Cancel", TransactionStatus.Cancelled, wait);
         }
 
-        private async Task<IActionResult> Process(Guid id, int revision, string verb, TransactionState state, int timeout)
+        private async Task<IActionResult> Process(Guid id, int revision, string verb, TransactionStatus state, int timeout)
         {
             var factory = new TransactionFactory(this.storage);
             Transaction trans;
@@ -109,7 +109,7 @@ namespace Daemos.WebApi.Controllers
                     data.Expires = DateTime.UtcNow;
                     data.Script = $"Handler.{verb}(Transaction);";
                 });
-                waitTask = this.storage.WaitForAsync(x => x.Id == id && (x.State == state || x.State == TransactionState.Failed), timeout);
+                waitTask = this.storage.WaitForAsync(x => x.Id == id && (x.Status == state || x.Status == TransactionStatus.Failed), timeout);
             }
             finally
             {

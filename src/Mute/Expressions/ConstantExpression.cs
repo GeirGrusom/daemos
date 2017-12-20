@@ -11,12 +11,14 @@ namespace Daemos.Mute.Expressions
     {
         public object Value { get; }
 
-        public ConstantExpression(object value, ParserRuleContext context) : base(DataType.FromClrType(value?.GetType() ?? typeof(object)), context)
+        public ConstantExpression(object value, ParserRuleContext context)
+            : base(DataType.FromClrType(value?.GetType() ?? typeof(object)), context)
         {
             this.Value = value;
         }
 
-        public ConstantExpression(DataType type, object value, ParserRuleContext context) : base(type, context)
+        public ConstantExpression(DataType type, object value, ParserRuleContext context)
+            : base(type, context)
         {
             this.Value = value;
         }

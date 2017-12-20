@@ -1,6 +1,5 @@
-﻿// <copyright file="ConnectionExtensions.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
@@ -15,16 +14,17 @@ namespace Daemos.Postgres
     public static class ConnectionExtensions
     {
 
-        private static readonly Dictionary<Type, Delegate> _parameterCache = new Dictionary<Type, Delegate>();
+        private static readonly Dictionary<Type, Delegate> parameterCache = new Dictionary<Type, Delegate>();
 
         private static void ApplyParameters<T>(NpgsqlCommand cmd, T parameters)
         {
             Action<NpgsqlCommand, T> apply;
-            if (!_parameterCache.TryGetValue(typeof(T), out Delegate getValue))
+            if (!parameterCache.TryGetValue(typeof(T), out Delegate getValue))
             {
                 getValue = CreateApplyParameter<T>();
-                _parameterCache.Add(typeof(T), getValue);
+                parameterCache.Add(typeof(T), getValue);
             }
+
             apply = (Action<NpgsqlCommand, T>)getValue;
             apply(cmd, parameters);
         }
@@ -68,8 +68,10 @@ namespace Daemos.Postgres
                 Expression propVal = Expression.Property(parameters, prop);
 
                 if (prop.PropertyType == typeof(JsonContainer))
+                {
                     propVal = Expression.Call(propVal, toString);
-                
+                }
+
                 body.Add(Expression.Assign(par, Expression.New(ctor, Expression.Constant(prop.Name), Expression.Constant(sqlType))));
                
                 body.Add(Expression.Assign(Expression.Property(par, "Value"), Expression.Condition(Expression.Equal(Expression.Convert(propVal, typeof(object)), Expression.Constant(null)), Expression.Constant(DBNull.Value, typeof(object)),  Expression.Convert(propVal, typeof(object)))));
@@ -138,7 +140,9 @@ namespace Daemos.Postgres
 
                 object result = cmd.ExecuteScalar();
                 if (result == DBNull.Value || result == null)
+                {
                     return default(T);
+                }
 
                 return (T)result;
             }

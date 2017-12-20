@@ -1,6 +1,5 @@
-﻿// <copyright file="PostgresTaskBase.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
@@ -20,9 +19,9 @@ namespace Daemos.Postgres.Installation
 
         protected PostgresTaskBase(NpgsqlConnection connection)
         {
-            Connection = connection;
-            Connection.Open();
-            Transaction = Connection.BeginTransaction(IsolationLevel.Serializable);
+            this.Connection = connection;
+            this.Connection.Open();
+            this.Transaction = this.Connection.BeginTransaction(IsolationLevel.Serializable);
         }
 
         protected PostgresTaskBase(string connectionString)
@@ -32,23 +31,23 @@ namespace Daemos.Postgres.Installation
 
         public void Dispose()
         {
-            Transaction.Dispose();
-            Connection.Dispose();
+            this.Transaction.Dispose();
+            this.Connection.Dispose();
         }
 
         public async Task Install()
         {
-            await OnInstall();
-            if (!Transaction.IsCompleted)
+            await this.OnInstall();
+            if (!this.Transaction.IsCompleted)
             {
-                await Transaction.CommitAsync();
+                await this.Transaction.CommitAsync();
             }
         }
 
         public async Task Rollback()
         {
-            await OnRollback();
-            await Transaction.RollbackAsync();
+            await this.OnRollback();
+            await this.Transaction.RollbackAsync();
         }
 
         protected abstract Task OnInstall();

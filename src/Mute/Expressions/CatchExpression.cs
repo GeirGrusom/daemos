@@ -14,14 +14,16 @@ namespace Daemos.Mute.Expressions
 
         public BlockExpression Body { get; }
 
-        public CatchExpression(BlockExpression body, Type exception, ParserRuleContext context) : base(DataType.Void, context)
+        public CatchExpression(BlockExpression body, Type exception, ParserRuleContext context)
+            : base(DataType.Void, context)
         {
             this.ExceptionValue = null;
             this.Exception = exception;
             this.Body = body;
         }
 
-        public CatchExpression(BlockExpression body, VariableExpression exception, ParserRuleContext context) : base(DataType.Void, context)
+        public CatchExpression(BlockExpression body, VariableExpression exception, ParserRuleContext context)
+            : base(DataType.Void, context)
         {
             this.ExceptionValue = exception;
             this.Exception = exception?.Type.ClrType ?? typeof(Exception);

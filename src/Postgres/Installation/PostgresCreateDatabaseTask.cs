@@ -1,6 +1,5 @@
-﻿// <copyright file="PostgresCreateDatabaseTask.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
@@ -19,18 +18,18 @@ namespace Daemos.Postgres.Installation
 
         public PostgresCreateDatabaseTask(NpgsqlConnection connection)
         {
-            Connection = connection;
+            this.Connection = connection;
         }
 
         public PostgresCreateDatabaseTask(string connectionString)
         {
-            Connection = new NpgsqlConnection(connectionString);
-            Connection.Open();
+            this.Connection = new NpgsqlConnection(connectionString);
+            this.Connection.Open();
         }
 
         public async Task Install()
         {
-            using (var cmd = Connection.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
                 cmd.CommandText = @"create database daemos;";
                 await cmd.ExecuteNonQueryAsync();
@@ -39,7 +38,7 @@ namespace Daemos.Postgres.Installation
 
         public async Task Rollback()
         {
-            using (var cmd = Connection.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
                 cmd.CommandText = "drop database daemos;";
                 await cmd.ExecuteNonQueryAsync();

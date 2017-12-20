@@ -13,7 +13,8 @@ namespace Daemos.Mute.Expressions
 
         public bool DoWhile { get; }
 
-        public WhileExpression(Expression condition, BlockExpression contents, bool doWhile, ParserRuleContext context) : base(DataType.Void, context)
+        public WhileExpression(Expression condition, BlockExpression contents, bool doWhile, ParserRuleContext context)
+            : base(DataType.Void, context)
         {
             this.Condition = condition;
             this.Contents = contents;

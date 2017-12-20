@@ -13,7 +13,8 @@ namespace Daemos.Mute.Expressions
 
         public ReadOnlyCollection<string> Types { get; }
 
-        public UsingExpression(IList<string> ns, IList<string> typeNames, ParserRuleContext parserContext) : base(DataType.Void, parserContext)
+        public UsingExpression(IList<string> ns, IList<string> typeNames, ParserRuleContext parserContext)
+            : base(DataType.Void, parserContext)
         {
             this.Namespace = string.Join(".", ns);
             this.Types = new ReadOnlyCollection<string>(typeNames);

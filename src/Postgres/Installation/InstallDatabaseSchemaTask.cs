@@ -1,6 +1,5 @@
-﻿// <copyright file="InstallDatabaseSchemaTask.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
@@ -16,35 +15,37 @@ namespace Daemos.Postgres.Installation
 {
     public class InstallDatabaseSchemaTask : PostgresTaskBase
     {
-        private ICredentialsPrompt _prompt;
-        private NpgsqlConnectionStringBuilder _connectionStringBuilder;
+        private ICredentialsPrompt prompt;
+        private NpgsqlConnectionStringBuilder connectionStringBuilder;
 
         public string ClientConnectionString { get; private set; }
 
-        public InstallDatabaseSchemaTask(NpgsqlConnection connection, ICredentialsPrompt prompt) : base(connection)
+        public InstallDatabaseSchemaTask(NpgsqlConnection connection, ICredentialsPrompt prompt)
+            : base(connection)
         {
-            _connectionStringBuilder = new NpgsqlConnectionStringBuilder(connection.ConnectionString);
-            _prompt = prompt;
+            this.connectionStringBuilder = new NpgsqlConnectionStringBuilder(connection.ConnectionString);
+            this.prompt = prompt;
         }
 
-        public InstallDatabaseSchemaTask(string connectionString, ICredentialsPrompt prompt) : base(connectionString)
+        public InstallDatabaseSchemaTask(string connectionString, ICredentialsPrompt prompt)
+            : base(connectionString)
         {
-            _connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
-            _prompt = prompt;
+            this.connectionStringBuilder = new NpgsqlConnectionStringBuilder(connectionString);
+            this.prompt = prompt;
         }
 
         protected override async Task OnInstall()
         {
-            Connection.ChangeDatabase("daemos");
-            var useCredentials = _prompt.ReadCredentials("Please enter Daemos Postgres credentials");
+            this.Connection.ChangeDatabase("daemos");
+            var useCredentials = this.prompt.ReadCredentials("Please enter Daemos Postgres credentials");
 
             // I'm not entirely confident that this string is unescapable, but I would think it matters very little.
             string escapedUsername = useCredentials.UserName.Replace("\"", "\"\"");
             string escapedPassword = useCredentials.Password.Replace("'", "''");
 
-            using (var cmd = Connection.CreateCommand())
+            using (var cmd = this.Connection.CreateCommand())
             {
-                cmd.Transaction = Transaction;
+                cmd.Transaction = this.Transaction;
                 cmd.CommandText = $@"
 create schema trans;
 
@@ -104,23 +105,23 @@ grant select on table transactions_head to ""{escapedUsername}"";
             }
 
 
-            _connectionStringBuilder.Username = useCredentials.UserName;
-            _connectionStringBuilder.Password = useCredentials.Password;
-            _connectionStringBuilder.Database = "daemos";
+            this.connectionStringBuilder.Username = useCredentials.UserName;
+            this.connectionStringBuilder.Password = useCredentials.Password;
+            this.connectionStringBuilder.Database = "daemos";
 
-            ClientConnectionString = _connectionStringBuilder.ToString();
+            this.ClientConnectionString = this.connectionStringBuilder.ToString();
 
-            var storage = new PostgreSqlTransactionStorage(ClientConnectionString);
+            var storage = new PostgreSqlTransactionStorage(this.ClientConnectionString);
 
             dynamic payload = new ExpandoObject();
             ((IDictionary<string,object>)payload)["$$type"] = "Migration";
             ((IDictionary<string, object>)payload)["version"] = "1.0";
 
 
-            var migrationTransaction = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, payload, null, TransactionState.Initialized, null, null, storage );
+            var migrationTransaction = new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, payload, null, TransactionStatus.Initialized, null, null, storage );
             try
             {
-                await storage.CreateTransaction(migrationTransaction, null);
+                await storage.CreateTransactionAsync(migrationTransaction, null);
             }
             catch (Exception ex)
             {

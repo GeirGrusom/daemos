@@ -37,7 +37,7 @@ namespace Daemos.Mute.Expressions
 
         public static DataType NonNullTimeSpan { get; } = new DataType(typeof(TimeSpan), false);
 
-        public static DataType NonNullTransactionState { get; } = new DataType(typeof(TransactionState), false);
+        public static DataType NonNullTransactionState { get; } = new DataType(typeof(TransactionStatus), false);
 
         public static DataType NullBool { get; } = new DataType(typeof(bool), true);
 

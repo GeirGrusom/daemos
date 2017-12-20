@@ -904,7 +904,7 @@ namespace Daemos.Mute.Compilation
             }
             else if (exp.Type.Equals(DataType.NonNullTransactionState))
             {
-                this.il.Emit(OpCodes.Ldc_I4, (int)(TransactionState)exp.Value);
+                this.il.Emit(OpCodes.Ldc_I4, (int)(TransactionStatus)exp.Value);
             }
             else
             {

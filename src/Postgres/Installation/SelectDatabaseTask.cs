@@ -1,6 +1,5 @@
-﻿// <copyright file="SelectDatabaseTask.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
@@ -19,9 +18,9 @@ namespace Daemos.Postgres.Installation
 
         public SelectDatabaseTask(string host, int port, ICredentialsPrompt credentialsPrompt)
         {
-            Host = host;
-            Port = port;
-            CredentialsPrompt = credentialsPrompt;
+            this.Host = host;
+            this.Port = port;
+            this.CredentialsPrompt = credentialsPrompt;
         }
 
         public ICredentialsPrompt CredentialsPrompt { get; }
@@ -31,7 +30,7 @@ namespace Daemos.Postgres.Installation
         public Task Install()
         {
             string host;
-            if (Host == null)
+            if (this.Host == null)
             {
                 Console.WriteLine("Please supply the host endpoint address.");
                 host = Console.ReadLine();
@@ -42,15 +41,16 @@ namespace Daemos.Postgres.Installation
             }
             else
             {
-                host = Host;
+                host = this.Host;
             }
+
             var connectionStringBuilder = new NpgsqlConnectionStringBuilder();
-            var credentials = CredentialsPrompt.ReadCredentials("Please supply systems administrator user credentials. This will be used to create the Daemos database. It is not used as application credentials.");
+            var credentials = this.CredentialsPrompt.ReadCredentials("Please supply systems administrator user credentials. This will be used to create the Daemos database. It is not used as application credentials.");
             connectionStringBuilder.Host = host;
             connectionStringBuilder.Database = "postgres";
             connectionStringBuilder.Username = credentials.UserName;
             connectionStringBuilder.Password = credentials.Password;
-            ConnectionString = connectionStringBuilder.ToString();
+            this.ConnectionString = connectionStringBuilder.ToString();
             return Task.CompletedTask;
         }
 

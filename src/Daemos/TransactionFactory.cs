@@ -102,7 +102,7 @@ namespace Daemos
         /// <returns>A <see cref="Task"/> representing the asynchronous operation. The result is the new transaction.</returns>
         public async Task<Transaction> StartTransaction(Guid? id, DateTime? expires, object payload, string script, TransactionRevision? parent)
         {
-            var trans = await this.Storage.CreateTransactionAsync(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionState.Initialized, parent, null, this.Storage));
+            var trans = await this.Storage.CreateTransactionAsync(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionStatus.Initialized, parent, null, this.Storage));
             await trans.Lock();
             return trans;
         }
@@ -118,7 +118,7 @@ namespace Daemos
         /// <returns>A <see cref="Task"/> representing the asynchronous operation. The result is the new transaction.</returns>
         public async Task<Transaction> CreateTransaction(Guid? id, DateTime? expires, object payload, string script, TransactionRevision? parent)
         {
-            return await this.Storage.CreateTransactionAsync(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionState.Initialized, parent, null, this.Storage));
+            return await this.Storage.CreateTransactionAsync(new Transaction(id ?? Guid.NewGuid(), 0, DateTime.UtcNow, expires, null, payload ?? new ExpandoObject(), script, TransactionStatus.Initialized, parent, null, this.Storage));
         }
     }
 }

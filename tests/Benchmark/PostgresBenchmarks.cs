@@ -21,7 +21,7 @@ namespace Daemos.Benchmark
         [Benchmark]
         public async Task CommitTransaction()
         {
-            await this.storage.CreateTransactionAsync(new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionState.Initialized, null, null, this.storage));
+            await this.storage.CreateTransactionAsync(new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null, null, null, TransactionStatus.Initialized, null, null, this.storage));
         }
 
         [GlobalCleanup]

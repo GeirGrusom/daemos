@@ -1,6 +1,5 @@
-﻿// <copyright file="PostgreSqlQueryProvider.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
@@ -20,7 +19,7 @@ namespace Daemos.Postgres
 
         public PostgreSqlQueryProvider(NpgsqlConnection conn, ITransactionStorage storage)
         {
-            connection = conn;
+            this.connection = conn;
             this.storage = storage;
         }
 
@@ -58,7 +57,7 @@ namespace Daemos.Postgres
             [typeof(string)] = NpgsqlDbType.Varchar,
             [typeof(float)] = NpgsqlDbType.Real,
             [typeof(double)] = NpgsqlDbType.Double,
-            [typeof(TransactionState)] = NpgsqlDbType.Enum,
+            [typeof(TransactionStatus)] = NpgsqlDbType.Enum,
             [typeof(bool)] = NpgsqlDbType.Boolean,
             [typeof(DateTime)] = NpgsqlDbType.Timestamp,
             [typeof(decimal)] = NpgsqlDbType.Money,
@@ -78,7 +77,7 @@ namespace Daemos.Postgres
             visitor.Visit(expression);
             var exp = visitor.ToString();
 
-            using (var cmd = connection.CreateCommand())
+            using (var cmd = this.connection.CreateCommand())
             {
                 cmd.CommandText = exp;
                 int id = 0;
@@ -86,7 +85,7 @@ namespace Daemos.Postgres
                 {
                     var p = new NpgsqlParameter("p" + (++id), param)
                     {
-                        NpgsqlDbType = GetDbType(param.GetType())
+                        NpgsqlDbType = this.GetDbType(param.GetType())
                     };
                     cmd.Parameters.Add(p);
                 }
@@ -105,6 +104,7 @@ namespace Daemos.Postgres
                         {
                             return default(TResult);
                         }
+
                         return (TResult)(dynamic)value;
                     }
 
@@ -115,13 +115,14 @@ namespace Daemos.Postgres
                         var results = new List<Transaction>();
                         while (reader.Read())
                         {
-                            results.Add(MapTransaction(reader));
+                            results.Add(this.MapTransaction(reader));
                         }
 
                         return (TResult)(object)results;
                     }
                 }
             }
+
             return default(TResult);
         }
 
@@ -130,7 +131,10 @@ namespace Daemos.Postgres
         {
             object v = reader.GetValue(ordinal);
             if (v == DBNull.Value)
+            {
                 return null;
+            }
+
             return (T)v;
         }
 
@@ -139,7 +143,10 @@ namespace Daemos.Postgres
         {
             object v = reader.GetValue(ordinal);
             if (v == DBNull.Value)
+            {
                 return null;
+            }
+
             return (T)v;
         }
 
@@ -169,11 +176,11 @@ namespace Daemos.Postgres
             object payload = payloadValue != null ? Newtonsoft.Json.JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(payloadValue) : null; 
 
             var script = GetObjectValue<string>(reader, Script);
-            var state = (TransactionState)reader.GetInt32(State);
+            var state = (TransactionStatus)reader.GetInt32(State);
 
             string errorValue = GetObjectValue<string>(reader, Error);
             object error = errorValue != null ? Newtonsoft.Json.JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(errorValue) : null;
-            return new Transaction(id, rev, created, expires, expired, payload, script, state, parent, error, storage);
+            return new Transaction(id, rev, created, expires, expired, payload, script, state, parent, error, this.storage);
         } 
     }
 }

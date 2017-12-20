@@ -3,9 +3,10 @@
 
 namespace Daemos
 {
+    using Daemos.Scripting;
     using System;
 
-    public enum TransactionState
+    public enum TransactionStatus
     {
         Initialized,
         Authorized,
@@ -45,7 +46,7 @@ namespace Daemos
 
         public TransactionRevision? Parent { get; set; }
 
-        public TransactionState State { get; set; }
+        public TransactionStatus Status { get; set; }
 
         public string Handler { get; set; }
 
@@ -74,7 +75,7 @@ namespace Daemos
                 this.Payload == other.Payload &&
                 this.Script == other.Script &&
                 //Parent == other.Parent &&
-                this.State == other.State &&
+                this.Status == other.Status &&
                 this.Handler == other.Handler &&
                 Equals(this.Error, other.Error);
         }
@@ -88,17 +89,17 @@ namespace Daemos
 
         public string Script { get; set; }
 
-        public TransactionState State { get; set; }
+        public TransactionStatus State { get; set; }
 
         public string Handler { get; set; }
 
         public object Error { get; set; }
     }
 
-    public sealed class Transaction : IEquatable<Transaction>, IEquatable<TransactionRevision>
+    public sealed class Transaction : IEquatable<Transaction>, IEquatable<TransactionRevision>, ISerializable
     {
-        public Transaction(Guid id, int revision, DateTime created, DateTime? expires, DateTime? expired, object payload, string script, TransactionState state, TransactionRevision? parent, object error, ITransactionStorage storage)
-            : this(new TransactionData { Id = id, Revision  = revision, Created = created, Expires = expires, Expired = expired, Parent = parent, Payload = payload, Script = script, State = state, Error = error }, storage)
+        public Transaction(Guid id, int revision, DateTime created, DateTime? expires, DateTime? expired, object payload, string script, TransactionStatus state, TransactionRevision? parent, object error, ITransactionStorage storage)
+            : this(new TransactionData { Id = id, Revision  = revision, Created = created, Expires = expires, Expired = expired, Parent = parent, Payload = payload, Script = script, Status = state, Error = error }, storage)
         {
         }
 
@@ -134,7 +135,7 @@ namespace Daemos
 
         public string Script => this.data.Script;
 
-        public TransactionState State => this.data.State;
+        public TransactionStatus Status => this.data.Status;
 
         public TransactionRevision? Parent => this.data.Parent;
 
@@ -175,6 +176,24 @@ namespace Daemos
         public override string ToString()
         {
             return $"{this.Id:B}";
+        }
+
+        /// <summary>
+        /// Serializes this transaction
+        /// </summary>
+        /// <param name="serializer">Serializer to write to</param>
+        public void Serialize(IStateSerializer serializer)
+        {
+            serializer.Serialize(nameof(this.Id), this.Id);
+            serializer.Serialize(nameof(this.Revision), this.Revision);
+            serializer.Serialize(nameof(this.Created), this.Created);
+            serializer.Serialize(nameof(this.Expires), this.Expires);
+            serializer.Serialize(nameof(this.Expired), this.Expired);
+            serializer.Serialize(nameof(this.Status), this.Status);
+            serializer.Serialize(nameof(this.Script), this.Script);
+            serializer.Serialize(nameof(this.Parent), this.Parent);
+            serializer.Serialize(nameof(this.Payload), this.Payload);
+            serializer.Serialize(nameof(this.Error), this.Error);
         }
 
         /*public static bool operator ==(Transaction lhs, Transaction rhs)

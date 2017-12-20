@@ -141,11 +141,11 @@ constant returns [Expression expr]
 	: NULL { $expr = Constant(null); }
 	| TRUE { $expr = Constant(true); }
 	| FALSE { $expr = Constant(false); }
-	| INITIALIZED { $expr = Constant(TransactionState.Initialized); }
-	| AUTHORIZED { $expr = Constant(TransactionState.Authorized); }
-	| COMPLETED {$expr = Constant(TransactionState.Completed); }
-	| CANCELLED { $expr = Constant(TransactionState.Cancelled); }
-	| FAILED { $expr = Constant(TransactionState.Failed); }
+	| INITIALIZED { $expr = Constant(TransactionStatus.Initialized); }
+	| AUTHORIZED { $expr = Constant(TransactionStatus.Authorized); }
+	| COMPLETED {$expr = Constant(TransactionStatus.Completed); }
+	| CANCELLED { $expr = Constant(TransactionStatus.Cancelled); }
+	| FAILED { $expr = Constant(TransactionStatus.Failed); }
 	;
 
 identifier returns [string value]

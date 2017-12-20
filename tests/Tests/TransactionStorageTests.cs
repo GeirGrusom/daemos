@@ -44,7 +44,7 @@ namespace Daemos.Tests
             var committedTransaction = await storage.CreateTransactionAsync(transaction);
 
             // Assert
-            Assert.Equal(transaction.State, committedTransaction.State);
+            Assert.Equal(transaction.Status, committedTransaction.Status);
         }
 
         [Fact]
@@ -59,26 +59,26 @@ namespace Daemos.Tests
             await Assert.ThrowsAsync<TransactionExistsException>(() => storage.CreateTransactionAsync(transaction));
 
             // Assert
-            Assert.Equal(transaction.State, committedTransaction.State);
+            Assert.Equal(transaction.Status, committedTransaction.Status);
         }
 
         [Theory]
-        [InlineData(TransactionState.Initialized)]
-        [InlineData(TransactionState.Authorized)]
-        [InlineData(TransactionState.Completed)]
-        [InlineData(TransactionState.Cancelled)]
-        [InlineData(TransactionState.Failed)]
-        public async Task CreateTransaction_ReturnsTransactionWithSameState_StateSpecified(TransactionState state)
+        [InlineData(TransactionStatus.Initialized)]
+        [InlineData(TransactionStatus.Authorized)]
+        [InlineData(TransactionStatus.Completed)]
+        [InlineData(TransactionStatus.Cancelled)]
+        [InlineData(TransactionStatus.Failed)]
+        public async Task CreateTransaction_ReturnsTransactionWithSameState_StateSpecified(TransactionStatus state)
         {
             // Arrange
             var storage = this.CreateStorage();
-            var transaction = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => t.State = state);
+            var transaction = TransactionFactory.CreateNew(storage).With((ref TransactionData t) => t.Status = state);
 
             // Act
             var committedTransaction = (await storage.CreateTransactionAsync(transaction));
 
             // Assert
-            Assert.Equal(state, committedTransaction.State);
+            Assert.Equal(state, committedTransaction.Status);
         }
 
         [Fact]
@@ -87,7 +87,7 @@ namespace Daemos.Tests
             int clientId = new Random().Next();
             var storage = this.CreateStorage();
             var trans = await storage.CreateTransactionAsync(new Transaction(Guid.NewGuid(), 1, DateTime.UtcNow, null, null,
-                new { clientId }, null, TransactionState.Initialized, null, null, storage));
+                new { clientId }, null, TransactionStatus.Initialized, null, null, storage));
 
             Expression<Func<Transaction, bool>> exp = x => new JsonValue((IDictionary<string, object>)x.Payload, "payload", "clientId") == clientId;
 
@@ -241,14 +241,14 @@ namespace Daemos.Tests
             // Arrange
             var storage = this.CreateStorage();
             var transaction = await storage.CreateTransactionAsync(TransactionFactory.CreateNew(storage));
-            var delta = transaction.With((ref TransactionData t) => { t.State = TransactionState.Authorized; t.Revision = 2; });
+            var delta = transaction.With((ref TransactionData t) => { t.Status = TransactionStatus.Authorized; t.Revision = 2; });
 
             // Act
             var result = await storage.CommitTransactionDeltaAsync(transaction, delta);
 
             // Assert
             Assert.Equal(2, result.Revision);
-            Assert.Equal(TransactionState.Authorized, result.State);
+            Assert.Equal(TransactionStatus.Authorized, result.Status);
         }
 
         [Fact]

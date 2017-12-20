@@ -13,12 +13,14 @@ namespace Daemos.Mute.Expressions
     {
         public List<ObjectMember> Members { get; }
 
-        public ObjectExpression(DataType resultType, IEnumerable<ObjectMember> members, ParserRuleContext context) : base(resultType, context)
+        public ObjectExpression(DataType resultType, IEnumerable<ObjectMember> members, ParserRuleContext context)
+            : base(resultType, context)
         {
             this.Members = members.ToList();
         }
 
-        public ObjectExpression(IEnumerable<ObjectMember> members, ParserRuleContext context) : base(DataType.FromClrType(typeof(ExpandoObject)), context)
+        public ObjectExpression(IEnumerable<ObjectMember> members, ParserRuleContext context)
+            : base(DataType.FromClrType(typeof(ExpandoObject)), context)
         {
             this.Members = members.ToList();
         }

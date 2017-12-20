@@ -9,7 +9,8 @@ namespace Daemos.Mute.Expressions
 
     public class TryExpression : Expression
     {
-        public TryExpression(Expression body, IEnumerable<CatchExpression> catchExpressions, Expression finallyExpression, ParserRuleContext context) : base(DataType.Void, context)
+        public TryExpression(Expression body, IEnumerable<CatchExpression> catchExpressions, Expression finallyExpression, ParserRuleContext context)
+            : base(DataType.Void, context)
         {
             this.Body = body;
             this.CatchExpressions = catchExpressions.ToList();

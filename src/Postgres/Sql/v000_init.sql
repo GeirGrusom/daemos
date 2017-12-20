@@ -12,8 +12,7 @@ create table transactions (
 	script text null,
 	parentId uuid null,
 	parentRevision int null,
-	state integer not null,
-	handler varchar(50),
+	status integer not null,
 	head boolean not null default(true),
 	error jsonb null,
 	constraint pk_transactions primary key (id, revision),
@@ -29,7 +28,7 @@ create table transaction_state (
 );
 
 create view transactions_head as 
-	select id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, handler, head, error 
+	select id, revision, created, expires, expired, payload, script, parentId, parentRevision, status, head, error 
 	from transactions tr1
 	where tr1.head = true;
 

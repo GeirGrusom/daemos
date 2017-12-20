@@ -112,7 +112,7 @@ namespace Daemos
                                     true,
                                     (ref TransactionMutableData x) =>
                                     {
-                                        x.State = TransactionState.Failed;
+                                        x.State = TransactionStatus.Failed;
                                         x.Payload = transaction.Payload;
                                         x.Error = error;
                                         x.Expires = null;
@@ -132,7 +132,7 @@ namespace Daemos
                                 null,
                                 new { failure = "optimistic" },
                                 null,
-                                TransactionState.Failed,
+                                TransactionStatus.Failed,
                                 new TransactionRevision(transaction.Id, transaction.Revision),
                                 SerializedException.FromException(unlikelyException),
                                 this.Storage);

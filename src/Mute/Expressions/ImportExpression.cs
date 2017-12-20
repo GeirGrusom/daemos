@@ -9,7 +9,8 @@ namespace Daemos.Mute.Expressions
     {
         public string Name { get; }
 
-        public ImportExpression(DataType resultType, string name, ParserRuleContext context) : base(resultType, context)
+        public ImportExpression(DataType resultType, string name, ParserRuleContext context)
+            : base(resultType, context)
         {
             this.Name = name;
         }

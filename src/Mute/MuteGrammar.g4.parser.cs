@@ -29,7 +29,7 @@ namespace Daemos.Mute
 
         private static readonly HashSet<string> MutableTransactionProperties = new HashSet<string>
         {
-            nameof(Transaction.State),
+            nameof(Transaction.Status),
             nameof(Transaction.Expires),
             nameof(Transaction.Handler),
             nameof(Transaction.Payload),
@@ -570,15 +570,15 @@ namespace Daemos.Mute
             switch (state)
             {
                 case "initialize":
-                    return new ConstantExpression(Daemos.TransactionState.Initialized, ctx);
+                    return new ConstantExpression(Daemos.TransactionStatus.Initialized, ctx);
                 case "authorize":
-                    return new ConstantExpression(Daemos.TransactionState.Authorized, ctx);
+                    return new ConstantExpression(Daemos.TransactionStatus.Authorized, ctx);
                 case "complete":
-                    return new ConstantExpression(Daemos.TransactionState.Completed, ctx);
+                    return new ConstantExpression(Daemos.TransactionStatus.Completed, ctx);
                 case "fail":
-                    return new ConstantExpression(Daemos.TransactionState.Failed, ctx);
+                    return new ConstantExpression(Daemos.TransactionStatus.Failed, ctx);
                 case "cancel":
-                    return new ConstantExpression(Daemos.TransactionState.Cancelled, ctx);
+                    return new ConstantExpression(Daemos.TransactionStatus.Cancelled, ctx);
                 default:
                     this.AddSyntaxError($"Transaction state '{state}' is not recognized.", ctx);
                     return null;
@@ -632,9 +632,9 @@ namespace Daemos.Mute
                     continue;
                 }
 
-                if (member.Name == nameof(Transaction.State))
+                if (member.Name == nameof(Transaction.Status))
                 {
-                    if (member.Type.Nullable || (member.Type.ClrType != typeof(TransactionState) && member.Type.ClrType != typeof(string)))
+                    if (member.Type.Nullable || (member.Type.ClrType != typeof(TransactionStatus) && member.Type.ClrType != typeof(string)))
                     {
                         this.AddSyntaxError($"Expected a transaction state; got {member.Type}.", member.Context);
                     }

@@ -14,9 +14,12 @@ namespace Daemos.Scripting
     /// </summary>
     public sealed class StateDeserializer : IDisposable, IStateDeserializer
     {
+        private static readonly MethodInfo DeserializeMethod = typeof(StateDeserializer).GetMethods().Single(x => x.IsGenericMethodDefinition && x.Name == "Deserialize");
+
         private readonly MemoryStream memoryStream;
         private readonly GZipStream gzipStream;
         private readonly BinaryReader reader;
+        private readonly System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StateDeserializer"/> class with the specified transaction state as a byte array.
@@ -27,6 +30,7 @@ namespace Daemos.Scripting
             this.memoryStream = new MemoryStream(source, writable: false);
             this.gzipStream = new GZipStream(this.memoryStream, CompressionMode.Decompress);
             this.reader = new BinaryReader(this.gzipStream);
+            this.binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
         }
 
         /// <summary>
@@ -36,7 +40,6 @@ namespace Daemos.Scripting
             : this(new byte[0])
         {
         }
-
 
         /// <summary>
         /// Gets the underlying stream
@@ -67,9 +70,6 @@ namespace Daemos.Scripting
             return this.reader.ReadInt32();
         }
 
-
-        private static readonly MethodInfo DeserializeMethod = typeof(StateDeserializer).GetMethods().Single(x => x.IsGenericMethodDefinition && x.Name == "Deserialize");
-
         /// <summary>
         /// Deserializes a variable with the specified name using the expected datatype.
         /// </summary>
@@ -98,7 +98,7 @@ namespace Daemos.Scripting
 
             if (flags == SerializationFlags.BinaryFormatter)
             {
-                throw new NotSupportedException();
+                return (T)this.binaryFormatter.Deserialize(this.UnderlyingStream);
             }
 
             if (flags == SerializationFlags.Serializable)

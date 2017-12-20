@@ -107,7 +107,7 @@ namespace Daemos
         /// <param name="transaction">Transaction to fetch child transaction for</param>
         /// <param name="state">Child states to fetch</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation. The result is the fetched transaction children.</returns>
-        Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionState[] state);
+        Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionStatus[] state);
 
         /// <summary>
         /// Opens the transaction storage asynchronously.

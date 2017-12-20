@@ -3,9 +3,17 @@
 
 namespace Daemos
 {
+    /// <summary>
+    /// Produces a string hash
+    /// </summary>
     public static class JenkinsHash
     {
-        public static int GetHashCode(string input)
+        /// <summary>
+        /// Calculates the hash code for the input string
+        /// </summary>
+        /// <param name="input">Input string to produce hash code for. This value cannot be null.</param>
+        /// <returns>Jenkins hash</returns>
+        public static int GetHashCode([NotNull] string input)
         {
             int i = 0;
             int hash = 0;

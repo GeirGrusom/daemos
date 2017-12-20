@@ -9,7 +9,8 @@ namespace Daemos.Mute.Expressions
     {
         public string Name { get; }
 
-        public LabelExpression(DataType resultType, string name, ParserRuleContext context) : base(resultType, context)
+        public LabelExpression(DataType resultType, string name, ParserRuleContext context)
+            : base(resultType, context)
         {
             this.Name = name;
         }

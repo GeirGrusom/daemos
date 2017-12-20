@@ -12,7 +12,8 @@ namespace Daemos.Mute.Expressions
 
         public BlockExpression Body { get; }
 
-        public FunctionExpression(DataType resultType, ParserRuleContext context) : base(resultType, context)
+        public FunctionExpression(DataType resultType, ParserRuleContext context)
+            : base(resultType, context)
         {
         }
     }

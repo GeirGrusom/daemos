@@ -26,13 +26,15 @@ namespace Daemos.Mute.Expressions
 
         public UnaryOperator Operator { get; }
 
-        protected UnaryExpression(DataType type, Expression operand, UnaryOperator @operator, ParserRuleContext context) : base(type, context)
+        protected UnaryExpression(DataType type, Expression operand, UnaryOperator @operator, ParserRuleContext context)
+            : base(type, context)
         {
             this.Operand = operand;
             this.Operator = @operator;
         }
 
-        protected UnaryExpression(Expression operand, UnaryOperator @operator, ParserRuleContext context) : base(operand?.Type ?? DataType.Void, context)
+        protected UnaryExpression(Expression operand, UnaryOperator @operator, ParserRuleContext context)
+            : base(operand?.Type ?? DataType.Void, context)
         {
             this.Operand = operand;
             this.Operator = @operator;
@@ -41,7 +43,8 @@ namespace Daemos.Mute.Expressions
 
     public sealed class UnaryAddExpression : UnaryExpression
     {
-        public UnaryAddExpression(Expression operand, ParserRuleContext context) : base(operand, UnaryOperator.Add, context)
+        public UnaryAddExpression(Expression operand, ParserRuleContext context)
+            : base(operand, UnaryOperator.Add, context)
         {
         }
 
@@ -53,7 +56,8 @@ namespace Daemos.Mute.Expressions
 
     public sealed class UnarySubtractExpression : UnaryExpression
     {
-        public UnarySubtractExpression(Expression operand, ParserRuleContext context) : base(operand, UnaryOperator.Subtract, context)
+        public UnarySubtractExpression(Expression operand, ParserRuleContext context)
+            : base(operand, UnaryOperator.Subtract, context)
         {
         }
 
@@ -65,7 +69,8 @@ namespace Daemos.Mute.Expressions
 
     public sealed class UnaryAwaitExpression : UnaryExpression
     {
-        public UnaryAwaitExpression(Expression operand, ParserRuleContext context) : base(operand, UnaryOperator.Await, context)
+        public UnaryAwaitExpression(Expression operand, ParserRuleContext context)
+            : base(operand, UnaryOperator.Await, context)
         {
         }
 
@@ -77,7 +82,8 @@ namespace Daemos.Mute.Expressions
 
     public sealed class UnaryNotExpression : UnaryExpression
     {
-        public UnaryNotExpression(Expression operand, ParserRuleContext context) : base(DataType.Void, operand, UnaryOperator.Not, context)
+        public UnaryNotExpression(Expression operand, ParserRuleContext context)
+            : base(DataType.Void, operand, UnaryOperator.Not, context)
         {
         }
 

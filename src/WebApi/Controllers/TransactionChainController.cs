@@ -142,7 +142,7 @@ namespace Daemos.WebApi.Controllers
                     expires = trans.Expires;
                 }
 
-                TransactionState state;
+                TransactionStatus state;
 
                 if (model.ContainsKey("state"))
                 {
@@ -153,7 +153,7 @@ namespace Daemos.WebApi.Controllers
                 }
                 else
                 {
-                    state = trans.State;
+                    state = trans.Status;
                 }
 
                 result = await trans.CreateDelta(trans.Revision + 1, false, (ref TransactionMutableData data) =>

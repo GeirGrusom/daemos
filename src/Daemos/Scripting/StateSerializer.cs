@@ -26,6 +26,7 @@ namespace Daemos.Scripting
         private readonly BinaryWriter writer;
         private readonly MemoryStream memoryStream;
         private readonly GZipStream gzipStream;
+        private readonly System.Runtime.Serialization.Formatters.Binary.BinaryFormatter binaryFormatter;
         private bool disposed;
 
         /// <summary>
@@ -36,6 +37,7 @@ namespace Daemos.Scripting
             this.memoryStream = new MemoryStream();
             this.gzipStream = new GZipStream(this.memoryStream, CompressionMode.Compress);
             this.writer = new BinaryWriter(this.gzipStream, Encoding.UTF8);
+            this.binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
         }
 
         /// <summary>
@@ -205,31 +207,22 @@ namespace Daemos.Scripting
                 return;
             }
 
-            if (IsSerializable<T>())
+            if (SerializationInfo<T>.IsSerializable)
             {
                 this.Serialize(value);
             }
-            else if (IsProtoBuf<T>())
+            else if (SerializationInfo<T>.IsProtoBuf)
             {
                 this.ProtoBuf(value);
+            }
+            else if (SerializationInfo<T>.IsFormattable)
+            {
+                this.Formatter(value);
             }
             else
             {
                 throw new NotSupportedException("The type is not serializable and is not a protobuf contract.");
             }
-        }
-
-        internal static bool IsSerializable<T>()
-        {
-            var interfaces = typeof(T).GetInterfaces();
-            var serializableInterface = interfaces.SingleOrDefault(x => x == typeof(ISerializable));
-            var ctor = typeof(T).GetConstructor(new[] { typeof(IStateDeserializer) });
-            return serializableInterface != null && ctor != null;
-        }
-
-        internal static bool IsProtoBuf<T>()
-        {
-            return typeof(T).GetTypeInfo().GetCustomAttribute<ProtoContractAttribute>() != null;
         }
 
         private void AssertNotDisposed()
@@ -251,6 +244,37 @@ namespace Daemos.Scripting
         {
             this.writer.Write((byte)SerializationFlags.ProtoBuf);
             Serializer.Serialize<T>(this.UnderlyingStream, value);
+        }
+
+        private void Formatter<T>(T value)
+        {
+            this.writer.Write((byte)SerializationFlags.BinaryFormatter);
+            this.binaryFormatter.Serialize(this.UnderlyingStream, value);
+        }
+
+        internal static class SerializationInfo<T>
+        {
+            internal static readonly bool IsFormattable = GetIsFormattable();
+            internal static readonly bool IsSerializable = GetIsSerializable();
+            internal static readonly bool IsProtoBuf = GetIsProtoBuf();
+
+            internal static bool GetIsFormattable()
+            {
+                return typeof(T).GetCustomAttribute<SerializableAttribute>() != null;
+            }
+
+            internal static bool GetIsSerializable()
+            {
+                var interfaces = typeof(T).GetInterfaces();
+                var serializableInterface = interfaces.SingleOrDefault(x => x == typeof(ISerializable));
+                var ctor = typeof(T).GetConstructor(new[] { typeof(IStateDeserializer) });
+                return serializableInterface != null && ctor != null;
+            }
+
+            internal static bool GetIsProtoBuf()
+            {
+                return typeof(T).GetTypeInfo().GetCustomAttribute<ProtoContractAttribute>() != null;
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
-﻿// <copyright file="PredicateQueryVisitor.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
@@ -20,9 +19,9 @@ namespace Daemos.Postgres
 
         public PredicateQueryVisitor()
         {
-            now = DateTime.UtcNow;
-            builder = new StringBuilder();
-            Parameters = new List<object>();
+            this.now = DateTime.UtcNow;
+            this.builder = new StringBuilder();
+            this.Parameters = new List<object>();
         }
 
         public override Expression Visit(Expression node)
@@ -121,6 +120,7 @@ namespace Daemos.Postgres
                         return 5;
                     }
                 }
+
                 return pres;
             }
 
@@ -128,6 +128,7 @@ namespace Daemos.Postgres
             {
                 UnaryExpression un = (UnaryExpression)exp;
             }
+
             return pres;
         }
 
@@ -142,30 +143,35 @@ namespace Daemos.Postgres
         protected override Expression VisitUnary(UnaryExpression node)
         {
             if (!unaryOperatorLookup.TryGetValue(node.NodeType, out string op))
+            {
                 throw new NotSupportedException();
+            }
 
             if (node.NodeType != ExpressionType.Quote)
-                builder.Append($" {op}");
+            {
+                this.builder.Append($" {op}");
+            }
 
-            Visit(node.Operand);
+            this.Visit(node.Operand);
             return node;
         }
 
         protected override Expression VisitConstant(ConstantExpression node)
         {
-            builder.Append(":p" + (Parameters.Count + 1) + "");
+            this.builder.Append(":p" + (this.Parameters.Count + 1) + "");
             if (node.Value == null)
             {
-                Parameters.Add(DBNull.Value);
+                this.Parameters.Add(DBNull.Value);
             }
             else if (node.Value.GetType().GetTypeInfo().IsEnum)
             {
-                Parameters.Add((int)node.Value);
+                this.Parameters.Add((int)node.Value);
             }
             else
             {
-                Parameters.Add(node.Value);
+                this.Parameters.Add(node.Value);
             }
+
             return node;
         }
 
@@ -173,28 +179,30 @@ namespace Daemos.Postgres
         {
             if (node.Type == typeof(JsonValue))
             {
-                var memberOf = GetColumnName((string)((ConstantExpression)node.Arguments[1]).Value);
+                var memberOf = this.GetColumnName((string)((ConstantExpression)node.Arguments[1]).Value);
                 var member = (string)((ConstantExpression)node.Arguments[2]).Value;
-                builder.Append(memberOf);
-                builder.Append(" ->> ");
-                builder.Append('\'' + member + '\'');
+                this.builder.Append(memberOf);
+                this.builder.Append(" ->> ");
+                this.builder.Append('\'' + member + '\'');
             }
+
             return node;
         }
 
         protected override Expression VisitNewArray(NewArrayExpression node)
         {
-            builder.Append("(");
+            this.builder.Append("(");
             for (int i = 0; i < node.Expressions.Count; ++i)
             {
-                Visit(node.Expressions[i]);
+                this.Visit(node.Expressions[i]);
 
                 if (i < node.Expressions.Count - 1)
                 {
-                    builder.Append(", ");
+                    this.builder.Append(", ");
                 }
             }
-            builder.Append(")");
+
+            this.builder.Append(")");
             return node;
         }
 
@@ -207,20 +215,23 @@ namespace Daemos.Postgres
             }
             else if (exp.Expression is MemberExpression mem)
             {
-                baseObj = ResolveMember(mem);
+                baseObj = this.ResolveMember(mem);
             }
             else
             {
                 throw new NotImplementedException();
             }
+
             if (exp.Member is FieldInfo fi)
             {
                 return fi.GetValue(baseObj);
             }
+
             if (exp.Member is PropertyInfo pi)
             {
                 return pi.GetValue(baseObj);
             }
+
             throw new NotImplementedException();
         }
 
@@ -228,18 +239,19 @@ namespace Daemos.Postgres
         {
             if (node.Member.DeclaringType == typeof(Transaction))
             {
-                builder.Append(GetColumnName(node.Member.Name));
+                this.builder.Append(this.GetColumnName(node.Member.Name));
             }
             else
             {
-                var objValue = ResolveMember(node);
+                var objValue = this.ResolveMember(node);
                     
-                builder.Append(":p" + (Parameters.Count + 1) + "");
-                Parameters.Add(objValue);
+                this.builder.Append(":p" + (this.Parameters.Count + 1) + "");
+                this.Parameters.Add(objValue);
                 return node;
                 
                 throw new NotImplementedException();
             }
+
             return node;
         }
 
@@ -251,80 +263,92 @@ namespace Daemos.Postgres
                 {
                     case "Contains":
                     {
-                        Visit(node.Arguments[1]);
-                        builder.Append(" in ");
-                        Visit(node.Arguments[0]);
+                        this.Visit(node.Arguments[1]);
+                        this.builder.Append(" in ");
+                        this.Visit(node.Arguments[0]);
                         return node;
                     }
                 }
 
             }
+
             if (node.Method.DeclaringType == typeof(System.Math))
             {
                 switch (node.Method.Name)
                 {
                     case "Abs":
                         {
-                            builder.Append("@(");
-                            Visit(node.Arguments[0]);
-                            builder.Append(")");
+                            this.builder.Append("@(");
+                            this.Visit(node.Arguments[0]);
+                            this.builder.Append(")");
                             return node;
                         }
+
                     case "GetPayloadMember":
                         {
-                            builder.Append("\"Payload\" -> ");
-                            builder.Append(node.Arguments[1]);
+                            this.builder.Append("\"Payload\" -> ");
+                            this.builder.Append(node.Arguments[1]);
                             return node;
                         }
                 }
             }
+
             return node;
         }
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
             if (!binaryOperatorLookup.TryGetValue(node.NodeType, out string op))
+            {
                 throw new NotSupportedException();
+            }
 
             if (op == "+" && (node.Left.Type == typeof(string) || node.Right.Type == typeof(string)))
+            {
                 op = "||"; // String concat operator
+            }
 
             var requiresParens = GetExpressionPresedense(node.Left) < GetExpressionPresedense(node.Right);
 
             if (requiresParens)
-                builder.Append("(");
+            {
+                this.builder.Append("(");
+            }
 
             if (node.Left.Type == typeof(JsonValue))
             {
-                builder.Append("(");
-                Visit(node.Left);
-                builder.Append(")");
+                this.builder.Append("(");
+                this.Visit(node.Left);
+                this.builder.Append(")");
 
                 if (node.Right.Type == typeof(int) || node.Right.Type == typeof(long) || node.Right.Type == typeof(float) || node.Right.Type == typeof(double))
                 {
-                    builder.Append("::numeric");
+                    this.builder.Append("::numeric");
                 }
                 else if (node.Right.Type == typeof(bool))
                 {
-                    builder.Append("::bool");
+                    this.builder.Append("::bool");
                 }
             }
             else
             {
-                Visit(node.Left);
+                this.Visit(node.Left);
             }
-            builder.Append($" {op} ");
-            Visit(node.Right);
+
+            this.builder.Append($" {op} ");
+            this.Visit(node.Right);
 
             if (requiresParens)
-                builder.Append(")");
+            {
+                this.builder.Append(")");
+            }
 
             return node;
         }
 
         public override string ToString()
         {
-            return builder.ToString();
+            return this.builder.ToString();
         }
     }
 }

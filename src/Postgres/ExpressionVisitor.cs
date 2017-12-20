@@ -1,6 +1,5 @@
-﻿// <copyright file="ExpressionVisitor.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -20,9 +19,9 @@ namespace Daemos.Postgres
 
         public PostgresVisitor()
         {
-            count = false;
-            builder = new StringBuilder();
-            predicateVisitor = new PredicateQueryVisitor();
+            this.count = false;
+            this.builder = new StringBuilder();
+            this.predicateVisitor = new PredicateQueryVisitor();
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
@@ -34,47 +33,52 @@ namespace Daemos.Postgres
                     case "Where":
                     {
                         // Argument 0 is the queryable.
-                        predicateVisitor.Visit(node.Arguments[1]);
-                        Visit(node.Arguments[0]);
+                        this.predicateVisitor.Visit(node.Arguments[1]);
+                        this.Visit(node.Arguments[0]);
                         return node;
                     }
+
                     case "Skip":
                     {
-                        skip = (int)((ConstantExpression)node.Arguments[1]).Value;
-                        Visit(node.Arguments[0]);
+                        this.skip = (int)((ConstantExpression)node.Arguments[1]).Value;
+                        this.Visit(node.Arguments[0]);
                         return node;
                     }
+
                     case "Take":
                     {
-                        take = (int)((ConstantExpression)node.Arguments[1]).Value;
-                        Visit(node.Arguments[0]);
+                        this.take = (int)((ConstantExpression)node.Arguments[1]).Value;
+                        this.Visit(node.Arguments[0]);
                         return node;
                     }
+
                     case "Count":
                     {
-                        count = true;
-                        Visit(node.Arguments[0]);
+                        this.count = true;
+                        this.Visit(node.Arguments[0]);
                         return node;
 
                     }
                 }
             }
+
             return node;
         }
 
-        public IEnumerable<object> Parameters => predicateVisitor.Parameters;
+        public IEnumerable<object> Parameters => this.predicateVisitor.Parameters;
 
         private static readonly string defaultSelect = "id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, error";
 
         public override string ToString()
         {
-            if (count)
+            if (this.count)
             {
-                return $"SELECT COUNT(*) FROM trans.transactions_head WHERE {predicateVisitor.ToString()};";
+                return $"SELECT COUNT(*) FROM trans.transactions_head WHERE {this.predicateVisitor.ToString()};";
             }
-            string limit = take != null ? "LIMIT " + take.Value : "";
-            string offset = skip != null ? " OFFSET " + skip.Value : "";
-            return $"SELECT {defaultSelect} FROM trans.Transactions_head WHERE {predicateVisitor.ToString()} {limit} {offset};";
+
+            string limit = this.take != null ? "LIMIT " + this.take.Value : "";
+            string offset = this.skip != null ? " OFFSET " + this.skip.Value : "";
+            return $"SELECT {defaultSelect} FROM trans.Transactions_head WHERE {this.predicateVisitor.ToString()} {limit} {offset};";
         }
     }
 }

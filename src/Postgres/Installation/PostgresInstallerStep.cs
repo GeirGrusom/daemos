@@ -1,6 +1,5 @@
-﻿// <copyright file="PostgresInstallerStep.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 using System;
 using System.Collections.Generic;
@@ -22,28 +21,28 @@ namespace Daemos.Postgres.Installation
 
         public PostgresInstallerStep([CanBeNull]string host, int? port, ICredentialsPrompt credentialsPrompt)
         {
-            CredentialsPrompt = credentialsPrompt;
+            this.CredentialsPrompt = credentialsPrompt;
             if (host != null)
             {
                 var match = Regex.Match(host, @"^(?<HostName>.+):(?<Port>[0-9]+)$");
                 if (match.Success)
                 {
-                    Host = match.Groups["HostName"].Value;
-                    Port = int.Parse(match.Groups["Port"].Value);
+                    this.Host = match.Groups["HostName"].Value;
+                    this.Port = int.Parse(match.Groups["Port"].Value);
                 }
             }
             else
             {
-                Port = port ?? 5432;
+                this.Port = port ?? 5432;
             }
         }
 
         public IEnumerable<ITask> GetStepTasks()
         {
-            var selectDb = new SelectDatabaseTask(Host, Port, CredentialsPrompt);
+            var selectDb = new SelectDatabaseTask(this.Host, this.Port, this.CredentialsPrompt);
             yield return selectDb;
             yield return new PostgresCreateDatabaseTask(selectDb.ConnectionString);
-            yield return new InstallDatabaseSchemaTask(selectDb.ConnectionString, CredentialsPrompt);
+            yield return new InstallDatabaseSchemaTask(selectDb.ConnectionString, this.CredentialsPrompt);
 
         }
     }

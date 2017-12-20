@@ -88,11 +88,11 @@ namespace Daemos
         }
 
         /// <inheritdoc/>
-        public override Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid id, params TransactionState[] states)
+        public override Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid id, params TransactionStatus[] states)
         {
             return Task.FromResult(from slot in this.transactions
                                    let trans = slot.Value.Chain.Last()
-                                   where trans.Parent != null && trans.Parent.Value.Id == id && states.Any(x => x == trans.State)
+                                   where trans.Parent != null && trans.Parent.Value.Id == id && states.Any(x => x == trans.Status)
                                    select trans);
         }
 

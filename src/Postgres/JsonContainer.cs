@@ -1,6 +1,5 @@
-﻿// <copyright file="JsonContainer.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
+﻿// This file is licensed under the MIT open source license
+// https://opensource.org/licenses/MIT
 
 namespace Daemos.Postgres
 {
@@ -15,7 +14,7 @@ namespace Daemos.Postgres
 
         public override string ToString()
         {
-            return json;
+            return this.json;
         }
     }
 }

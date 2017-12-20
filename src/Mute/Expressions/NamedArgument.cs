@@ -11,7 +11,8 @@ namespace Daemos.Mute.Expressions
 
         public Expression Value { get; }
 
-        public NamedArgument(string argument, Expression value, ParserRuleContext context) : base(value.Type, context)
+        public NamedArgument(string argument, Expression value, ParserRuleContext context)
+            : base(value.Type, context)
         {
             this.Argument = argument;
             this.Value = value;

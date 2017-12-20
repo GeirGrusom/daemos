@@ -73,7 +73,7 @@ namespace Daemos.WebApi.Scripting
 
                 if (o.TryGetValue("@internal", out object @internal) && "script".Equals(@internal))
                 {
-                    if (e.Transaction.State == TransactionState.Authorized)
+                    if (e.Transaction.Status == TransactionStatus.Authorized)
                     {
                         await ProcessScriptTransaction(e.Transaction);
                     }
@@ -89,14 +89,14 @@ namespace Daemos.WebApi.Scripting
 
                 string name = (string) payload["name"];
 
-                if (tr.State == TransactionState.Authorized || tr.State == TransactionState.Completed)
+                if (tr.Status == TransactionStatus.Authorized || tr.Status == TransactionStatus.Completed)
                 {
                     string language = (string) payload["language"];
                     string code = (string) payload["code"];
 
                     this.RegisterScript(name, language, code);
                 }
-                else if (tr.State == TransactionState.Cancelled)
+                else if (tr.Status == TransactionStatus.Cancelled)
                 {
                     this.RemoveReference(name);
                 }
@@ -105,7 +105,7 @@ namespace Daemos.WebApi.Scripting
             {
                 await this._storage.CommitTransactionDeltaAsync(tr,
                     new Transaction(tr.Id, tr.Revision + 1, DateTime.UtcNow, null, null, tr.Payload, tr.Script,
-                        TransactionState.Failed, tr.Parent, ex, this._storage));
+                        TransactionStatus.Failed, tr.Parent, ex, this._storage));
             }
         }
 
@@ -113,7 +113,7 @@ namespace Daemos.WebApi.Scripting
         {
             var query = await this._storage.QueryAsync();
             var scripts = query.Where(
-                    tr => new JsonValue((IDictionary<string, object>) tr.Payload, "Payload", "@internal") == "script" && tr.State == TransactionState.Authorized)
+                    tr => new JsonValue((IDictionary<string, object>) tr.Payload, "Payload", "@internal") == "script" && tr.Status == TransactionStatus.Authorized)
                 .ToArray();
 
             foreach (var script in scripts)
