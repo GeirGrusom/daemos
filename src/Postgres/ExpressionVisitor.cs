@@ -67,7 +67,7 @@ namespace Daemos.Postgres
 
         public IEnumerable<object> Parameters => this.predicateVisitor.Parameters;
 
-        private static readonly string defaultSelect = "id, revision, created, expires, expired, payload, script, parentId, parentRevision, state, error";
+        private static readonly string defaultSelect = "id, revision, created, expires, expired, payload, script, parentId, parentRevision, status, error";
 
         public override string ToString()
         {

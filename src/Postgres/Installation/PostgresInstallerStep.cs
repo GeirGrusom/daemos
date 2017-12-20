@@ -14,7 +14,7 @@ namespace Daemos.Postgres.Installation
         public string Name => "PostgreSQL support";
 
         public ICredentialsPrompt CredentialsPrompt { get; }
-        
+
         public string Host { [return: CanBeNull] get; }
 
         public int Port { get; set; }

@@ -59,7 +59,7 @@ namespace Daemos.Postgres
             var ctor = typeof(NpgsqlParameter).GetConstructor(new [] { typeof(string), typeof(NpgsqlDbType) });
             var param = typeof(NpgsqlCommand).GetProperty("Parameters", typeof(NpgsqlParameterCollection), new Type[0]);
             var props = Expression.Property(cmd, param);
-            
+
             var add = typeof(NpgsqlParameterCollection).GetMethod("Add", new [] { typeof(NpgsqlParameter) });
             var toString = typeof(object).GetMethod("ToString");
             foreach (var prop in type.GetProperties())
@@ -73,7 +73,7 @@ namespace Daemos.Postgres
                 }
 
                 body.Add(Expression.Assign(par, Expression.New(ctor, Expression.Constant(prop.Name), Expression.Constant(sqlType))));
-               
+
                 body.Add(Expression.Assign(Expression.Property(par, "Value"), Expression.Condition(Expression.Equal(Expression.Convert(propVal, typeof(object)), Expression.Constant(null)), Expression.Constant(DBNull.Value, typeof(object)),  Expression.Convert(propVal, typeof(object)))));
                 body.Add(Expression.Call(props, add, par));
             }
@@ -94,7 +94,7 @@ namespace Daemos.Postgres
                 cmd.Prepare();
 
                 using (var reader = cmd.ExecuteReader())
-                { 
+                {
                     while (reader.Read())
                     {
                         yield return mapper(reader);

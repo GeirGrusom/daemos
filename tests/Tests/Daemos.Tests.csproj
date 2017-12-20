@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DockerDatabase" Version="0.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
     <PackageReference Include="Npgsql" Version="3.2.6" />
     <PackageReference Include="NSubstitute" Version="3.1.0" />

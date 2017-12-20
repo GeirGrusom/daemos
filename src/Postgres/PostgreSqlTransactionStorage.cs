@@ -494,7 +494,7 @@ INSERT INTO {Schema}.transactions
             }
 
             data.Status = (TransactionStatus)reader.GetInt32(9);
-            data.Error = reader.IsDBNull(11) ? null : JsonConvert.DeserializeObject<ExpandoObject>(reader.GetString(11));
+            data.Error = reader.IsDBNull(10) ? null : JsonConvert.DeserializeObject<ExpandoObject>(reader.GetString(10));
             return new Transaction(data, this);
         }
 

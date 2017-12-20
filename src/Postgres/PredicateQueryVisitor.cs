@@ -244,11 +244,11 @@ namespace Daemos.Postgres
             else
             {
                 var objValue = this.ResolveMember(node);
-                    
+
                 this.builder.Append(":p" + (this.Parameters.Count + 1) + "");
                 this.Parameters.Add(objValue);
                 return node;
-                
+
                 throw new NotImplementedException();
             }
 

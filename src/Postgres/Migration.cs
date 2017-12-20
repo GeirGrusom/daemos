@@ -60,7 +60,7 @@ namespace Daemos.Postgres
 
         public void ValidateMigration()
         {
-            
+
         }
 
         private ulong GenerateHashCode(Stream fileContents)
@@ -75,7 +75,7 @@ namespace Daemos.Postgres
             {
                 for (int i = 0; i < readCount; i++)
                 {
-                    if (buffer[readCount] <= ' ') // Ignore non-printing characters. 
+                    if (buffer[readCount] <= ' ') // Ignore non-printing characters.
                     {
                         continue;
                     }

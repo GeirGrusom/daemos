@@ -10,75 +10,60 @@ namespace Daemos.Tests
     using System.Threading;
     using System.Threading.Tasks;
     using Daemos.Postgres;
+    using DockerDatabase;
     using Xunit;
 
-    public class PostgresDatabaseFixture
+    public class PostgresDatabaseFixture : Xunit.IAsyncLifetime
     {
-        public string ConnectionString { get; }
+        private DatabaseContainer container;
 
-        public string ContainerId { get; private set; }
+        public Npgsql.NpgsqlConnection Connection { get; private set; }
 
-        public string PostgresHostName { get; }
+        public string ConnectionString => this.container.CreateConnectionString();
 
-        public PostgresDatabaseFixture()
+        public async Task InitializeAsync()
         {
-            this.PostgresHostName = "localhost";
-            string username = "transact_test";
-            string password = "qwerty12345";
+            this.container = await DatabaseBuilder.CreateContainerAsync(DatabaseType.PostgreSql);
+            this.Connection = await this.container.CreateConnectionAsync<Npgsql.NpgsqlConnection>();
+            using (var stream = typeof(PostgreSqlTransactionStorage).Assembly.GetManifestResourceStream("Daemos.Postgres.Sql.v000_init.sql"))
+            using (var reader = new System.IO.StreamReader(stream))
+            {
+                using (var cmd = this.Connection.CreateCommand())
+                {
+                    cmd.CommandText = await reader.ReadToEndAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+        }
 
-            //InitPostgres(username, password).Wait();
-
-            this.ConnectionString = $@"User ID={username};Password={password};Host={this.PostgresHostName};Port=5432;Database=daemos;Pooling = true;";
-
-            //var storage = new PostgreSqlTransactionStorage(ConnectionString);
-            //storage.InitializeAsync().Wait();
-
+        public async Task DisposeAsync()
+        {
+            this.Connection.Dispose();
+            await this.container.StopAsync();
         }
     }
 
-    //[CollectionDefinition("Postgres collection")]
-    public class PostgresDatabaseFixtureCollection : ICollectionFixture<PostgresDatabaseFixture>
+    public class PostgreSqlStorageTests : TransactionStorageTests<PostgreSqlTransactionStorage>, IClassFixture<PostgresDatabaseFixture>
     {
-    }
+        private readonly PostgresDatabaseFixture fixture;
 
-    //[Collection("Postgres collection")]
-    public class PostgreSqlStorageTests : TransactionStorageTests<PostgreSqlTransactionStorage>, IDisposable
-    {
-        private readonly PostgresDatabaseFixture _collection;
-
-        public PostgreSqlStorageTests()
+        public PostgreSqlStorageTests(PostgresDatabaseFixture fixture)
         {
-            //_collection = collection;
-            this._collection = new PostgresDatabaseFixture();
+            this.fixture = fixture;
         }
+
+        //public Task DisposeAsync() => this.fixture.DisposeAsync();
+
+        //public Task InitializeAsync() => this.fixture.InitializeAsync();
 
         protected override PostgreSqlTransactionStorage CreateStorage()
         {
-            return new PostgreSqlTransactionStorage(this._collection.ConnectionString);
+            return new PostgreSqlTransactionStorage(this.fixture.ConnectionString);
         }
 
         protected override PostgreSqlTransactionStorage CreateStorage(ITimeService timeService)
         {
-            return new PostgreSqlTransactionStorage(this._collection.ConnectionString, timeService);
-        }
-
-        public void Dispose()
-        {
-            using (var conn = new Npgsql.NpgsqlConnection(this._collection.ConnectionString))
-            {
-                try
-                {
-                    conn.Open();
-                }
-                catch (SocketException)
-                {
-                }
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = "delete from trans.transaction_state; delete from trans.transactions;";
-                    cmd.ExecuteNonQuery();
-                }
-            }
+            return new PostgreSqlTransactionStorage(this.fixture.ConnectionString, timeService);
         }
     }
 }

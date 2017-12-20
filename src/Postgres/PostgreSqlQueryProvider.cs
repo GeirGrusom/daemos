@@ -1,16 +1,16 @@
 ﻿// This file is licensed under the MIT open source license
 // https://opensource.org/licenses/MIT
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using Npgsql;
-using NpgsqlTypes;
-
 namespace Daemos.Postgres
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Reflection;
+    using Npgsql;
+    using NpgsqlTypes;
+
     public class PostgreSqlQueryProvider : IQueryProvider
     {
 
@@ -26,7 +26,7 @@ namespace Daemos.Postgres
         private static Type GetElementType(Type expType)
         {
             var interf = expType.GetInterfaces().Single(x => x.Name == "IEnumerable`1");
-            return interf.GetGenericArguments()[0];            
+            return interf.GetGenericArguments()[0];
         }
 
         public IQueryable CreateQuery(Expression expression)
@@ -94,7 +94,6 @@ namespace Daemos.Postgres
 
                 using (var reader = cmd.ExecuteReader())
                 {
-
                     if (tr.GenericTypeArguments.Length == 0)
                     {
                         // This is probably a scalar.
@@ -159,28 +158,28 @@ namespace Daemos.Postgres
             const int Expired   = 4;
             const int Payload   = 5;
             const int Script    = 6;
-            const int State     = 9;
+            const int Status    = 9;
             const int Error     = 10;
 
             Guid? parentId = GetValue<Guid>(reader, 7);
             int? parentRevision = GetValue<int>(reader, 8);
 
             var parent = parentId != null ? new TransactionRevision(parentId.Value, parentRevision.Value) : (TransactionRevision?)null;
-             
+
             var id = reader.GetGuid(Id);
             var rev = reader.GetInt32(Revision);
             var created = reader.GetDateTime(Created);
             var expires = GetValue<DateTime>(reader, Expires);
             var expired = GetValue<DateTime>(reader, Expired);
             string payloadValue = GetObjectValue<string>(reader, Payload);
-            object payload = payloadValue != null ? Newtonsoft.Json.JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(payloadValue) : null; 
+            object payload = payloadValue != null ? Newtonsoft.Json.JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(payloadValue) : null;
 
             var script = GetObjectValue<string>(reader, Script);
-            var state = (TransactionStatus)reader.GetInt32(State);
+            var status = (TransactionStatus)reader.GetInt32(Status);
 
             string errorValue = GetObjectValue<string>(reader, Error);
             object error = errorValue != null ? Newtonsoft.Json.JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(errorValue) : null;
-            return new Transaction(id, rev, created, expires, expired, payload, script, state, parent, error, this.storage);
-        } 
+            return new Transaction(id, rev, created, expires, expired, payload, script, status, parent, error, this.storage);
+        }
     }
 }
