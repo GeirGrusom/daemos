@@ -26,20 +26,18 @@ namespace Daemos.Scripting
         }
 
         /// <summary>
-        /// Line number where the error is present
+        /// Gets the line number where the error is present
         /// </summary>
         public int Line { get; }
 
         /// <summary>
-        /// Column (or character on line) where the error is present
+        /// Gets the column (or character on line) where the error is present
         /// </summary>
         public int Column { get; }
 
         /// <summary>
-        /// Message describing the error
+        /// Gets a message describing the error
         /// </summary>
         public string Message { get; }
-
-        
     }
 }

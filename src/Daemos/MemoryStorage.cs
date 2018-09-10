@@ -16,6 +16,8 @@ namespace Daemos
     /// </summary>
     public sealed class MemoryStorage : TransactionStorageBase
     {
+        private static readonly List<Transaction> EmptyTransactionList = new List<Transaction>(0);
+
         private readonly ConcurrentDictionary<Guid, TransactionSlot> transactions;
         private readonly ConcurrentDictionary<TransactionRevision, byte[]> transactionStates;
         private readonly SortedList<DateTime, TransactionSlot> transactionsByExpiriation = new SortedList<DateTime, TransactionSlot>(ReverseDateTimeComparer.Instance);
@@ -265,7 +267,50 @@ namespace Daemos
             return Task.FromResult(this.transactions.ContainsKey(id));
         }
 
-        private static readonly List<Transaction> EmptyTransactionList = new List<Transaction>(0);
+        /// <inheritdoc/>
+        public override Task<IQueryable<Transaction>> QueryAsync()
+        {
+            return Task.FromResult(this.transactions.Select(x => x.Value.Head).AsQueryable());
+        }
+
+        /// <inheritdoc/>
+        public override async Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout)
+        {
+            SemaphoreSlim sem = new SemaphoreSlim(0, 1);
+            Transaction result = null;
+            EventHandler<TransactionCommittedEventArgs> ev = null;
+            ev = (sender, e) =>
+            {
+                if (predicate(e.Transaction))
+                {
+                    result = e.Transaction;
+                    this.TransactionCommitted -= ev;
+                    sem.Release();
+                }
+            };
+
+            this.TransactionCommitted += ev;
+
+            if (!await sem.WaitAsync(timeout))
+            {
+                return null;
+            }
+
+            return result;
+        }
+
+        /// <inheritdoc/>
+        public override void SaveTransactionState(Guid id, int revision, byte[] state)
+        {
+            this.transactionStates[new TransactionRevision(id, revision)] = state;
+        }
+
+        /// <inheritdoc/>
+        public override Task SaveTransactionStateAsync(Guid id, int revision, byte[] state)
+        {
+            this.transactionStates[new TransactionRevision(id, revision)] = state;
+            return Task.CompletedTask;
+        }
 
         /// <inheritdoc/>
         protected override Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel)
@@ -324,51 +369,6 @@ namespace Daemos
             }
 
             return Task.FromResult(result);
-        }
-
-        /// <inheritdoc/>
-        public override Task<IQueryable<Transaction>> QueryAsync()
-        {
-            return Task.FromResult(this.transactions.Select(x => x.Value.Head).AsQueryable());
-        }
-
-        /// <inheritdoc/>
-        public override async Task<Transaction> WaitForAsync(Func<Transaction, bool> predicate, int timeout)
-        {
-            SemaphoreSlim sem = new SemaphoreSlim(0, 1);
-            Transaction result = null;
-            EventHandler<TransactionCommittedEventArgs> ev = null;
-            ev = (sender, e) =>
-            {
-                if (predicate(e.Transaction))
-                {
-                    result = e.Transaction;
-                    this.TransactionCommitted -= ev;
-                    sem.Release();
-                }
-            };
-
-            this.TransactionCommitted += ev;
-
-            if (!await sem.WaitAsync(timeout))
-            {
-                return null;
-            }
-
-            return result;
-        }
-
-        /// <inheritdoc/>
-        public override void SaveTransactionState(Guid id, int revision, byte[] state)
-        {
-            this.transactionStates[new TransactionRevision(id, revision)] = state;
-        }
-
-        /// <inheritdoc/>
-        public override Task SaveTransactionStateAsync(Guid id, int revision, byte[] state)
-        {
-            this.transactionStates[new TransactionRevision(id, revision)] = state;
-            return Task.CompletedTask;
         }
 
         private static IDictionary<string, object> ToDictionary<T>(T value)

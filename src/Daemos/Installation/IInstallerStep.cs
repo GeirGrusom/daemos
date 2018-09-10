@@ -3,14 +3,22 @@
 
 namespace Daemos.Installation
 {
-    using System;
     using System.Collections.Generic;
-    using System.Text;
 
+    /// <summary>
+    /// This interfaces defines a step in the installer
+    /// </summary>
     public interface IInstallerStep
     {
+        /// <summary>
+        /// Gets the name of the step
+        /// </summary>
         string Name { get; }
 
+        /// <summary>
+        /// Creates an iterator for tasks for this installation step
+        /// </summary>
+        /// <returns>Iterator for installation task</returns>
         IEnumerable<ITask> GetStepTasks();
     }
 }

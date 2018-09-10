@@ -161,8 +161,7 @@ namespace Daemos.WebApi.Controllers
                     data.Expires = expires;
                     data.Payload = model.ContainsKey("payload") ? model["payload"] : trans.Payload;
                     data.Script = model.ContainsKey("script") ? model["script"] as string : trans.Script;
-                    data.Handler = model.ContainsKey("handler") ? model["handler"] as string : null;
-                    data.State = state;
+                    data.Status = state;
                 });
             }
             finally

@@ -1,18 +1,18 @@
 ﻿// This file is licensed under the MIT open source license
 // https://opensource.org/licenses/MIT
 
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Daemos.Installation;
-using Npgsql;
-using NpgsqlTypes;
-
 namespace Daemos.Postgres.Installation
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Dynamic;
+    using System.Text;
+    using System.Text.RegularExpressions;
+    using System.Threading.Tasks;
+    using Daemos.Installation;
+    using Npgsql;
+    using NpgsqlTypes;
+
     public class InstallDatabaseSchemaTask : PostgresTaskBase
     {
         private ICredentialsPrompt prompt;

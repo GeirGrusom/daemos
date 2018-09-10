@@ -1,15 +1,15 @@
 ﻿// This file is licensed under the MIT open source license
 // https://opensource.org/licenses/MIT
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using Npgsql;
-
 namespace Daemos.Postgres
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Reflection;
+    using Npgsql;
+
     public class MigrationItem
     {
         public string Name { get; }

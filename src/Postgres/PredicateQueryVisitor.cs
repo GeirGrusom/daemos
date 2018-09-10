@@ -1,14 +1,14 @@
 ﻿// This file is licensed under the MIT open source license
 // https://opensource.org/licenses/MIT
 
-using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Text;
-
 namespace Daemos.Postgres
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq.Expressions;
+    using System.Reflection;
+    using System.Text;
+
     public class PredicateQueryVisitor : ExpressionVisitor
     {
         private readonly StringBuilder builder;

@@ -4,7 +4,7 @@
     <Description>Daemos PostgreSQL Library</Description>
     <AssemblyTitle>Daemos PostgreSQL</AssemblyTitle>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <AssemblyName>Postgres</AssemblyName>
+    <AssemblyName>Daemos.Postgres</AssemblyName>
     <PackageId>Daemos.Postgres</PackageId>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>
@@ -16,6 +16,10 @@
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <Version>0.1.0-pre</Version>
     <Authors>Henning Moe</Authors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>bin\Debug\netstandard2.0\Daemos.Postgres.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

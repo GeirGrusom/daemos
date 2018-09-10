@@ -7,47 +7,14 @@ namespace Daemos.Postgres
     using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
-    using System.Reflection;
     using Npgsql;
     using NpgsqlTypes;
 
+    /// <summary>
+    /// This class is a LINQ query provider for PostgreSQL
+    /// </summary>
     public class PostgreSqlQueryProvider : IQueryProvider
     {
-
-        private readonly NpgsqlConnection connection;
-        private readonly ITransactionStorage storage;
-
-        public PostgreSqlQueryProvider(NpgsqlConnection conn, ITransactionStorage storage)
-        {
-            this.connection = conn;
-            this.storage = storage;
-        }
-
-        private static Type GetElementType(Type expType)
-        {
-            var interf = expType.GetInterfaces().Single(x => x.Name == "IEnumerable`1");
-            return interf.GetGenericArguments()[0];
-        }
-
-        public IQueryable CreateQuery(Expression expression)
-        {
-            return (IQueryable)Activator.CreateInstance(typeof(PostgreSqlOrderedQuerableProvider<>).MakeGenericType(typeof(Transaction)), this, expression);
-        }
-
-        public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
-        {
-            return new PostgreSqlOrderedQuerableProvider<TElement>(this, expression);
-        }
-
-        public object Execute(Expression expression)
-        {
-            PostgresVisitor visitor = new PostgresVisitor();
-            visitor.Visit(expression);
-            var exp = visitor.ToString();
-
-            return null;
-        }
-
         private static readonly Dictionary<Type, NpgsqlDbType> LookupDictionary = new Dictionary<Type, NpgsqlDbType>
         {
             [typeof(byte)] = NpgsqlDbType.Smallint,
@@ -64,12 +31,43 @@ namespace Daemos.Postgres
             [typeof(Guid)] = NpgsqlDbType.Uuid,
         };
 
-        private NpgsqlDbType GetDbType(Type input)
-        {
-            return LookupDictionary[input];
+        private readonly NpgsqlConnection connection;
+        private readonly ITransactionStorage storage;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PostgreSqlQueryProvider"/> class.
+        /// </summary>
+        /// <param name="conn">Database connection</param>
+        /// <param name="storage">Storage engine</param>
+        public PostgreSqlQueryProvider(NpgsqlConnection conn, ITransactionStorage storage)
+        {
+            this.connection = conn;
+            this.storage = storage;
         }
 
+        /// <inheritdoc/>
+        public IQueryable CreateQuery(Expression expression)
+        {
+            return (IQueryable)Activator.CreateInstance(typeof(PostgreSqlOrderedQuerableProvider<>).MakeGenericType(typeof(Transaction)), this, expression);
+        }
+
+        /// <inheritdoc/>
+        public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
+        {
+            return new PostgreSqlOrderedQuerableProvider<TElement>(this, expression);
+        }
+
+        /// <inheritdoc/>
+        public object Execute(Expression expression)
+        {
+            PostgresVisitor visitor = new PostgresVisitor();
+            visitor.Visit(expression);
+            var exp = visitor.ToString();
+
+            return null;
+        }
+
+        /// <inheritdoc/>
         public TResult Execute<TResult>(Expression expression)
         {
             Type tr = typeof(TResult);
@@ -85,7 +83,7 @@ namespace Daemos.Postgres
                 {
                     var p = new NpgsqlParameter("p" + (++id), param)
                     {
-                        NpgsqlDbType = this.GetDbType(param.GetType())
+                        NpgsqlDbType = GetDbType(param.GetType())
                     };
                     cmd.Parameters.Add(p);
                 }
@@ -125,6 +123,17 @@ namespace Daemos.Postgres
             return default(TResult);
         }
 
+        private static Type GetElementType(Type expType)
+        {
+            var interf = expType.GetInterfaces().Single(x => x.Name == "IEnumerable`1");
+            return interf.GetGenericArguments()[0];
+        }
+
+        private static NpgsqlDbType GetDbType(Type input)
+        {
+            return LookupDictionary[input];
+        }
+
         private static T? GetValue<T>(NpgsqlDataReader reader, int ordinal)
             where T : struct
         {
@@ -151,15 +160,15 @@ namespace Daemos.Postgres
 
         private Transaction MapTransaction(NpgsqlDataReader reader)
         {
-            const int Id        = 0;
-            const int Revision  = 1;
-            const int Created   = 2;
-            const int Expires   = 3;
-            const int Expired   = 4;
-            const int Payload   = 5;
-            const int Script    = 6;
-            const int Status    = 9;
-            const int Error     = 10;
+            const int Id = 0;
+            const int Revision = 1;
+            const int Created = 2;
+            const int Expires = 3;
+            const int Expired = 4;
+            const int Payload = 5;
+            const int Script = 6;
+            const int Status = 9;
+            const int Error = 10;
 
             Guid? parentId = GetValue<Guid>(reader, 7);
             int? parentRevision = GetValue<int>(reader, 8);

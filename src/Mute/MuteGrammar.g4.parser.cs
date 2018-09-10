@@ -31,7 +31,6 @@ namespace Daemos.Mute
         {
             nameof(Transaction.Status),
             nameof(Transaction.Expires),
-            nameof(Transaction.Handler),
             nameof(Transaction.Payload),
             nameof(Transaction.Script),
         };
@@ -657,16 +656,6 @@ namespace Daemos.Mute
                     if (member.Type.ClrType != typeof(string))
                     {
                         this.AddSyntaxError("Script must be a string.", member.Context);
-                    }
-
-                    continue;
-                }
-
-                if (member.Name == nameof(Transaction.Handler))
-                {
-                    if (member.Type.ClrType != typeof(string))
-                    {
-                        this.AddSyntaxError("Handler must be a string.", member.Context);
                     }
 
                     continue;

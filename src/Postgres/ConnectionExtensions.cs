@@ -1,16 +1,16 @@
 ﻿// This file is licensed under the MIT open source license
 // https://opensource.org/licenses/MIT
 
-using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Threading.Tasks;
-using Npgsql;
-using NpgsqlTypes;
-
 namespace Daemos.Postgres
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq.Expressions;
+    using System.Reflection;
+    using System.Threading.Tasks;
+    using Npgsql;
+    using NpgsqlTypes;
+
     public static class ConnectionExtensions
     {
 

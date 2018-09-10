@@ -1,15 +1,15 @@
 ﻿// This file is licensed under the MIT open source license
 // https://opensource.org/licenses/MIT
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Daemos.Installation;
-using Npgsql;
-
 namespace Daemos.Postgres.Installation
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Daemos.Installation;
+    using Npgsql;
+
     public class SelectDatabaseTask : ITask
     {
         public string Host { get; }

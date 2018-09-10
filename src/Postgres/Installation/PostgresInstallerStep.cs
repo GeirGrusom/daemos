@@ -1,14 +1,14 @@
 ﻿// This file is licensed under the MIT open source license
 // https://opensource.org/licenses/MIT
 
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using Daemos.Installation;
-using Npgsql;
-
 namespace Daemos.Postgres.Installation
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text.RegularExpressions;
+    using Daemos.Installation;
+    using Npgsql;
+
     public class PostgresInstallerStep : IInstallerStep
     {
         public string Name => "PostgreSQL support";

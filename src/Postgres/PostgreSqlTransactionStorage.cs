@@ -18,6 +18,9 @@ namespace Daemos.Postgres
     using Npgsql;
     using NpgsqlTypes;
 
+    /// <summary>
+    /// This class implements a transaction storage using PostgreSQL
+    /// </summary>
     public class PostgreSqlTransactionStorage : TransactionStorageBase
     {
         private const string Schema = "trans";
@@ -32,24 +35,27 @@ namespace Daemos.Postgres
 
         private readonly string connectionString;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PostgreSqlTransactionStorage"/> class.
+        /// </summary>
+        /// <param name="connectionString">Connection string to use for database connection</param>
         public PostgreSqlTransactionStorage(string connectionString)
         {
             this.connectionString = connectionString;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PostgreSqlTransactionStorage"/> class.
+        /// </summary>
+        /// <param name="connectionString">Connections string to use for database connection</param>
+        /// <param name="timeService">Time service used to get current time</param>
         public PostgreSqlTransactionStorage(string connectionString, ITimeService timeService)
             : base(timeService)
         {
             this.connectionString = connectionString;
         }
 
-        private static void GuidHash(Guid id, out int a, out int b)
-        {
-            var bytes = id.ToByteArray();
-            a = BitConverter.ToInt32(bytes, 0);
-            b = BitConverter.ToInt32(bytes, 4);
-        }
-
+        /// <inheritdoc/>
         public override async Task InitializeAsync()
         {
             var conn = await this.GetConnectionAsync();
@@ -74,6 +80,7 @@ namespace Daemos.Postgres
             }
         }
 
+        /// <inheritdoc/>
         public override async Task<byte[]> GetTransactionStateAsync(Guid id, int revision)
         {
             var conn = await this.GetConnectionAsync();
@@ -103,11 +110,13 @@ namespace Daemos.Postgres
             }
         }
 
+        /// <inheritdoc/>
         public override async Task OpenAsync()
         {
             var conn = await this.GetConnectionAsync();
         }
 
+        /// <inheritdoc/>
         public override async Task<Transaction> CommitTransactionDeltaAsync(Transaction original, Transaction next)
         {
             Transaction result;
@@ -174,6 +183,7 @@ INSERT INTO {Schema}.transactions
             return result;
         }
 
+        /// <inheritdoc/>
         public override Transaction CommitTransactionDelta(Transaction original, Transaction next)
         {
             Transaction result;
@@ -240,11 +250,18 @@ INSERT INTO {Schema}.transactions
             return result;
         }
 
+        /// <inheritdoc/>
         public override Task<Transaction> CreateTransactionAsync(Transaction transaction)
         {
             return this.CreateTransactionAsync(transaction, null);
         }
 
+        /// <summary>
+        /// Creates a transaction to use for migration tasks
+        /// </summary>
+        /// <param name="transaction">Transaction to create</param>
+        /// <param name="sqlTransaction">SQL transaction for this migration task</param>
+        /// <returns>Newly created transaction</returns>
         public async Task<Transaction> CreateTransactionAsync(Transaction transaction, NpgsqlTransaction sqlTransaction)
         {
             Transaction result;
@@ -309,6 +326,7 @@ INSERT INTO {Schema}.transactions
             return result;
         }
 
+        /// <inheritdoc/>
         public override async Task<Transaction> FetchTransactionAsync(Guid id, int revision = -1)
         {
             if (revision == -1)
@@ -346,6 +364,7 @@ INSERT INTO {Schema}.transactions
             }
         }
 
+        /// <inheritdoc/>
         public override async Task<IEnumerable<Transaction>> GetChainAsync(Guid id)
         {
             using (var selectChain = await this.SelectTransactionChainCommandAsync())
@@ -364,6 +383,7 @@ INSERT INTO {Schema}.transactions
             }
         }
 
+        /// <inheritdoc/>
         public override async Task<IEnumerable<Transaction>> GetChildTransactionsAsync(Guid transaction, params TransactionStatus[] statuses)
         {
             using (var cmd = await this.SelectChildTransactionsCommandAsync())
@@ -383,11 +403,13 @@ INSERT INTO {Schema}.transactions
             }
         }
 
+        /// <inheritdoc/>
         public override async Task<IQueryable<Transaction>> QueryAsync()
         {
             return new PostgreSqlOrderedQuerableProvider<Transaction>(await this.GetQueryProviderAsync());
         }
 
+        /// <inheritdoc/>
         public override async Task<bool> TransactionExistsAsync(Guid id)
         {
             var conn = await this.GetConnectionAsync();
@@ -405,6 +427,7 @@ INSERT INTO {Schema}.transactions
             }
         }
 
+        /// <inheritdoc/>
         public override void SaveTransactionState(Guid id, int revision, byte[] state)
         {
             var conn = this.GetConnection();
@@ -421,6 +444,7 @@ INSERT INTO {Schema}.transactions
             }
         }
 
+        /// <inheritdoc/>
         public override async Task SaveTransactionStateAsync(Guid id, int revision, byte[] state)
         {
             var conn = await this.GetConnectionAsync();
@@ -437,6 +461,7 @@ INSERT INTO {Schema}.transactions
             }
         }
 
+        /// <inheritdoc/>
         protected override async Task<List<Transaction>> GetExpiringTransactionsInternal(CancellationToken cancel)
         {
             string sql = $"SELECT {SelectColumns} FROM {Schema}.transactions_head WHERE expires <= @now";
@@ -473,6 +498,13 @@ INSERT INTO {Schema}.transactions
             this.SetNextExpiringTransactionTime(await this.GetNextExpiringTransactionTime());
 
             return results;
+        }
+
+        private static void GuidHash(Guid id, out int a, out int b)
+        {
+            var bytes = id.ToByteArray();
+            a = BitConverter.ToInt32(bytes, 0);
+            b = BitConverter.ToInt32(bytes, 4);
         }
 
         private Transaction Map(DbDataReader reader)

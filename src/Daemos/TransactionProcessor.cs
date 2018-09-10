@@ -112,7 +112,7 @@ namespace Daemos
                                     true,
                                     (ref TransactionMutableData x) =>
                                     {
-                                        x.State = TransactionStatus.Failed;
+                                        x.Status = TransactionStatus.Failed;
                                         x.Payload = transaction.Payload;
                                         x.Error = error;
                                         x.Expires = null;

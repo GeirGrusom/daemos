@@ -4,7 +4,7 @@
     <Description>Daemos Base Library</Description>
     <AssemblyTitle>Daemos</AssemblyTitle>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <AssemblyName>Daemos</AssemblyName>
     <PackageId>Daemos</PackageId>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
@@ -23,11 +23,11 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>transaction daemos</PackageTags>
     <Version>0.1.0-pre</Version>
+    <LangVersion>7.2</LangVersion>
+    <DocumentationFile>bin\Debug\netstandard2.0\Daemos.xml</DocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <LangVersion>7.1</LangVersion>
-    <DocumentationFile>bin\Debug\netstandard2.0\Daemos.xml</DocumentationFile>
     <NoWarn>1701;1702;1705</NoWarn>
   </PropertyGroup>
 

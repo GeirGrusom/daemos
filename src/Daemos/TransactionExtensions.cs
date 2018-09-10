@@ -69,14 +69,14 @@ namespace Daemos
                 Script = data.Script,
                 Expires = data.Expires,
                 Payload = data.Payload,
-                State = data.Status
+                Status = data.Status
             };
             delta(ref mutableData);
 
             data.Expires = mutableData.Expires;
             data.Script = mutableData.Script;
             data.Payload = mutableData.Payload;
-            data.Status = mutableData.State;
+            data.Status = mutableData.Status;
             data.Error = mutableData.Error;
 
             var newTransaction = new Transaction(data, original.Storage);

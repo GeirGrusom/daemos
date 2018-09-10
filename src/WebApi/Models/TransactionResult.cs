@@ -35,11 +35,9 @@ namespace Daemos.WebApi.Models
         [JsonProperty("expired", NullValueHandling = NullValueHandling.Ignore)]
         public DateTime? Expired => this._transaction.Expired;
 
-        [JsonProperty("state"), JsonConverter(typeof(StringEnumConverter))]
+        [JsonProperty("state")]
+        [JsonConverter(typeof(StringEnumConverter))]
         public TransactionStatus State => this._transaction.Status;
-
-        [JsonProperty("handler", NullValueHandling = NullValueHandling.Ignore)]
-        public string Handler => this._transaction.Handler;
 
         [JsonProperty("script", NullValueHandling = NullValueHandling.Ignore)]
         public string Script => this._transaction.Script;
