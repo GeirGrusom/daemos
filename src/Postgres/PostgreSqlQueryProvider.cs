@@ -24,7 +24,7 @@ namespace Daemos.Postgres
             [typeof(string)] = NpgsqlDbType.Varchar,
             [typeof(float)] = NpgsqlDbType.Real,
             [typeof(double)] = NpgsqlDbType.Double,
-            [typeof(TransactionStatus)] = NpgsqlDbType.Enum,
+            [typeof(TransactionStatus)] = NpgsqlDbType.Integer,
             [typeof(bool)] = NpgsqlDbType.Boolean,
             [typeof(DateTime)] = NpgsqlDbType.Timestamp,
             [typeof(decimal)] = NpgsqlDbType.Money,
